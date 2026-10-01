@@ -147,7 +147,7 @@ class Venta extends Model
         $ventas = self::with('barbero')
             ->activas()
             ->where('barberia_id', $barberiaId)
-            ->where('fecha', $fecha)
+            ->whereDate('fecha', $fecha)
             ->get();
 
         return [

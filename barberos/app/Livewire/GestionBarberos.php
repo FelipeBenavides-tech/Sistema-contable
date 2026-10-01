@@ -21,12 +21,16 @@ class GestionBarberos extends Component
 
     public function nuevo(): void
     {
+        $this->resetErrorBag();
+        $this->aviso = '';
         $this->reset(['nombre', 'telefono', 'comision_porcentaje', 'activo', 'editandoId']);
         $this->mostrarForm = true;
     }
 
     public function editar(int $id): void
     {
+        $this->resetErrorBag();
+        $this->aviso = '';
         $barbero = Barbero::where('barberia_id', $this->barberiaId())->findOrFail($id);
         $this->editandoId          = $id;
         $this->nombre              = $barbero->nombre;
@@ -91,6 +95,8 @@ class GestionBarberos extends Component
 
     public function cancelar(): void
     {
+        $this->resetErrorBag();
+        $this->aviso = '';
         $this->reset(['nombre', 'telefono', 'comision_porcentaje', 'editandoId']);
         $this->mostrarForm = false;
     }

@@ -20,6 +20,8 @@ class GestionServicios extends Component
 
     public function nuevo(): void
     {
+        $this->resetErrorBag();
+        $this->aviso = '';
         $this->reset(['nombre', 'precio', 'categoria', 'editandoId']);
         $this->categoria = 'servicio';
         $this->mostrarForm = true;
@@ -27,6 +29,8 @@ class GestionServicios extends Component
 
     public function editar(int $id): void
     {
+        $this->resetErrorBag();
+        $this->aviso = '';
         $servicio = Servicio::where('barberia_id', $this->barberiaId())->findOrFail($id);
         $this->editandoId  = $id;
         $this->nombre      = $servicio->nombre;
@@ -90,6 +94,8 @@ class GestionServicios extends Component
 
     public function cancelar(): void
     {
+        $this->resetErrorBag();
+        $this->aviso = '';
         $this->reset(['nombre', 'precio', 'categoria', 'editandoId']);
         $this->mostrarForm = false;
     }

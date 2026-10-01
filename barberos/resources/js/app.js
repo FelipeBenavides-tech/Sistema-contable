@@ -1,7 +1,3 @@
 import './bootstrap';
 
-import Alpine from 'alpinejs';
-
-window.Alpine = Alpine;
-
-Alpine.start();
+// Alpine.js ya viene incluido con Livewire: no se inicia aquí para no cargarlo dos veces.

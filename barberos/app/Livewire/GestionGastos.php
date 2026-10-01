@@ -27,6 +27,7 @@ class GestionGastos extends Component
 
     public function nuevo(): void
     {
+        $this->resetErrorBag();
         $this->reset(['concepto', 'categoria', 'valor', 'metodo_pago', 'observacion']);
         $this->fecha       = now()->toDateString();
         $this->mostrarForm = true;
@@ -65,6 +66,7 @@ class GestionGastos extends Component
 
     public function cancelar(): void
     {
+        $this->resetErrorBag();
         $this->reset(['concepto', 'categoria', 'valor', 'metodo_pago', 'observacion']);
         $this->mostrarForm = false;
     }

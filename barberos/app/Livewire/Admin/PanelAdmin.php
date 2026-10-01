@@ -42,6 +42,7 @@ class PanelAdmin extends Component
 
     public function nuevo(): void
     {
+        $this->resetErrorBag();
         $this->reset([
             'nombre',
             'propietario',
@@ -58,6 +59,7 @@ class PanelAdmin extends Component
 
     public function editar(int $id): void
     {
+        $this->resetErrorBag();
         $barberia          = Barberia::findOrFail($id);
         $this->editandoId  = $id;
         $this->nombre      = $barberia->nombre;
@@ -164,6 +166,7 @@ class PanelAdmin extends Component
 
     public function cancelar(): void
     {
+        $this->resetErrorBag();
         $this->reset([
             'nombre',
             'propietario',

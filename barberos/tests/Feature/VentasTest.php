@@ -180,6 +180,7 @@ class VentasTest extends TestCase
 
         $venta = Venta::sole();
         $this->assertSame(3, $producto->fresh()->stock_actual);
+        $this->assertEquals(20000, Venta::resumenDia(null, $barberia->id)['total_efectivo']);
 
         $historial = Livewire::actingAs($usuario)
             ->test(HistorialVentas::class)

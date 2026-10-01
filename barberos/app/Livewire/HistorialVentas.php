@@ -445,7 +445,7 @@ class HistorialVentas extends Component
     {
         $ventas = Venta::with(['barbero', 'items'])
             ->where('barberia_id', $this->barberiaId())
-            ->when($this->fecha, fn($q) => $q->where('fecha', $this->fecha))
+            ->when($this->fecha, fn($q) => $q->whereDate('fecha', $this->fecha))
             ->orderByDesc('created_at')
             ->get();
 

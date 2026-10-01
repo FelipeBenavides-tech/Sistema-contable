@@ -1,161 +1,101 @@
-<div class="flex flex-col gap-5">
+@php
+    $dinero = fn($valor) => '$' . number_format((float) $valor, 0, ',', '.');
+    $meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    $maxServicio = max(1, (float) $topServicios->max('total_valor'));
+@endphp
+<div class="flex flex-col gap-4">
 
-    {{-- Selector de mes + botones exportación --}}
-    <div class="flex gap-3 items-center justify-between flex-wrap">
-        <div class="flex gap-3">
-            <select wire:model.live="mes"
-                    class="rounded-lg px-3 py-2.5 text-sm outline-none"
-                    style="background:var(--surface);border:1px solid var(--border);color:var(--text)">
-                <option value="1">Enero</option>
-                <option value="2">Febrero</option>
-                <option value="3">Marzo</option>
-                <option value="4">Abril</option>
-                <option value="5">Mayo</option>
-                <option value="6">Junio</option>
-                <option value="7">Julio</option>
-                <option value="8">Agosto</option>
-                <option value="9">Septiembre</option>
-                <option value="10">Octubre</option>
-                <option value="11">Noviembre</option>
-                <option value="12">Diciembre</option>
+    {{-- Mes y descargas --}}
+    <div class="card card-pad flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="grid grid-cols-2 gap-2 sm:flex">
+            <select wire:model.live="mes" class="input sm:w-40" aria-label="Mes">
+                @foreach($meses as $i => $nombre)
+                    <option value="{{ $i + 1 }}">{{ $nombre }}</option>
+                @endforeach
             </select>
-            <select wire:model.live="anio"
-                    class="rounded-lg px-3 py-2.5 text-sm outline-none"
-                    style="background:var(--surface);border:1px solid var(--border);color:var(--text)">
-                <option value="2024">2024</option>
-                <option value="2025">2025</option>
-                <option value="2026">2026</option>
+            <select wire:model.live="anio" class="input sm:w-28" aria-label="Año">
+                @foreach($anios as $a)
+                    <option value="{{ $a }}">{{ $a }}</option>
+                @endforeach
             </select>
         </div>
-        <div class="flex gap-3">
-            <a href="{{ route('reportes.excel', ['mes' => $mes, 'anio' => $anio]) }}"
-               class="px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2"
-               style="background:#2e7d32;color:white">
-                Descargar Excel
-            </a>
-            <a href="{{ route('reportes.pdf', ['mes' => $mes, 'anio' => $anio]) }}"
-               class="px-4 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2"
-               style="background:#1A3A5C;color:white">
-                Descargar PDF
-            </a>
+        <div class="grid grid-cols-2 gap-2 sm:flex">
+            <a href="{{ route('reportes.excel', ['mes' => $mes, 'anio' => $anio]) }}" class="btn bg-green-700 text-white hover:bg-green-800">Excel</a>
+            <a href="{{ route('reportes.pdf', ['mes' => $mes, 'anio' => $anio]) }}" class="btn bg-ink text-white hover:bg-brand-900/90">PDF</a>
         </div>
     </div>
 
-    {{-- KPIs del mes --}}
-    <div class="grid grid-cols-3 gap-3">
-        <div class="rounded-xl p-4" style="background:var(--surface);border:1px solid var(--border)">
-            <p class="text-xs mb-2" style="color:var(--muted)">Ingresos del mes</p>
-            <p class="text-2xl font-bold" style="color:var(--success)">
-                ${{ number_format($resumenMes['ingresos'], 0, ',', '.') }}
-            </p>
-            <p class="text-xs mt-1" style="color:var(--muted)">{{ $resumenMes['cantidad_ventas'] }} servicios</p>
+    {{-- Resumen --}}
+    <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div class="kpi">
+            <p class="kpi-label">Ingresos</p>
+            <p class="kpi-value text-green-600">{{ $dinero($resumenMes['ingresos']) }}</p>
+            <p class="mt-1 text-xs text-muted">{{ $resumenMes['cantidad_ventas'] }} ventas</p>
         </div>
-        <div class="rounded-xl p-4" style="background:var(--surface);border:1px solid var(--border)">
-            <p class="text-xs mb-2" style="color:var(--muted)">Gastos del mes</p>
-            <p class="text-2xl font-bold" style="color:var(--danger)">
-                ${{ number_format($resumenMes['gastos'], 0, ',', '.') }}
-            </p>
+        <div class="kpi">
+            <p class="kpi-label">Gastos</p>
+            <p class="kpi-value text-red-600">{{ $dinero($resumenMes['gastos']) }}</p>
         </div>
-        <div class="rounded-xl p-4" style="background:var(--surface);border:1px solid var(--border)">
-            <p class="text-xs mb-2" style="color:var(--muted)">Ganancia neta</p>
-            <p class="text-2xl font-bold"
-               style="color:{{ $resumenMes['ganancia_neta'] >= 0 ? 'var(--success)' : 'var(--danger)' }}">
-                ${{ number_format($resumenMes['ganancia_neta'], 0, ',', '.') }}
-            </p>
+        <div class="kpi">
+            <p class="kpi-label">Comisiones</p>
+            <p class="kpi-value text-amber-600">{{ $dinero($resumenMes['total_comisiones']) }}</p>
+        </div>
+        <div class="kpi">
+            <p class="kpi-label">Ganancia neta</p>
+            <p class="kpi-value {{ $resumenMes['ganancia_neta'] >= 0 ? 'text-green-600' : 'text-red-600' }}">{{ $dinero($resumenMes['ganancia_neta']) }}</p>
+            <p class="mt-1 text-xs text-muted">Ingresos − gastos</p>
         </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-5">
-
-        {{-- Servicios más vendidos --}}
-        <div class="flex flex-col gap-3">
-            <h3 class="text-sm font-medium" style="color:var(--muted)">Servicios más vendidos</h3>
-            <div class="rounded-xl overflow-hidden" style="border:1px solid var(--border)">
-                <div class="px-4 py-3 text-xs font-semibold grid gap-2"
-                     style="background:#F8FAFC;color:var(--muted);border-bottom:1px solid var(--border);
-                            grid-template-columns:1fr 60px 90px">
-                    <span>Servicio</span>
-                    <span class="text-center">Cant.</span>
-                    <span class="text-right">Total</span>
-                </div>
-                @forelse($topServicios as $s)
-                <div class="px-4 py-3 text-sm grid gap-2 border-t items-center"
-                     style="border-color:var(--border);grid-template-columns:1fr 60px 90px">
-                    <span>{{ $s->nombre_servicio }}</span>
-                    <span class="text-center" style="color:var(--muted)">{{ $s->total_cant }}</span>
-                    <span class="text-right font-semibold" style="color:var(--primary)">
-                        ${{ number_format($s->total_valor, 0, ',', '.') }}
-                    </span>
-                </div>
-                @empty
-                <div class="px-4 py-6 text-center text-sm" style="color:var(--muted)">
-                    Sin datos este mes
-                </div>
-                @endforelse
-            </div>
-        </div>
-
-        {{-- Comisiones por barbero --}}
-        <div class="flex flex-col gap-3">
-            <h3 class="text-sm font-medium" style="color:var(--muted)">Comisiones por barbero</h3>
-            <div class="rounded-xl overflow-hidden" style="border:1px solid var(--border)">
-                <div class="px-4 py-3 text-xs font-semibold grid gap-2"
-                     style="background:#F8FAFC;color:var(--muted);border-bottom:1px solid var(--border);
-                            grid-template-columns:1fr 60px 90px">
-                    <span>Barbero</span>
-                    <span class="text-center">Serv.</span>
-                    <span class="text-right">Comisión</span>
-                </div>
-                @forelse($comisionesBarberos as $b)
-                @if($b['total_generado'] > 0)
-                <div class="px-4 py-3 text-sm grid gap-2 border-t items-center"
-                     style="border-color:var(--border);grid-template-columns:1fr 60px 90px">
-                    <div>
-                        <p class="font-medium">{{ $b['barbero'] }}</p>
-                        <p class="text-xs" style="color:var(--muted)">
-                            Generó ${{ number_format($b['total_generado'], 0, ',', '.') }}
-                        </p>
+    <div class="grid gap-4 lg:grid-cols-2">
+        {{-- Más vendidos --}}
+        <div class="card card-pad">
+            <p class="card-title mb-3">Lo más vendido</p>
+            @forelse($topServicios as $s)
+                <div class="py-2">
+                    <div class="flex items-center justify-between gap-2 text-sm">
+                        <span class="truncate font-medium">{{ $s->nombre_servicio }} <span class="text-xs text-muted">× {{ $s->total_cant }}</span></span>
+                        <span class="font-semibold text-brand-500">{{ $dinero($s->total_valor) }}</span>
                     </div>
-                    <span class="text-center" style="color:var(--muted)">{{ $b['servicios'] }}</span>
-                    <span class="text-right font-semibold" style="color:var(--danger)">
-                        ${{ number_format($b['comision_total'], 0, ',', '.') }}
-                    </span>
+                    <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-brand-50">
+                        <div class="h-full rounded-full bg-brand-500" style="width: {{ round($s->total_valor / $maxServicio * 100) }}%"></div>
+                    </div>
                 </div>
-                @endif
-                @empty
-                <div class="px-4 py-6 text-center text-sm" style="color:var(--muted)">
-                    Sin datos este mes
-                </div>
-                @endforelse
-            </div>
+            @empty
+                <p class="py-6 text-center text-sm text-muted">Sin ventas este mes.</p>
+            @endforelse
         </div>
 
-    </div>
-
-    {{-- Gastos por categoría --}}
-    <div class="flex flex-col gap-3">
-        <h3 class="text-sm font-medium" style="color:var(--muted)">Gastos por categoría</h3>
-        <div class="rounded-xl overflow-hidden" style="border:1px solid var(--border)">
-            <div class="px-4 py-3 text-xs font-semibold grid gap-2"
-                 style="background:#F8FAFC;color:var(--muted);border-bottom:1px solid var(--border);
-                        grid-template-columns:1fr 100px">
-                <span>Categoría</span>
-                <span class="text-right">Total</span>
-            </div>
-            @forelse($gastosPorCategoria as $g)
-            <div class="px-4 py-3 text-sm grid gap-2 border-t items-center"
-                 style="border-color:var(--border);grid-template-columns:1fr 100px">
-                <span class="capitalize">{{ str_replace('_', ' ', $g->categoria) }}</span>
-                <span class="text-right font-semibold" style="color:var(--danger)">
-                    ${{ number_format($g->total, 0, ',', '.') }}
-                </span>
-            </div>
+        {{-- Comisiones --}}
+        <div class="card card-pad">
+            <p class="card-title mb-3">Comisiones por barbero</p>
+            @forelse($comisionesBarberos as $b)
+                <div class="flex items-center justify-between gap-3 border-b border-line py-2.5 last:border-b-0">
+                    <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold">{{ $b['barbero'] }}</p>
+                        <p class="text-xs text-muted">{{ $b['servicios'] }} ventas · generó {{ $dinero($b['total_generado']) }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-bold text-amber-600">{{ $dinero($b['comision_total']) }}</p>
+                        <p class="text-xs text-muted">{{ rtrim(rtrim(number_format($b['porcentaje'], 2, ',', ''), '0'), ',') }}%</p>
+                    </div>
+                </div>
             @empty
-            <div class="px-4 py-6 text-center text-sm" style="color:var(--muted)">
-                Sin gastos este mes
-            </div>
+                <p class="py-6 text-center text-sm text-muted">Sin ventas con barbero este mes.</p>
             @endforelse
         </div>
     </div>
 
+    {{-- Gastos por categoría --}}
+    <div class="card card-pad">
+        <p class="card-title mb-3">Gastos por categoría</p>
+        @forelse($gastosPorCategoria as $g)
+            <div class="flex items-center justify-between border-b border-line py-2.5 text-sm last:border-b-0">
+                <span class="capitalize">{{ str_replace('_', ' ', $g->categoria) }}</span>
+                <span class="font-semibold text-red-600">{{ $dinero($g->total) }}</span>
+            </div>
+        @empty
+            <p class="py-6 text-center text-sm text-muted">Sin gastos este mes.</p>
+        @endforelse
+    </div>
 </div>

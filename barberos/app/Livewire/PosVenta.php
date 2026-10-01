@@ -254,7 +254,7 @@ class PosVenta extends Component
         $ventasHoy = Venta::with(['barbero', 'items'])
             ->activas()
             ->where('barberia_id', $barberiaId)
-            ->where('fecha', now()->toDateString())
+            ->whereDate('fecha', now()->toDateString())
             ->orderByDesc('created_at')
             ->limit(15)
             ->get();

@@ -1,287 +1,164 @@
-<div class="flex flex-col gap-5">
+<div class="flex flex-col gap-4">
 
-    {{-- Modal de credenciales --}}
-@if($mostrarCredenciales)
-<div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:50;display:flex;align-items:center;justify-content:center">
-    <div class="rounded-2xl p-6 flex flex-col gap-4"
-         style="background:var(--surface);border:1px solid var(--border);width:420px;max-width:90vw">
-        <div>
-            <h3 class="font-semibold text-base" style="color:var(--text)">
-                Credenciales de acceso
-            </h3>
-            <p class="text-xs mt-1" style="color:var(--muted)">
-                Email actual: <span class="font-medium" style="color:var(--primary)">{{ $credencialesEmail }}</span>
-            </p>
-        </div>
-
-        @if($errors->any())
-        <div class="rounded-xl p-3 text-xs"
-             style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA">
-            @foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach
-        </div>
-        @endif
-
-        <div>
-            <label class="text-xs font-semibold mb-1.5 block" style="color:var(--muted)">
-                Nuevo email
-            </label>
-            <input wire:model="nuevoEmail"
-                   type="email"
-                   placeholder="correo@ejemplo.com"
-                   class="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                   style="background:#F8FAFC;border:1px solid var(--border);color:var(--text)">
-        </div>
-
-        <div>
-            <label class="text-xs font-semibold mb-1.5 block" style="color:var(--muted)">
-                Nueva contraseña
-            </label>
-            <input wire:model="nuevaPassword"
-                   type="text"
-                   placeholder="Dejar vacío para no cambiar"
-                   class="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                   style="background:#F8FAFC;border:1px solid var(--border);color:var(--text)">
-            <p class="text-xs mt-1" style="color:var(--muted)">
-                Si dejas la contraseña vacía no se cambiará.
-            </p>
-        </div>
-
-        <div class="flex gap-3 justify-end">
-            <button wire:click="cerrarCredenciales"
-                    class="px-4 py-2 rounded-xl text-sm"
-                    style="background:#F8FAFC;color:var(--muted);border:1px solid var(--border)">
-                Cancelar
-            </button>
-            <button wire:click="actualizarCredenciales"
-                    class="px-4 py-2 rounded-xl text-sm font-semibold"
-                    style="background:var(--primary);color:white">
-                Guardar cambios
-            </button>
-        </div>
-    </div>
-</div>
-@endif
-
-    {{-- Stats --}}
     <div class="grid grid-cols-3 gap-3">
-        <div class="rounded-xl p-4" style="background:var(--surface);border:1px solid var(--border)">
-            <p class="text-xs mb-1" style="color:var(--muted)">Total barberías</p>
-            <p class="text-3xl font-bold" style="color:var(--primary)">{{ $stats['total'] }}</p>
+        <div class="kpi">
+            <p class="kpi-label">Barberías</p>
+            <p class="kpi-value text-brand-500">{{ $stats['total'] }}</p>
         </div>
-        <div class="rounded-xl p-4" style="background:var(--surface);border:1px solid var(--border)">
-            <p class="text-xs mb-1" style="color:var(--muted)">Activas</p>
-            <p class="text-3xl font-bold" style="color:var(--success)">{{ $stats['activas'] }}</p>
+        <div class="kpi">
+            <p class="kpi-label">Activas</p>
+            <p class="kpi-value text-green-600">{{ $stats['activas'] }}</p>
         </div>
-        <div class="rounded-xl p-4" style="background:var(--surface);border:1px solid var(--border)">
-            <p class="text-xs mb-1" style="color:var(--muted)">Vencidas</p>
-            <p class="text-3xl font-bold" style="color:var(--danger)">{{ $stats['vencidas'] }}</p>
+        <div class="kpi">
+            <p class="kpi-label">Vencidas</p>
+            <p class="kpi-value text-red-600">{{ $stats['vencidas'] }}</p>
         </div>
     </div>
 
-    {{-- Botón nuevo --}}
     <div class="flex justify-end">
-        <button wire:click="nuevo"
-                class="px-4 py-2.5 rounded-xl text-sm font-semibold"
-                style="background:var(--primary);color:white">
-            + Nueva barbería
-        </button>
+        <button type="button" wire:click="nuevo" class="btn btn-primary">+ Nueva barbería</button>
     </div>
 
-    {{-- Formulario --}}
-    @if($mostrarForm)
-    <div class="rounded-xl p-5 flex flex-col gap-4"
-         style="background:var(--surface);border:1px solid var(--border)">
-        <h3 class="font-semibold" style="color:var(--primary)">
-            {{ $editandoId ? 'Editar barbería' : 'Nueva barbería' }}
-        </h3>
-
-        @if($errors->any())
-        <div class="rounded-xl p-3 text-sm"
-             style="background:#FEF2F2;border:1px solid #FECACA;color:#DC2626">
-            @foreach($errors->all() as $error)
-                <p>{{ $error }}</p>
-            @endforeach
-        </div>
-        @endif
-
-        <div class="grid grid-cols-2 gap-4">
-            <div>
-                <label class="text-xs font-medium mb-1.5 block" style="color:var(--muted)">
-                    Nombre de la barbería *
-                </label>
-                <input wire:model="nombre" type="text" placeholder="Barbería El Estilo"
-                       class="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                       style="background:#F8FAFC;border:1px solid var(--border);color:var(--text)">
-            </div>
-            <div>
-                <label class="text-xs font-medium mb-1.5 block" style="color:var(--muted)">
-                    Propietario
-                </label>
-                <input wire:model="propietario" type="text" placeholder="Carlos Mendoza"
-                       class="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                       style="background:#F8FAFC;border:1px solid var(--border);color:var(--text)">
-            </div>
-            <div>
-                <label class="text-xs font-medium mb-1.5 block" style="color:var(--muted)">
-                    Teléfono
-                </label>
-                <input wire:model="telefono" type="text" placeholder="3001234567"
-                       class="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                       style="background:#F8FAFC;border:1px solid var(--border);color:var(--text)">
-            </div>
-            <div>
-                <label class="text-xs font-medium mb-1.5 block" style="color:var(--muted)">
-                    Dirección
-                </label>
-                <input wire:model="direccion" type="text" placeholder="Calle 10 # 5-20, Cali"
-                       class="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                       style="background:#F8FAFC;border:1px solid var(--border);color:var(--text)">
-            </div>
-            <div>
-                <label class="text-xs font-medium mb-1.5 block" style="color:var(--muted)">
-                    Plan *
-                </label>
-                <select wire:model="plan"
-                        class="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                        style="background:#F8FAFC;border:1px solid var(--border);color:var(--text)">
-                    <option value="mensual">Mensual — $59.900/mes</option>
-                    <option value="semestral">Semestral — $299.000</option>
-                    <option value="anual">Anual — $549.000</option>
-                </select>
-            </div>
-
-            @if(!$editandoId)
-            <div>
-                <label class="text-xs font-medium mb-1.5 block" style="color:var(--muted)">
-                    Email de acceso *
-                </label>
-                <input wire:model="email" type="email" placeholder="barberia@ejemplo.com"
-                       class="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                       style="background:#F8FAFC;border:1px solid var(--border);color:var(--text)">
-            </div>
-            <div class="col-span-2">
-                <label class="text-xs font-medium mb-1.5 block" style="color:var(--muted)">
-                    Contraseña inicial *
-                </label>
-                <input wire:model="password" type="text" placeholder="Mínimo 6 caracteres"
-                       class="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                       style="background:#F8FAFC;border:1px solid var(--border);color:var(--text)">
-                <p class="text-xs mt-1" style="color:var(--muted)">
-                    Comparte estas credenciales con el cliente para que pueda ingresar.
-                </p>
-            </div>
-            @endif
-        </div>
-
-        <div class="flex gap-3 justify-end">
-            <button wire:click="cancelar"
-                    class="px-4 py-2 rounded-xl text-sm"
-                    style="background:#F8FAFC;color:var(--muted);border:1px solid var(--border)">
-                Cancelar
-            </button>
-            <button wire:click="guardar"
-                    class="px-4 py-2 rounded-xl text-sm font-semibold"
-                    style="background:var(--primary);color:white">
-                Guardar
-            </button>
-        </div>
-    </div>
-    @endif
-
-    {{-- Tabla de barberías --}}
-    <div class="rounded-xl overflow-hidden" style="border:1px solid var(--border)">
-        <div class="px-4 py-3 text-xs font-semibold grid gap-2"
-             style="background:#F8FAFC;color:var(--muted);border-bottom:1px solid var(--border);
-                    grid-template-columns:1fr 100px 90px 110px 80px 160px">
+    <div class="tabla">
+        <div class="tabla-head md:grid-cols-[1fr_100px_80px_130px_90px_320px]">
             <span>Barbería</span>
             <span class="text-center">Plan</span>
             <span class="text-center">Ventas</span>
-            <span class="text-center">Vencimiento</span>
+            <span class="text-center">Vence</span>
             <span class="text-center">Estado</span>
-            <span class="text-center">Acciones</span>
+            <span class="text-right">Acciones</span>
         </div>
 
         @forelse($barberias as $barberia)
-        <div class="px-4 py-3 text-sm grid gap-2 border-t items-center"
-             style="border-color:var(--border);background:var(--surface);
-                    grid-template-columns:1fr 100px 90px 110px 80px 160px">
-            <div>
-                <p class="font-semibold">{{ $barberia->nombre }}</p>
-                <p class="text-xs mt-0.5" style="color:var(--muted)">
-                    {{ $barberia->propietario ?? '—' }}
-                    @if($barberia->telefono)
-                        · {{ $barberia->telefono }}
-                    @endif
-                </p>
+            <div wire:key="barberia-{{ $barberia->id }}" class="tabla-row md:grid-cols-[1fr_100px_80px_130px_90px_320px]">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p class="font-semibold">{{ $barberia->nombre }}</p>
+                        <p class="text-xs text-muted">
+                            {{ $barberia->propietario ?: '—' }}
+                            @if($barberia->telefono) · <a href="tel:{{ $barberia->telefono }}" class="hover:text-brand-500">{{ $barberia->telefono }}</a>@endif
+                        </p>
+                    </div>
+                    <span class="md:hidden">
+                        <span class="badge {{ $barberia->activo ? 'badge-green' : 'badge-red' }}">{{ $barberia->activo ? 'Activa' : 'Inactiva' }}</span>
+                    </span>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-xs md:contents md:text-sm">
+                    <span class="md:text-center"><span class="badge badge-blue">{{ ucfirst($barberia->plan) }}</span></span>
+                    <span class="text-muted md:text-center md:font-semibold md:text-brand-500"><span class="dato">Ventas:</span>{{ $barberia->ventas_count }}</span>
+                    <span class="md:text-center">
+                        @if($barberia->fecha_vencimiento)
+                            <span class="{{ $barberia->vencida ? 'text-red-600' : 'text-muted' }}">{{ $barberia->fecha_vencimiento->format('d/m/Y') }}</span>
+                            <span class="block text-xs {{ $barberia->vencida ? 'text-red-600' : 'text-green-700' }} max-md:inline max-md:ml-1">
+                                {{ $barberia->vencida ? 'Vencida' : $barberia->dias_restantes . ' días' }}
+                            </span>
+                        @else
+                            —
+                        @endif
+                    </span>
+                    <span class="hidden text-center md:block">
+                        <span class="badge {{ $barberia->activo ? 'badge-green' : 'badge-red' }}">{{ $barberia->activo ? 'Activa' : 'Inactiva' }}</span>
+                    </span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 md:flex md:flex-wrap md:justify-end md:gap-1">
+                    <button type="button" wire:click="verCredenciales({{ $barberia->id }})" class="btn btn-sm btn-violet">Acceso</button>
+                    <button type="button" wire:click="editar({{ $barberia->id }})" class="btn btn-sm btn-soft">Editar</button>
+                    <button type="button" wire:click="renovar({{ $barberia->id }})" wire:confirm="¿Renovar el plan {{ $barberia->plan }} de {{ $barberia->nombre }}?" class="btn btn-sm btn-success">Renovar</button>
+                    <button type="button" wire:click="toggleActivo({{ $barberia->id }})" class="btn btn-sm btn-light">{{ $barberia->activo ? 'Desactivar' : 'Activar' }}</button>
+                    <button type="button" wire:click="eliminar({{ $barberia->id }})" wire:confirm="¿Seguro? Se borrarán TODOS los datos de {{ $barberia->nombre }}." class="btn btn-sm btn-danger col-span-2">Eliminar</button>
+                </div>
             </div>
-            <span class="text-center">
-                <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                      style="background:#EFF6FF;color:#2563EB">
-                    {{ ucfirst($barberia->plan) }}
-                </span>
-            </span>
-            <span class="text-center font-medium" style="color:var(--primary)">
-                {{ $barberia->ventas_count }}
-            </span>
-            <span class="text-center text-xs"
-                  style="color:{{ $barberia->vencida ? 'var(--danger)' : 'var(--muted)' }}">
-                @if($barberia->fecha_vencimiento)
-                    {{ $barberia->fecha_vencimiento->format('d/m/Y') }}
-                    @if(!$barberia->vencida)
-                        <br>
-                        <span style="color:var(--success)">
-                            {{ $barberia->dias_restantes }} días
-                        </span>
-                    @else
-                        <br><span style="color:var(--danger)">Vencida</span>
-                    @endif
-                @else
-                    —
-                @endif
-            </span>
-            <span class="text-center">
-                @if($barberia->activo)
-                    <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                          style="background:#F0FDF4;color:#16A34A">Activa</span>
-                @else
-                    <span class="px-2 py-0.5 rounded-full text-xs font-medium"
-                          style="background:#FEF2F2;color:#DC2626">Inactiva</span>
-                @endif
-            </span>
-            <div class="flex gap-1 justify-center flex-wrap">
-                <button wire:click="verCredenciales({{ $barberia->id }})"
-        class="px-2 py-1 rounded-lg text-xs font-medium"
-        style="background:#F5F3FF;color:#7C3AED">
-    Credenciales
-</button>
-                <button wire:click="editar({{ $barberia->id }})"
-                        class="px-2 py-1 rounded-lg text-xs font-medium"
-                        style="background:#EFF6FF;color:#2563EB">
-                    Editar
-                </button>
-                <button wire:click="renovar({{ $barberia->id }})"
-                        class="px-2 py-1 rounded-lg text-xs font-medium"
-                        style="background:#F0FDF4;color:#16A34A">
-                    Renovar
-                </button>
-                <button wire:click="toggleActivo({{ $barberia->id }})"
-                        class="px-2 py-1 rounded-lg text-xs font-medium"
-                        style="background:#F8FAFC;color:var(--muted);border:1px solid var(--border)">
-                    {{ $barberia->activo ? 'Desactivar' : 'Activar' }}
-                </button>
-                <button wire:click="eliminar({{ $barberia->id }})"
-                        wire:confirm="¿Seguro? Se eliminarán todos los datos de esta barbería."
-                        class="px-2 py-1 rounded-lg text-xs font-medium"
-                        style="background:#FEF2F2;color:#DC2626">
-                    Eliminar
-                </button>
-            </div>
-        </div>
         @empty
-        <div class="px-4 py-10 text-center text-sm" style="color:var(--muted)">
-            No hay barberías registradas. Agrega tu primer cliente.
-        </div>
+            <p class="tabla-vacia">No hay barberías registradas. Agrega tu primer cliente.</p>
         @endforelse
     </div>
 
+    {{-- Nueva / editar barbería --}}
+    @if($mostrarForm)
+        <div class="modal-fondo" wire:click.self="cancelar">
+            <form wire:submit="guardar" class="modal-panel">
+                <h3 class="modal-titulo">{{ $editandoId ? 'Editar barbería' : 'Nueva barbería' }}</h3>
+
+                @if($errors->any())
+                    <div class="alert-error">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>
+                @endif
+
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label class="label" for="nombre">Nombre de la barbería *</label>
+                        <input id="nombre" wire:model="nombre" type="text" placeholder="Barbería El Estilo" class="input">
+                    </div>
+                    <div>
+                        <label class="label" for="propietario">Propietario</label>
+                        <input id="propietario" wire:model="propietario" type="text" class="input">
+                    </div>
+                    <div>
+                        <label class="label" for="telefono">Teléfono</label>
+                        <input id="telefono" wire:model="telefono" type="tel" inputmode="tel" class="input">
+                    </div>
+                    <div>
+                        <label class="label" for="direccion">Dirección</label>
+                        <input id="direccion" wire:model="direccion" type="text" class="input">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="label" for="plan">Plan *</label>
+                        <select id="plan" wire:model="plan" class="input">
+                            <option value="mensual">Mensual — $59.900/mes</option>
+                            <option value="semestral">Semestral — $299.000</option>
+                            <option value="anual">Anual — $549.000</option>
+                        </select>
+                        @if($editandoId)
+                            <p class="mt-1 text-xs text-muted">La fecha de vencimiento solo cambia si cambias el plan.</p>
+                        @endif
+                    </div>
+                    @unless($editandoId)
+                        <div>
+                            <label class="label" for="email">Correo de acceso *</label>
+                            <input id="email" wire:model="email" type="email" inputmode="email" autocomplete="off" class="input">
+                        </div>
+                        <div>
+                            <label class="label" for="password">Contraseña inicial *</label>
+                            <input id="password" wire:model="password" type="text" autocomplete="new-password" placeholder="Mínimo 8 caracteres" class="input">
+                        </div>
+                        <p class="text-xs text-muted sm:col-span-2">Comparte estos datos con el cliente para que pueda entrar.</p>
+                    @endunless
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                    <button type="button" wire:click="cancelar" class="btn btn-light">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    @endif
+
+    {{-- Credenciales --}}
+    @if($mostrarCredenciales)
+        <div class="modal-fondo" wire:click.self="cerrarCredenciales">
+            <form wire:submit="actualizarCredenciales" class="modal-panel">
+                <div>
+                    <h3 class="modal-titulo">Datos de acceso</h3>
+                    <p class="mt-1 text-xs text-muted">Correo actual: <span class="font-semibold text-brand-500">{{ $credencialesEmail }}</span></p>
+                </div>
+
+                @if($errors->any())
+                    <div class="alert-error">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>
+                @endif
+
+                <div>
+                    <label class="label" for="nuevoEmail">Correo</label>
+                    <input id="nuevoEmail" wire:model="nuevoEmail" type="email" inputmode="email" class="input">
+                </div>
+                <div>
+                    <label class="label" for="nuevaPassword">Nueva contraseña</label>
+                    <input id="nuevaPassword" wire:model="nuevaPassword" type="text" autocomplete="new-password" placeholder="Déjala vacía para no cambiarla" class="input">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                    <button type="button" wire:click="cerrarCredenciales" class="btn btn-light">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    @endif
 </div>

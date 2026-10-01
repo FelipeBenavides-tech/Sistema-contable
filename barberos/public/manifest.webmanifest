@@ -1,0 +1,15 @@
+{
+    "name": "Kaixa",
+    "short_name": "Kaixa",
+    "description": "Caja, ventas e inventario para barberías",
+    "lang": "es",
+    "start_url": "/pos",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "background_color": "#F0F4FF",
+    "theme_color": "#0047FF",
+    "icons": [
+        { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    ]
+}
