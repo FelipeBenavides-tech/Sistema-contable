@@ -52,6 +52,7 @@ class IngresosSheet implements FromCollection, WithHeadings, WithTitle, WithStyl
     public function collection()
     {
         return Venta::with(['barbero', 'items'])
+            ->activas()
             ->where('barberia_id', $this->barberiaId)
             ->whereMonth('fecha', $this->mes)
             ->whereYear('fecha', $this->anio)

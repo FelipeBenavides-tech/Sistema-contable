@@ -14,7 +14,7 @@
             align-items: center;
             justify-content: center;
             background: #050D1F;
-            overflow: hidden;
+            overflow-x: hidden;
             position: relative;
         }
 

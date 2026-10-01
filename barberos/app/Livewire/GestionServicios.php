@@ -39,7 +39,7 @@ class GestionServicios extends Component
     {
         $this->validate([
             'nombre'    => 'required|min:2',
-            'precio'    => 'required|numeric|min:0',
+            'precio'    => 'required|numeric|min:0|max:99999999',
             'categoria' => 'required|in:servicio,producto',
         ]);
 
@@ -65,9 +65,21 @@ class GestionServicios extends Component
         $this->mostrarForm = false;
     }
 
+    public string $aviso = '';
+
     public function eliminar(int $id): void
     {
-        Servicio::where('barberia_id', $this->barberiaId())->findOrFail($id)->delete();
+        $servicio = Servicio::where('barberia_id', $this->barberiaId())->findOrFail($id);
+
+        // Si ya se vendió, borrarlo dañaría el historial: se desactiva
+        if ($servicio->ventaItems()->exists()) {
+            $servicio->update(['activo' => false]);
+            $this->aviso = "\"{$servicio->nombre}\" ya tiene ventas, así que se desactivó en lugar de borrarse.";
+            return;
+        }
+
+        $servicio->delete();
+        $this->aviso = '';
     }
 
     public function toggleActivo(int $id): void

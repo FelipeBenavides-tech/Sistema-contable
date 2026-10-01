@@ -29,6 +29,7 @@ class ReporteController extends Controller
         $nombreMes  = \Carbon\Carbon::create($anio, $mes)->translatedFormat('F Y');
 
         $ventas = Venta::with(['barbero', 'items'])
+            ->activas()
             ->where('barberia_id', $barberiaId)
             ->whereMonth('fecha', $mes)
             ->whereYear('fecha', $anio)
@@ -43,7 +44,7 @@ class ReporteController extends Controller
 
         $resumen = Venta::resumenMes($mes, $anio, $barberiaId);
 
-        $ahora = now()->setTimezone('America/Bogota')->format('d/m/Y h:i:s a');
+        $ahora = now()->format('d/m/Y h:i:s a');
 
         $pdf = Pdf::loadView('reportes.pdf', compact(
             'ventas',

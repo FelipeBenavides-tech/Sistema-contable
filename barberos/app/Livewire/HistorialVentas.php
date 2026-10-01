@@ -4,8 +4,12 @@ namespace App\Livewire;
 
 use App\Models\AuditoriaVenta;
 use App\Models\Barbero;
+use App\Models\Inventario;
 use App\Models\Venta;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class HistorialVentas extends Component
@@ -18,8 +22,13 @@ class HistorialVentas extends Component
 
     // Modal contraseña
     public bool   $mostrarModal     = false;
+    #[Locked]
     public string $accion           = '';
+    #[Locked]
     public ?int   $ventaId          = null;
+    // Solo se activa después de verificar la contraseña
+    #[Locked]
+    public bool   $edicionAutorizada = false;
     public string $passwordConfirm  = '';
     public string $errorPassword    = '';
 
@@ -46,6 +55,12 @@ class HistorialVentas extends Component
 
     public function confirmarAccion(int $ventaId, string $accion): void
     {
+        if (!in_array($accion, ['editar', 'eliminar'], true)) {
+            return;
+        }
+
+        Venta::where('barberia_id', $this->barberiaId())->findOrFail($ventaId);
+
         $this->ventaId        = $ventaId;
         $this->accion         = $accion;
         $this->passwordConfirm = '';
@@ -80,6 +95,7 @@ class HistorialVentas extends Component
         if ($this->accion === 'eliminar') {
             $this->ejecutarEliminar();
         } elseif ($this->accion === 'editar') {
+            $this->edicionAutorizada = true;
             $this->ejecutarEditar();
         }
     }
@@ -96,29 +112,39 @@ class HistorialVentas extends Component
 
     private function ejecutarEliminar(): void
     {
-        $venta = Venta::where('barberia_id', $this->barberiaId())->findOrFail($this->ventaId);
+        DB::transaction(function () {
+            $venta = Venta::where('barberia_id', $this->barberiaId())
+                ->lockForUpdate()
+                ->findOrFail($this->ventaId);
 
-        // Guardar en auditoría ANTES de eliminar
-        AuditoriaVenta::create([
-            'venta_id'          => $venta->id,
-            'barberia_id'       => $this->barberiaId(),
-            'user_id'           => auth()->id(),
-            'accion'            => 'eliminada',
-            'motivo'            => $this->motivo,
-            'total_antes'       => $venta->total,
-            'total_despues'     => 0,
-            'barbero_antes'     => $venta->barbero?->nombre ?? 'Venta directa',
-            'metodo_pago_antes' => $venta->metodo_pago,
-        ]);
+            if ($venta->fue_eliminada) {
+                return;
+            }
 
-        // Marcar como eliminada y poner total en 0 en vez de borrar
-        $venta->update([
-            'fue_eliminada'  => true,
-            'total_original' => $venta->total,
-            'total'          => 0,
-            'comision_barbero' => 0,
-            'ganancia_local'   => 0,
-        ]);
+            // Guardar en auditoría ANTES de eliminar
+            AuditoriaVenta::create([
+                'venta_id'          => $venta->id,
+                'barberia_id'       => $this->barberiaId(),
+                'user_id'           => auth()->id(),
+                'accion'            => 'eliminada',
+                'motivo'            => $this->motivo,
+                'total_antes'       => $venta->total,
+                'total_despues'     => 0,
+                'barbero_antes'     => $venta->barbero?->nombre ?? 'Venta directa',
+                'metodo_pago_antes' => $venta->metodo_pago,
+            ]);
+
+            // Se marca como eliminada (no se borra) y deja de sumar en caja y reportes
+            $venta->update([
+                'fue_eliminada'    => true,
+                'total_original'   => $venta->total,
+                'total'            => 0,
+                'comision_barbero' => 0,
+                'ganancia_local'   => 0,
+                'monto_efectivo'   => 0,
+                'monto_nequi'      => 0,
+            ]);
+        });
 
         $this->motivo  = '';
         $this->ventaId = null;
@@ -126,85 +152,170 @@ class HistorialVentas extends Component
 
     private function ejecutarEditar(): void
     {
-        $venta = Venta::with('items')
+        $venta = Venta::with('items.inventario')
             ->where('barberia_id', $this->barberiaId())
             ->findOrFail($this->ventaId);
 
         $this->editBarberoId  = $venta->barbero_id ?? 0;
         $this->editMetodoPago = $venta->metodo_pago;
-        $this->editEfectivo   = $venta->monto_efectivo;
-        $this->editNequi      = $venta->monto_nequi;
-        $this->editItems      = $venta->items->map(function ($item) {
-            return [
-                'id'              => $item->id,
-                'nombre_servicio' => $item->nombre_servicio,
-                'precio'          => $item->precio,
-                'cantidad'        => $item->cantidad,
-                'subtotal'        => $item->subtotal,
-            ];
-        })->toArray();
+        $this->editEfectivo   = (float) $venta->monto_efectivo;
+        $this->editNequi      = (float) $venta->monto_nequi;
+        $this->editItems      = $venta->items->map(fn($item) => [
+            'id'              => $item->id,
+            'nombre_servicio' => $item->nombre_servicio,
+            'precio'          => (float) $item->precio,
+            'cantidad'        => $item->cantidad,
+            'subtotal'        => (float) $item->subtotal,
+            'es_producto'     => $item->es_producto,
+            // Máximo posible = lo que ya tenía la venta + lo que queda en bodega
+            'maximo'          => $item->inventario_id
+                ? $item->cantidad + (int) ($item->inventario?->stock_actual ?? 0)
+                : null,
+        ])->values()->toArray();
 
+        $this->resetErrorBag();
         $this->mostrarEdicion = true;
     }
 
     public function guardarEdicion(): void
     {
+        if (!$this->edicionAutorizada || !$this->ventaId) {
+            abort(403);
+        }
+
         $this->validate([
             'editMetodoPago' => 'required|in:efectivo,nequi,transferencia,combinado',
+            'editItems'      => 'required|array|min:1',
+        ], [
+            'editItems.required' => 'La venta debe tener al menos un ítem. Si no, elimínala.',
+            'editItems.min'      => 'La venta debe tener al menos un ítem. Si no, elimínala.',
         ]);
 
-        $venta      = Venta::where('barberia_id', $this->barberiaId())->findOrFail($this->ventaId);
-        $totalAntes = $venta->total;
+        $barberiaId = $this->barberiaId();
+        $barbero    = $this->editBarberoId
+            ? Barbero::where('barberia_id', $barberiaId)->findOrFail($this->editBarberoId)
+            : null;
 
-        $barbero  = $this->editBarberoId ? Barbero::findOrFail($this->editBarberoId) : null;
-        $total    = collect($this->editItems)->sum('subtotal');
-        $comision = $barbero ? round($total * ($barbero->comision_porcentaje / 100), 2) : 0;
+        $cantidades = collect($this->editItems)->mapWithKeys(fn($i) => [(int) $i['id'] => max(0, (int) $i['cantidad'])]);
 
-        $efectivo = match ($this->editMetodoPago) {
-            'efectivo'  => $total,
-            'combinado' => $this->editEfectivo,
-            default     => 0,
-        };
+        try {
+            DB::transaction(function () use ($barberiaId, $barbero, $cantidades) {
+                $venta = Venta::with('items')
+                    ->where('barberia_id', $barberiaId)
+                    ->lockForUpdate()
+                    ->findOrFail($this->ventaId);
 
-        $nequi = match ($this->editMetodoPago) {
-            'nequi', 'transferencia' => $total,
-            'combinado'              => $this->editNequi,
-            default                  => 0,
-        };
+                if ($venta->fue_eliminada) {
+                    throw ValidationException::withMessages(['editItems' => 'Esta venta ya fue eliminada.']);
+                }
 
-        // Guardar auditoría
-        AuditoriaVenta::create([
-            'venta_id'           => $venta->id,
-            'barberia_id'        => $this->barberiaId(),
-            'user_id'            => auth()->id(),
-            'accion'             => 'editada',
-            'motivo'             => $this->motivo,
-            'total_antes'        => $totalAntes,
-            'total_despues'      => $total,
-            'barbero_antes'      => $venta->barbero?->nombre ?? 'Venta directa',
-            'metodo_pago_antes'  => $venta->metodo_pago,
-            'metodo_pago_despues' => $this->editMetodoPago,
-        ]);
+                $totalAntes = $venta->total;
+                $itemsFinales = [];
 
-        $venta->update([
-            'barbero_id'       => $this->editBarberoId ?: null,
-            'total'            => $total,
-            'total_original'   => $venta->total_original ?? $totalAntes,
-            'comision_barbero' => $comision,
-            'ganancia_local'   => $total - $comision,
-            'metodo_pago'      => $this->editMetodoPago,
-            'monto_efectivo'   => $efectivo,
-            'monto_nequi'      => $nequi,
-            'fue_editada'      => true,
-        ]);
+                foreach ($venta->items as $item) {
+                    $nueva = $cantidades->get($item->id, 0);
+                    $diferencia = $nueva - $item->cantidad;
 
-        $this->mostrarEdicion = false;
-        $this->ventaId        = null;
-        $this->motivo         = '';
+                    // Ajustar el stock solo al guardar, y solo por la diferencia
+                    if ($item->inventario_id && $diferencia !== 0) {
+                        $producto = Inventario::where('barberia_id', $barberiaId)
+                            ->lockForUpdate()
+                            ->find($item->inventario_id);
+
+                        if ($producto && $diferencia > 0) {
+                            if ($producto->stock_actual < $diferencia) {
+                                throw ValidationException::withMessages([
+                                    'editItems' => "Stock insuficiente de {$item->nombre_servicio}: quedan {$producto->stock_actual}.",
+                                ]);
+                            }
+                            $producto->decrement('stock_actual', $diferencia);
+                        } elseif ($producto) {
+                            $producto->increment('stock_actual', -$diferencia);
+                        }
+                    }
+
+                    if ($nueva === 0) {
+                        $item->delete();
+                        continue;
+                    }
+
+                    $item->update([
+                        'cantidad' => $nueva,
+                        'subtotal' => $item->precio * $nueva,
+                    ]);
+
+                    $itemsFinales[] = [
+                        'subtotal'    => (float) $item->precio * $nueva,
+                        'es_producto' => $item->es_producto,
+                    ];
+                }
+
+                if (count($itemsFinales) === 0) {
+                    throw ValidationException::withMessages([
+                        'editItems' => 'La venta debe tener al menos un ítem. Si no, elimínala.',
+                    ]);
+                }
+
+                $total    = collect($itemsFinales)->sum('subtotal');
+                $comision = Venta::calcularComision($barbero, $itemsFinales);
+
+                if ($this->editMetodoPago === 'combinado'
+                    && abs(($this->editEfectivo + $this->editNequi) - $total) > 1) {
+                    throw ValidationException::withMessages([
+                        'editEfectivo' => 'En pago combinado, efectivo + Nequi debe ser igual al total.',
+                    ]);
+                }
+
+                $efectivo = match ($this->editMetodoPago) {
+                    'efectivo'  => $total,
+                    'combinado' => $this->editEfectivo,
+                    default     => 0,
+                };
+
+                $nequi = match ($this->editMetodoPago) {
+                    'nequi', 'transferencia' => $total,
+                    'combinado'              => $this->editNequi,
+                    default                  => 0,
+                };
+
+                AuditoriaVenta::create([
+                    'venta_id'            => $venta->id,
+                    'barberia_id'         => $barberiaId,
+                    'user_id'             => auth()->id(),
+                    'accion'              => 'editada',
+                    'motivo'              => $this->motivo,
+                    'total_antes'         => $totalAntes,
+                    'total_despues'       => $total,
+                    'barbero_antes'       => $venta->barbero?->nombre ?? 'Venta directa',
+                    'metodo_pago_antes'   => $venta->metodo_pago,
+                    'metodo_pago_despues' => $this->editMetodoPago,
+                ]);
+
+                $venta->update([
+                    'barbero_id'       => $barbero?->id,
+                    'total'            => $total,
+                    'total_original'   => $venta->total_original ?? $totalAntes,
+                    'comision_barbero' => $comision,
+                    'ganancia_local'   => $total - $comision,
+                    'metodo_pago'      => $this->editMetodoPago,
+                    'monto_efectivo'   => $efectivo,
+                    'monto_nequi'      => $nequi,
+                    'fue_editada'      => true,
+                ]);
+            });
+        } catch (ValidationException $e) {
+            foreach ($e->errors() as $campo => $mensajes) {
+                $this->addError($campo, $mensajes[0]);
+            }
+            return;
+        }
+
+        $this->cancelarEdicion();
     }
 
     public function cancelarEdicion(): void
     {
+        $this->edicionAutorizada = false;
         $this->mostrarEdicion = false;
         $this->ventaId        = null;
         $this->editItems      = [];
@@ -217,7 +328,9 @@ class HistorialVentas extends Component
             ->where('barberia_id', $this->barberiaId())
             ->findOrFail($ventaId);
 
-        $auditorias = AuditoriaVenta::where('venta_id', $ventaId)
+        $auditorias = AuditoriaVenta::with('user')
+            ->where('barberia_id', $this->barberiaId())
+            ->where('venta_id', $ventaId)
             ->orderByDesc('created_at')
             ->get();
 
@@ -229,6 +342,8 @@ class HistorialVentas extends Component
                 'total_orig'  => $venta->total_original,
                 'eliminada'   => $venta->fue_eliminada,
                 'editada'     => $venta->fue_editada,
+                'restaurado'  => $venta->inventario_restaurado,
+                'tiene_productos' => $venta->items->contains(fn($i) => $i->inventario_id),
                 'metodo'      => $venta->metodo_pago,
                 'barbero'     => $venta->barbero?->nombre ?? 'Venta directa',
                 'items'       => $venta->items->map(fn($i) => [
@@ -246,7 +361,7 @@ class HistorialVentas extends Component
                 'barbero_antes' => $a->barbero_antes,
                 'metodo_antes' => $a->metodo_pago_antes,
                 'metodo_despues' => $a->metodo_pago_despues,
-                'fecha'        => $a->created_at->setTimezone('America/Bogota')->format('d/m/Y h:i a'),
+                'fecha'        => $a->created_at->format('d/m/Y h:i a'),
                 'usuario'      => $a->user?->name ?? 'Sistema',
             ])->toArray(),
         ];
@@ -268,77 +383,61 @@ class HistorialVentas extends Component
             return;
         }
 
-        $venta = Venta::with('items')
-            ->where('barberia_id', $this->barberiaId())
-            ->findOrFail($ventaId);
+        DB::transaction(function () use ($ventaId) {
+            $venta = Venta::with('items')
+                ->where('barberia_id', $this->barberiaId())
+                ->lockForUpdate()
+                ->findOrFail($ventaId);
 
-        foreach ($venta->items as $item) {
-            // Buscar en inventario por nombre
-            $producto = \App\Models\Inventario::where('barberia_id', $this->barberiaId())
-                ->where('nombre', $item->nombre_servicio)
-                ->where('categoria', 'venta')
-                ->first();
-
-            if ($producto) {
-                $producto->increment('stock_actual', $item->cantidad);
+            // Solo ventas eliminadas, y una sola vez
+            if (!$venta->fue_eliminada || $venta->inventario_restaurado) {
+                return;
             }
-        }
+
+            foreach ($venta->items as $item) {
+                if (!$item->inventario_id) {
+                    continue;
+                }
+
+                Inventario::where('barberia_id', $this->barberiaId())
+                    ->whereKey($item->inventario_id)
+                    ->increment('stock_actual', $item->cantidad);
+            }
+
+            $venta->update(['inventario_restaurado' => true]);
+        });
 
         $this->cerrarAuditoria();
     }
 
     public function aumentarCantidad(int $index): void
     {
-        if (isset($this->editItems[$index])) {
-            // Verificar stock si es producto de inventario
-            $nombre   = $this->editItems[$index]['nombre_servicio'];
-            $producto = \App\Models\Inventario::where('barberia_id', $this->barberiaId())
-                ->where('nombre', $nombre)
-                ->where('categoria', 'venta')
-                ->first();
-
-            if ($producto && $producto->stock_actual <= 0) {
-                $this->addError('editItems', "Sin stock disponible para: {$nombre}");
-                return;
-            }
-
-            $this->editItems[$index]['cantidad']++;
-            $this->editItems[$index]['subtotal'] =
-                $this->editItems[$index]['precio'] * $this->editItems[$index]['cantidad'];
-
-            // Descontar del inventario si aplica
-            if ($producto) {
-                $producto->decrement('stock_actual', 1);
-            }
+        if (!isset($this->editItems[$index])) {
+            return;
         }
+
+        $maximo = $this->editItems[$index]['maximo'] ?? null;
+        if ($maximo !== null && $this->editItems[$index]['cantidad'] >= $maximo) {
+            $this->addError('editItems', "Sin stock disponible para: {$this->editItems[$index]['nombre_servicio']}");
+            return;
+        }
+
+        $this->editItems[$index]['cantidad']++;
+        $this->editItems[$index]['subtotal'] = $this->editItems[$index]['precio'] * $this->editItems[$index]['cantidad'];
     }
 
     public function disminuirCantidad(int $index): void
     {
-        if (isset($this->editItems[$index])) {
-            $nombre   = $this->editItems[$index]['nombre_servicio'];
-            $producto = \App\Models\Inventario::where('barberia_id', $this->barberiaId())
-                ->where('nombre', $nombre)
-                ->where('categoria', 'venta')
-                ->first();
+        if (!isset($this->editItems[$index])) {
+            return;
+        }
 
-            if ($this->editItems[$index]['cantidad'] > 1) {
-                $this->editItems[$index]['cantidad']--;
-                $this->editItems[$index]['subtotal'] =
-                    $this->editItems[$index]['precio'] * $this->editItems[$index]['cantidad'];
-
-                // Devolver al inventario si aplica
-                if ($producto) {
-                    $producto->increment('stock_actual', 1);
-                }
-            } else {
-                // Si llega a 0 eliminar el item y devolver 1 unidad al inventario
-                array_splice($this->editItems, $index, 1);
-
-                if ($producto) {
-                    $producto->increment('stock_actual', 1);
-                }
-            }
+        if ($this->editItems[$index]['cantidad'] > 1) {
+            $this->editItems[$index]['cantidad']--;
+            $this->editItems[$index]['subtotal'] = $this->editItems[$index]['precio'] * $this->editItems[$index]['cantidad'];
+        } else {
+            // El stock se devuelve al guardar, no antes
+            array_splice($this->editItems, $index, 1);
         }
     }
 

@@ -16,6 +16,11 @@ class Barbero extends Model
         'activo',
     ];
 
+    protected $casts = [
+        'comision_porcentaje' => 'float',
+        'activo'              => 'boolean',
+    ];
+
     public function barberia(): BelongsTo
     {
         return $this->belongsTo(Barberia::class);
@@ -29,6 +34,7 @@ class Barbero extends Model
     public function comisionesMes(int $mes, int $anio): array
     {
         $ventas = $this->ventas()
+            ->activas()
             ->whereMonth('fecha', $mes)
             ->whereYear('fecha', $anio)
             ->get();

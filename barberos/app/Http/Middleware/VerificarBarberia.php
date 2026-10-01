@@ -12,8 +12,9 @@ class VerificarBarberia
     {
         $user = $request->user();
 
+        // El administrador no tiene caja propia: va a su panel
         if ($user && $user->isAdmin()) {
-            return $next($request);
+            return redirect()->route('admin.panel');
         }
 
         if ($user && !$user->tieneBarberia()) {
