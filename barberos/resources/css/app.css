@@ -1,3 +1,95 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/*
+ * Piezas reutilizables de la interfaz.
+ * Paleta sobria: grises neutros, un azul marino apagado como acento
+ * y colores de estado (verde, rojo, ámbar) solo cuando informan algo.
+ * Se diseñan primero para teléfono y luego se amplían en pantallas grandes.
+ */
+@layer base {
+    html { -webkit-tap-highlight-color: transparent; }
+    body {
+        @apply bg-fondo font-sans text-ink antialiased;
+        /* Cifras alineadas en columnas de dinero */
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: "cv11", "ss01";
+    }
+    h1, h2, h3 { @apply tracking-tight; }
+    [x-cloak] { display: none !important; }
+
+    /* Evita que iPhone haga zoom al tocar un campo (necesita 16px) */
+    input, select, textarea { font-size: 16px; }
+    @screen sm {
+        input, select, textarea { font-size: 0.875rem; }
+    }
+}
+
+@layer components {
+    /* Tarjetas */
+    .card { @apply rounded-xl border border-line bg-white shadow-card; }
+    .card-pad { @apply p-4 sm:p-5; }
+    .card-title { @apply text-xs font-semibold uppercase tracking-wider text-muted; }
+    .section-title { @apply text-sm font-semibold text-ink; }
+
+    /* Botones (mínimo 44px de alto para tocar con el dedo) */
+    .btn {
+        @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium
+               transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2
+               disabled:cursor-not-allowed disabled:opacity-50;
+    }
+    .btn-sm { @apply min-h-[36px] px-3 text-xs; }
+    .btn-primary { @apply bg-brand-700 text-white shadow-sm hover:bg-brand-800; }
+    .btn-light { @apply bg-white text-slate-700 shadow-sm ring-1 ring-inset ring-slate-200 hover:bg-slate-50 hover:text-ink; }
+    .btn-danger { @apply bg-white text-rose-600 shadow-sm ring-1 ring-inset ring-slate-200 hover:bg-rose-50 hover:ring-rose-200; }
+    .btn-danger-solid { @apply bg-rose-600 text-white shadow-sm hover:bg-rose-700; }
+    /* Alias que usan algunas pantallas */
+    .btn-accent { @apply btn-primary; }
+    .btn-soft, .btn-success, .btn-violet { @apply btn-light; }
+
+    /* Formularios */
+    .label { @apply mb-1.5 block text-sm font-medium text-slate-700; }
+    .input {
+        @apply block w-full rounded-lg border-slate-300 bg-white px-3 py-2.5 text-ink shadow-sm
+               placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20;
+    }
+    .alert-error { @apply rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700; }
+    .alert-success { @apply rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800; }
+    .alert-warning { @apply rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800; }
+
+    /* Etiquetas de estado */
+    .badge { @apply inline-flex items-center whitespace-nowrap rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset; }
+    .badge-green { @apply bg-emerald-50 text-emerald-700 ring-emerald-600/20; }
+    .badge-red { @apply bg-rose-50 text-rose-700 ring-rose-600/20; }
+    .badge-amber { @apply bg-amber-50 text-amber-800 ring-amber-600/20; }
+    .badge-blue { @apply bg-brand-50 text-brand-700 ring-brand-600/20; }
+    .badge-gray, .badge-violet { @apply bg-slate-50 text-slate-600 ring-slate-500/20; }
+
+    /* Indicadores (KPIs) */
+    .kpi { @apply card p-4 sm:p-5; }
+    .kpi-label { @apply flex items-center gap-2 text-xs font-medium text-muted sm:text-sm; }
+    .kpi-value { @apply mt-1.5 text-xl font-semibold tracking-tight text-ink sm:text-2xl; }
+    .kpi-dot { @apply h-2 w-2 shrink-0 rounded-full; }
+
+    /* Listas que en teléfono son tarjetas y en computador son tabla */
+    .tabla { @apply card overflow-hidden; }
+    .tabla-head { @apply hidden gap-3 border-b border-line bg-slate-50 px-4 py-2.5 text-xs font-medium uppercase tracking-wider text-muted md:grid; }
+    .tabla-row { @apply flex flex-col gap-2 border-b border-slate-100 px-4 py-3.5 text-sm last:border-b-0 md:grid md:items-center md:gap-3 md:hover:bg-slate-50/60; }
+    .tabla-vacia { @apply px-4 py-12 text-center text-sm text-muted; }
+    /* Etiqueta que solo se ve en teléfono, antes de cada dato */
+    .dato { @apply mr-1 text-xs text-muted md:hidden; }
+
+    /* Ventanas emergentes: en teléfono salen desde abajo */
+    .modal-fondo { @apply fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 backdrop-blur-[2px] sm:items-center sm:p-4; }
+    .modal-panel {
+        @apply flex max-h-[92vh] w-full flex-col gap-4 overflow-y-auto rounded-t-2xl bg-white p-5 shadow-elevada
+               pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:max-w-lg sm:rounded-xl sm:p-6;
+    }
+    .modal-titulo { @apply text-base font-semibold text-ink; }
+
+    /* Selector segmentado (filtros, método de pago) */
+    .segmentado { @apply inline-flex gap-1 rounded-lg bg-slate-100 p-1; }
+    .segmento { @apply inline-flex min-h-[36px] flex-1 items-center justify-center whitespace-nowrap rounded-md px-3 text-sm font-medium text-muted transition-colors hover:text-ink; }
+    .segmento-activo { @apply bg-white text-ink shadow-sm ring-1 ring-slate-200; }
+}

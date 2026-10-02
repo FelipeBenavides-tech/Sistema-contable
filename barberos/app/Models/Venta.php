@@ -2,9 +2,12 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class Venta extends Model
 {
@@ -18,6 +21,10 @@ class Venta extends Model
         'monto_efectivo',
         'monto_nequi',
         'fecha',
+        'fue_editada',
+        'fue_eliminada',
+        'total_original',
+        'inventario_restaurado',
     ];
 
     protected $casts = [
@@ -27,6 +34,10 @@ class Venta extends Model
         'ganancia_local'   => 'decimal:2',
         'monto_efectivo'   => 'decimal:2',
         'monto_nequi'      => 'decimal:2',
+        'total_original'   => 'decimal:2',
+        'fue_editada'           => 'boolean',
+        'fue_eliminada'         => 'boolean',
+        'inventario_restaurado' => 'boolean',
     ];
 
     public function barberia(): BelongsTo
@@ -44,47 +55,99 @@ class Venta extends Model
         return $this->hasMany(VentaItem::class);
     }
 
-    public static function registrar(array $data, array $items, ?Barbero $barbero, int $barberiaId): self
+    public function auditorias(): HasMany
     {
-        $total = collect($items)->sum('subtotal');
+        return $this->hasMany(AuditoriaVenta::class);
+    }
 
-        // Solo calcular comisión si hay barbero Y hay servicios (no solo productos)
-        $tieneServicios = collect($items)->contains(fn($item) => empty($item['es_inventario']));
-        $comision = ($barbero && $tieneServicios)
-            ? round($total * ($barbero->comision_porcentaje / 100), 2)
-            : 0;
+    public function scopeActivas(Builder $query): Builder
+    {
+        return $query->where('fue_eliminada', false);
+    }
 
-        $venta = self::create([
-            'barberia_id'      => $barberiaId,
-            'barbero_id'       => $barbero?->id,
-            'total'            => $total,
-            'comision_barbero' => $comision,
-            'ganancia_local'   => $total - $comision,
-            'metodo_pago'      => $data['metodo_pago'],
-            'monto_efectivo'   => $data['monto_efectivo'] ?? 0,
-            'monto_nequi'      => $data['monto_nequi'] ?? 0,
-            'fecha'            => now()->toDateString(),
-        ]);
-
-        foreach ($items as $item) {
-            $venta->items()->create([
-                'servicio_id'     => $item['servicio_id'] ?? null,
-                'nombre_servicio' => $item['nombre_servicio'],
-                'precio'          => $item['precio'],
-                'cantidad'        => $item['cantidad'],
-                'subtotal'        => $item['subtotal'],
-            ]);
+    /**
+     * La comisión del barbero se calcula solo sobre los servicios,
+     * nunca sobre los productos vendidos.
+     */
+    public static function calcularComision(?Barbero $barbero, iterable $items): float
+    {
+        if (!$barbero) {
+            return 0;
         }
 
-        return $venta;
+        $baseServicios = collect($items)
+            ->reject(fn($item) => !empty($item['es_producto']))
+            ->sum('subtotal');
+
+        return round($baseServicios * ($barbero->comision_porcentaje / 100), 2);
+    }
+
+    /**
+     * Registra la venta, sus ítems y descuenta el stock en una sola transacción:
+     * si algo falla no queda nada a medias.
+     *
+     * @throws ValidationException si un producto no tiene stock suficiente
+     */
+    public static function registrar(array $data, array $items, ?Barbero $barbero, int $barberiaId): self
+    {
+        return DB::transaction(function () use ($data, $items, $barbero, $barberiaId) {
+            foreach ($items as $item) {
+                if (empty($item['inventario_id'])) {
+                    continue;
+                }
+
+                $producto = Inventario::where('barberia_id', $barberiaId)
+                    ->lockForUpdate()
+                    ->find($item['inventario_id']);
+
+                if (!$producto || $producto->stock_actual < $item['cantidad']) {
+                    $disponible = $producto?->stock_actual ?? 0;
+                    throw ValidationException::withMessages([
+                        'carrito' => "Stock insuficiente de {$item['nombre_servicio']}: quedan {$disponible}.",
+                    ]);
+                }
+
+                $producto->decrement('stock_actual', $item['cantidad']);
+            }
+
+            $total    = collect($items)->sum('subtotal');
+            $comision = self::calcularComision($barbero, $items);
+
+            $venta = self::create([
+                'barberia_id'      => $barberiaId,
+                'barbero_id'       => $barbero?->id,
+                'total'            => $total,
+                'comision_barbero' => $comision,
+                'ganancia_local'   => $total - $comision,
+                'metodo_pago'      => $data['metodo_pago'],
+                'monto_efectivo'   => $data['monto_efectivo'] ?? 0,
+                'monto_nequi'      => $data['monto_nequi'] ?? 0,
+                'fecha'            => now()->toDateString(),
+            ]);
+
+            foreach ($items as $item) {
+                $venta->items()->create([
+                    'servicio_id'     => $item['servicio_id'] ?? null,
+                    'inventario_id'   => $item['inventario_id'] ?? null,
+                    'es_producto'     => !empty($item['es_producto']),
+                    'nombre_servicio' => $item['nombre_servicio'],
+                    'precio'          => $item['precio'],
+                    'cantidad'        => $item['cantidad'],
+                    'subtotal'        => $item['subtotal'],
+                ]);
+            }
+
+            return $venta;
+        });
     }
 
     public static function resumenDia(?string $fecha = null, int $barberiaId = 0): array
     {
         $fecha  = $fecha ?? now()->toDateString();
         $ventas = self::with('barbero')
+            ->activas()
             ->where('barberia_id', $barberiaId)
-            ->where('fecha', $fecha)
+            ->whereDate('fecha', $fecha)
             ->get();
 
         return [
@@ -106,7 +169,8 @@ class Venta extends Model
 
     public static function resumenMes(int $mes, int $anio, int $barberiaId): array
     {
-        $ventas   = self::where('barberia_id', $barberiaId)
+        $ventas   = self::activas()
+            ->where('barberia_id', $barberiaId)
             ->whereMonth('fecha', $mes)
             ->whereYear('fecha', $anio)
             ->get();

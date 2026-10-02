@@ -21,19 +21,22 @@ class GestionBarberos extends Component
 
     public function nuevo(): void
     {
-        $this->reset(['nombre', 'telefono', 'comision_porcentaje', 'editandoId']);
-        $this->comision_porcentaje = 50;
+        $this->resetErrorBag();
+        $this->aviso = '';
+        $this->reset(['nombre', 'telefono', 'comision_porcentaje', 'activo', 'editandoId']);
         $this->mostrarForm = true;
     }
 
     public function editar(int $id): void
     {
+        $this->resetErrorBag();
+        $this->aviso = '';
         $barbero = Barbero::where('barberia_id', $this->barberiaId())->findOrFail($id);
         $this->editandoId          = $id;
         $this->nombre              = $barbero->nombre;
         $this->telefono            = $barbero->telefono ?? '';
-        $this->comision_porcentaje = $barbero->comision_porcentaje;
-        $this->activo              = $barbero->activo;
+        $this->comision_porcentaje = (float) $barbero->comision_porcentaje;
+        $this->activo              = (bool) $barbero->activo;
         $this->mostrarForm         = true;
     }
 
@@ -67,9 +70,21 @@ class GestionBarberos extends Component
         $this->mostrarForm = false;
     }
 
+    public string $aviso = '';
+
     public function eliminar(int $id): void
     {
-        Barbero::where('barberia_id', $this->barberiaId())->findOrFail($id)->delete();
+        $barbero = Barbero::where('barberia_id', $this->barberiaId())->findOrFail($id);
+
+        // Si ya tiene ventas, borrarlo dañaría el historial y las comisiones: se desactiva
+        if ($barbero->ventas()->exists()) {
+            $barbero->update(['activo' => false]);
+            $this->aviso = "{$barbero->nombre} ya tiene ventas, así que se desactivó en lugar de borrarse.";
+            return;
+        }
+
+        $barbero->delete();
+        $this->aviso = '';
     }
 
     public function toggleActivo(int $id): void
@@ -80,6 +95,8 @@ class GestionBarberos extends Component
 
     public function cancelar(): void
     {
+        $this->resetErrorBag();
+        $this->aviso = '';
         $this->reset(['nombre', 'telefono', 'comision_porcentaje', 'editandoId']);
         $this->mostrarForm = false;
     }

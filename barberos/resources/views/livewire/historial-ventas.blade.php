@@ -1,445 +1,317 @@
-<div class="flex flex-col gap-5">
+@php
+    $dinero = fn($valor) => '$' . number_format((float) $valor, 0, ',', '.');
+    $fechaCarbon = \Carbon\Carbon::parse($fecha ?: now());
+    $metodos = [
+        'efectivo'      => ['Efectivo', 'badge-green'],
+        'nequi'         => ['Nequi', 'badge-blue'],
+        'transferencia' => ['Transferencia', 'badge-blue'],
+        'combinado'     => ['Combinado', 'badge-violet'],
+    ];
+    $activas = $ventas->where('fue_eliminada', false);
+@endphp
+<div class="flex flex-col gap-4">
 
-    {{-- Modal de auditoría --}}
-    @if($mostrarAuditoria)
-    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px">
-        <div class="rounded-2xl flex flex-col gap-4"
-             style="background:var(--surface);border:1px solid var(--border);width:580px;max-width:95vw;max-height:85vh;overflow-y:auto;padding:24px">
+    {{-- ─────────── Filtro por día ─────────── --}}
+    <div class="card card-pad flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-2">
+            <button type="button" wire:click="$set('fecha', '{{ $fechaCarbon->copy()->subDay()->toDateString() }}')" class="btn btn-light !px-3" aria-label="Día anterior">‹</button>
+            <input wire:model.live="fecha" type="date" class="input flex-1 sm:w-44 sm:flex-none">
+            <button type="button" wire:click="$set('fecha', '{{ $fechaCarbon->copy()->addDay()->toDateString() }}')" class="btn btn-light !px-3" aria-label="Día siguiente">›</button>
+        </div>
+        <p class="text-sm text-muted">{{ ucfirst($fechaCarbon->translatedFormat('l j \d\e F \d\e Y')) }}</p>
+    </div>
 
-            <div class="flex items-center justify-between">
-                <h3 class="font-semibold text-base" style="color:var(--text)">
-                    Historial de cambios — Venta #{{ $auditoriaData['venta']['id'] }}
-                </h3>
-                <button wire:click="cerrarAuditoria"
-                        class="w-7 h-7 rounded-lg flex items-center justify-center text-sm"
-                        style="background:#F1F5F9;color:var(--muted)">✕</button>
-            </div>
-
-            <div class="rounded-xl p-4 flex flex-col gap-2"
-                 style="background:#F8FAFC;border:1px solid var(--border)">
-                <p class="text-xs font-semibold" style="color:var(--muted)">Detalle de la venta</p>
-                <div class="flex flex-wrap gap-2">
-                    @foreach($auditoriaData['venta']['items'] as $item)
-                    <span class="text-xs px-2 py-0.5 rounded-full"
-                          style="background:#EFF6FF;color:#2563EB">
-                        {{ $item['nombre'] }} × {{ $item['cantidad'] }}
-                    </span>
-                    @endforeach
-                </div>
-                <div class="grid grid-cols-3 gap-3 mt-1">
-                    <div>
-                        <p class="text-xs" style="color:var(--muted)">Barbero</p>
-                        <p class="text-sm font-semibold">{{ $auditoriaData['venta']['barbero'] }}</p>
-                    </div>
-                    <div>
-                        <p class="text-xs" style="color:var(--muted)">Método</p>
-                        <p class="text-sm font-semibold">{{ ucfirst($auditoriaData['venta']['metodo']) }}</p>
-                    </div>
-                    <div>
-                        <p class="text-xs" style="color:var(--muted)">Total actual</p>
-                        <p class="text-sm font-semibold"
-                           style="color:{{ $auditoriaData['venta']['eliminada'] ? '#DC2626' : 'var(--primary)' }}">
-                            @if($auditoriaData['venta']['eliminada'])
-                                <span class="line-through">${{ number_format($auditoriaData['venta']['total_orig'], 0, ',', '.') }}</span>
-                                <span class="ml-1">$0</span>
-                            @else
-                                ${{ number_format($auditoriaData['venta']['total'], 0, ',', '.') }}
-                            @endif
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            @if(count($auditoriaData['auditorias']) > 0)
-            <div class="flex flex-col gap-3">
-                <p class="text-xs font-semibold" style="color:var(--muted)">Registro de cambios</p>
-                @foreach($auditoriaData['auditorias'] as $auditoria)
-                <div class="rounded-xl p-4 flex flex-col gap-2"
-                     style="background:{{ $auditoria['accion'] === 'eliminada' ? '#FEF2F2' : '#FFFBEB' }};
-                            border:1px solid {{ $auditoria['accion'] === 'eliminada' ? '#FECACA' : '#FDE68A' }}">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full"
-                              style="background:{{ $auditoria['accion'] === 'eliminada' ? '#DC2626' : '#D97706' }};color:white">
-                            {{ ucfirst($auditoria['accion']) }}
-                        </span>
-                        <span class="text-xs" style="color:var(--muted)">
-                            {{ $auditoria['fecha'] }} — {{ $auditoria['usuario'] }}
-                        </span>
-                    </div>
-                    <div>
-                        <p class="text-xs font-semibold mb-1" style="color:var(--muted)">Motivo:</p>
-                        <p class="text-sm" style="color:var(--text)">{{ $auditoria['motivo'] }}</p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3 pt-2" style="border-top:1px solid rgba(0,0,0,0.08)">
-                        <div>
-                            <p class="text-xs font-semibold mb-1" style="color:var(--muted)">Antes</p>
-                            <p class="text-sm">Total: <strong>${{ number_format($auditoria['total_antes'], 0, ',', '.') }}</strong></p>
-                            @if($auditoria['barbero_antes'])
-                            <p class="text-xs" style="color:var(--muted)">Barbero: {{ $auditoria['barbero_antes'] }}</p>
-                            @endif
-                            @if($auditoria['metodo_antes'])
-                            <p class="text-xs" style="color:var(--muted)">Método: {{ ucfirst($auditoria['metodo_antes']) }}</p>
-                            @endif
-                        </div>
-                        @if($auditoria['accion'] === 'editada')
-                        <div>
-                            <p class="text-xs font-semibold mb-1" style="color:var(--muted)">Después</p>
-                            <p class="text-sm">Total: <strong style="color:var(--primary)">${{ number_format($auditoria['total_despues'], 0, ',', '.') }}</strong></p>
-                            @if($auditoria['metodo_despues'])
-                            <p class="text-xs" style="color:var(--muted)">Método: {{ ucfirst($auditoria['metodo_despues']) }}</p>
-                            @endif
-                        </div>
-                        @endif
-                    </div>
-                </div>
-                @endforeach
-            </div>
-            @else
-            <div class="rounded-xl p-4 text-center text-sm" style="color:var(--muted);background:#F8FAFC">
-                No hay cambios registrados para esta venta.
-            </div>
-            @endif
-
-            @if($auditoriaData['venta']['eliminada'])
-            <div class="rounded-xl p-4 flex flex-col gap-3"
-                 style="background:#F0FDF4;border:1px solid #BBF7D0">
-                <p class="text-sm font-semibold" style="color:#16A34A">¿Restaurar productos al inventario?</p>
-                <p class="text-xs" style="color:#16A34A;opacity:0.8">
-                    Esta venta fue eliminada. ¿Deseas devolver los productos vendidos al inventario?
-                </p>
-                <div class="flex gap-3">
-                    <button wire:click="restaurarInventario({{ $auditoriaData['venta']['id'] }}, true)"
-                            class="px-4 py-2 rounded-xl text-sm font-semibold"
-                            style="background:#16A34A;color:white">
-                        Sí, restaurar stock
-                    </button>
-                    <button wire:click="restaurarInventario({{ $auditoriaData['venta']['id'] }}, false)"
-                            class="px-4 py-2 rounded-xl text-sm"
-                            style="background:#F8FAFC;color:var(--muted);border:1px solid var(--border)">
-                        No, cerrar
-                    </button>
-                </div>
-            </div>
-            @endif
-
-            <button wire:click="cerrarAuditoria"
-                    class="w-full py-2.5 rounded-xl text-sm font-medium"
-                    style="background:#F8FAFC;color:var(--muted);border:1px solid var(--border)">
-                Cerrar
-            </button>
+    {{-- ─────────── Totales del día ─────────── --}}
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div class="kpi">
+            <p class="kpi-label"><span class="kpi-dot bg-brand-500"></span>Total del día</p>
+            <p class="kpi-value">{{ $dinero($activas->sum('total')) }}</p>
+        </div>
+        <div class="kpi">
+            <p class="kpi-label"><span class="kpi-dot bg-slate-400"></span>Ventas</p>
+            <p class="kpi-value">{{ $activas->count() }}</p>
+        </div>
+        <div class="kpi">
+            <p class="kpi-label"><span class="kpi-dot bg-emerald-500"></span>Efectivo</p>
+            <p class="kpi-value">{{ $dinero($activas->sum('monto_efectivo')) }}</p>
+        </div>
+        <div class="kpi">
+            <p class="kpi-label"><span class="kpi-dot bg-sky-500"></span>Nequi / transf.</p>
+            <p class="kpi-value">{{ $dinero($activas->sum('monto_nequi')) }}</p>
         </div>
     </div>
-    @endif
 
-    {{-- Modal de confirmación con contraseña --}}
-    @if($mostrarModal)
-    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:50;display:flex;align-items:center;justify-content:center">
-        <div class="rounded-2xl p-6 flex flex-col gap-4"
-             style="background:var(--surface);border:1px solid var(--border);width:480px;max-width:90vw">
-            <div>
-                <h3 class="font-semibold text-base" style="color:var(--text)">
-                    {{ $accion === 'eliminar' ? 'Eliminar venta' : 'Editar venta' }}
-                </h3>
-                <p class="text-sm mt-1" style="color:var(--muted)">
-                    Por seguridad ingresa el motivo y tu contraseña.
-                </p>
-            </div>
-
-            @if($errors->any())
-            <div class="rounded-xl p-3 text-xs"
-                 style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA">
-                @foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach
-            </div>
-            @endif
-
-            <div>
-                <label class="text-xs font-semibold mb-1.5 block" style="color:var(--muted)">
-                    Motivo <span style="color:#DC2626">*</span>
-                </label>
-                <textarea wire:model="motivo"
-                          placeholder="Escribe el motivo (mínimo 10 letras, sin números ni símbolos)..."
-                          rows="3"
-                          class="w-full rounded-xl px-3 py-2.5 text-sm outline-none resize-none"
-                          style="background:#F8FAFC;border:1px solid var(--border);color:var(--text)"></textarea>
-                <p class="text-xs mt-1" style="color:var(--muted)">
-                    {{ strlen($motivo) }}/10 caracteres mínimo · Solo letras y espacios
-                </p>
-            </div>
-
-            <div>
-                <label class="text-xs font-semibold mb-1.5 block" style="color:var(--muted)">
-                    Contraseña <span style="color:#DC2626">*</span>
-                </label>
-                <input wire:model="passwordConfirm"
-                       type="password"
-                       placeholder="Tu contraseña"
-                       wire:keydown.enter="verificarPassword"
-                       class="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                       style="background:#F8FAFC;border:1px solid var(--border);color:var(--text)">
-                @if($errorPassword)
-                <p class="text-xs mt-1" style="color:#DC2626">{{ $errorPassword }}</p>
-                @endif
-            </div>
-
-            <div class="flex gap-3 justify-end">
-                <button wire:click="cancelarModal"
-                        class="px-4 py-2 rounded-xl text-sm"
-                        style="background:#F8FAFC;color:var(--muted);border:1px solid var(--border)">
-                    Cancelar
-                </button>
-                <button wire:click="verificarPassword"
-                        class="px-4 py-2 rounded-xl text-sm font-semibold"
-                        style="background:{{ $accion === 'eliminar' ? '#DC2626' : 'var(--primary)' }};color:white">
-                    {{ $accion === 'eliminar' ? 'Eliminar' : 'Continuar' }}
-                </button>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    {{-- Modal de edición --}}
-    @if($mostrarEdicion)
-    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:50;display:flex;align-items:center;justify-content:center">
-        <div class="rounded-2xl p-6 flex flex-col gap-4"
-             style="background:var(--surface);border:1px solid var(--border);width:520px;max-width:90vw;max-height:90vh;overflow-y:auto">
-            <h3 class="font-semibold text-base" style="color:var(--text)">
-                Editar venta #{{ $ventaId }}
-            </h3>
-
-            @if($errors->any())
-            <div class="rounded-xl p-3 text-sm"
-                 style="background:#FEF2F2;border:1px solid #FECACA;color:#DC2626">
-                @foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach
-            </div>
-            @endif
-
-            <div>
-                <label class="text-xs font-semibold mb-1.5 block" style="color:var(--muted)">Barbero</label>
-                <select wire:model="editBarberoId"
-                        class="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                        style="background:#F8FAFC;border:1px solid var(--border);color:var(--text)">
-                    <option value="0">— Sin barbero (venta directa) —</option>
-                    @foreach($barberos as $b)
-                    <option value="{{ $b->id }}">{{ $b->nombre }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div>
-                <label class="text-xs font-semibold mb-1.5 block" style="color:var(--muted)">Método de pago</label>
-                <select wire:model.live="editMetodoPago"
-                        class="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                        style="background:#F8FAFC;border:1px solid var(--border);color:var(--text)">
-                    <option value="efectivo">Efectivo</option>
-                    <option value="nequi">Nequi</option>
-                    <option value="transferencia">Transferencia</option>
-                    <option value="combinado">Combinado</option>
-                </select>
-            </div>
-
-            @if($editMetodoPago === 'combinado')
-            <div class="grid grid-cols-2 gap-3 rounded-xl p-3"
-                 style="background:#FFFBEB;border:1px solid #FDE68A">
-                <div>
-                    <label class="text-xs mb-1 block font-medium" style="color:#92400E">Efectivo</label>
-                    <input wire:model="editEfectivo" type="number" min="0"
-                           class="w-full rounded-xl px-3 py-2 text-sm outline-none"
-                           style="background:white;border:1px solid #FDE68A;color:var(--text)">
-                </div>
-                <div>
-                    <label class="text-xs mb-1 block font-medium" style="color:#92400E">Nequi</label>
-                    <input wire:model="editNequi" type="number" min="0"
-                           class="w-full rounded-xl px-3 py-2 text-sm outline-none"
-                           style="background:white;border:1px solid #FDE68A;color:var(--text)">
-                </div>
-            </div>
-            @endif
-
-            <div>
-                <label class="text-xs font-semibold mb-2 block" style="color:var(--muted)">Servicios incluidos</label>
-                <div class="flex flex-col gap-2">
-                    @foreach($editItems as $index => $item)
-                    <div class="flex items-center justify-between rounded-xl px-3 py-2.5"
-                         style="background:#F8FAFC;border:1px solid var(--border)">
-                        <div class="flex-1 min-w-0 mr-2">
-                            <p class="text-sm font-medium">{{ $item['nombre_servicio'] }}</p>
-                            <p class="text-xs" style="color:var(--muted)">
-                                ${{ number_format($item['precio'], 0, ',', '.') }} c/u
-                            </p>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <button wire:click="disminuirCantidad({{ $index }})"
-                                    class="w-7 h-7 rounded-xl flex items-center justify-center font-bold text-sm"
-                                    style="background:#FEE2E2;color:#DC2626">−</button>
-                            <span class="text-sm font-bold w-6 text-center" style="color:var(--text)">
-                                {{ $item['cantidad'] }}
-                            </span>
-                            <button wire:click="aumentarCantidad({{ $index }})"
-                                    class="w-7 h-7 rounded-xl flex items-center justify-center font-bold text-sm"
-                                    style="background:#DCFCE7;color:#16A34A">+</button>
-                            <span class="font-semibold text-sm ml-1" style="color:var(--primary);min-width:70px;text-align:right">
-                                ${{ number_format($item['subtotal'], 0, ',', '.') }}
-                            </span>
-                        </div>
-                    </div>
-                    @endforeach
-                </div>
-                <div class="flex justify-between items-center mt-3 pt-3"
-                     style="border-top:1px solid var(--border)">
-                    <span class="text-sm font-medium" style="color:var(--muted)">Total</span>
-                    <span class="font-bold text-lg" style="color:var(--primary)">
-                        ${{ number_format(collect($editItems)->sum('subtotal'), 0, ',', '.') }}
-                    </span>
-                </div>
-            </div>
-
-            <div class="flex gap-3 justify-end">
-                <button wire:click="cancelarEdicion"
-                        class="px-4 py-2 rounded-xl text-sm"
-                        style="background:#F8FAFC;color:var(--muted);border:1px solid var(--border)">
-                    Cancelar
-                </button>
-                <button wire:click="guardarEdicion"
-                        class="px-4 py-2 rounded-xl text-sm font-semibold"
-                        style="background:var(--primary);color:white">
-                    Guardar cambios
-                </button>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    {{-- Filtro por fecha --}}
-    <div class="flex gap-3 items-center">
-        <input wire:model.live="fecha"
-               type="date"
-               class="rounded-xl px-4 py-2.5 text-sm outline-none"
-               style="background:var(--surface);border:1px solid var(--border);color:var(--text)">
-        <span class="text-sm" style="color:var(--muted)">
-            {{ \Carbon\Carbon::parse($fecha)->format('d/m/Y') }}
-        </span>
-    </div>
-
-    {{-- Tabla de ventas con scroll horizontal --}}
-    <div style="overflow-x:auto;border-radius:12px;border:1px solid var(--border)">
-    <div style="min-width:700px">
-
-        <div class="px-4 py-3 text-xs font-semibold grid gap-2"
-             style="background:#F8FAFC;color:var(--muted);border-bottom:1px solid var(--border);
-                    grid-template-columns:80px 1fr 130px 110px 100px 120px">
+    {{-- ─────────── Lista de ventas ─────────── --}}
+    <div class="tabla">
+        <div class="tabla-head md:grid-cols-[70px_1fr_140px_120px_110px_190px]">
             <span>#</span>
-            <span>Servicios</span>
+            <span>Detalle</span>
             <span>Barbero</span>
-            <span>Método</span>
+            <span>Pago</span>
             <span class="text-right">Total</span>
-            <span class="text-center">Acciones</span>
+            <span class="text-right">Acciones</span>
         </div>
 
         @forelse($ventas as $venta)
-        <div class="px-4 py-3 text-sm grid gap-2 border-t items-center"
-             style="border-color:var(--border);
-                    background:{{ $venta->fue_eliminada ? '#FEF2F2' : ($venta->fue_editada ? '#FFFBEB' : 'var(--surface)') }};
-                    grid-template-columns:80px 1fr 130px 110px 100px 120px">
-            <div>
-                <span class="text-xs font-medium" style="color:var(--muted)">#{{ $venta->id }}</span>
-                @if($venta->fue_eliminada)
-                <span class="block text-xs px-1.5 py-0.5 rounded-full mt-0.5"
-                      style="background:#FEE2E2;color:#DC2626;font-size:10px">Eliminada</span>
-                @elseif($venta->fue_editada)
-                <span class="block text-xs px-1.5 py-0.5 rounded-full mt-0.5"
-                      style="background:#FEF3C7;color:#D97706;font-size:10px">Editada</span>
-                @endif
+            <div wire:key="venta-{{ $venta->id }}"
+                 class="tabla-row md:grid-cols-[70px_1fr_140px_120px_110px_190px] {{ $venta->fue_eliminada ? 'bg-rose-50/40' : ($venta->fue_editada ? 'bg-amber-50/40' : '') }}">
+
+                {{-- Número y estado (en teléfono va junto al total) --}}
+                <div class="flex items-center justify-between md:block">
+                    <div class="flex items-center gap-2 md:flex-col md:items-start md:gap-1">
+                        <span class="text-xs font-semibold text-muted">#{{ $venta->id }} · {{ $venta->created_at->format('h:i a') }}</span>
+                        @if($venta->fue_eliminada)
+                            <span class="badge badge-red">Eliminada</span>
+                        @elseif($venta->fue_editada)
+                            <span class="badge badge-amber">Editada</span>
+                        @endif
+                    </div>
+                    <span class="text-lg font-semibold md:hidden {{ $venta->fue_eliminada ? 'text-muted line-through' : 'text-ink' }}">
+                        {{ $dinero($venta->fue_eliminada ? $venta->total_original : $venta->total) }}
+                    </span>
+                </div>
+
+                <div class="flex flex-wrap gap-1 {{ $venta->fue_eliminada ? 'opacity-50' : '' }}">
+                    @foreach($venta->items as $item)
+                        <span class="badge {{ $item->es_producto ? 'badge-amber' : 'badge-blue' }} {{ $venta->fue_eliminada ? 'line-through' : '' }}">
+                            {{ $item->nombre_servicio }}@if($item->cantidad > 1) ×{{ $item->cantidad }}@endif
+                        </span>
+                    @endforeach
+                </div>
+
+                <div class="flex items-center justify-between gap-2 md:contents">
+                    <span class="font-medium {{ $venta->fue_eliminada ? 'text-muted line-through' : '' }}">
+                        {{ $venta->barbero?->nombre ?? 'Venta directa' }}
+                    </span>
+                    <span><span class="badge {{ $metodos[$venta->metodo_pago][1] ?? 'badge-gray' }}">{{ $metodos[$venta->metodo_pago][0] ?? $venta->metodo_pago }}</span></span>
+                </div>
+
+                <div class="hidden text-right md:block">
+                    @if($venta->fue_eliminada)
+                        <span class="font-semibold text-muted line-through">{{ $dinero($venta->total_original) }}</span>
+                        <span class="block text-xs text-rose-600">$0</span>
+                    @else
+                        <span class="font-semibold text-ink">{{ $dinero($venta->total) }}</span>
+                        @if($venta->fue_editada && $venta->total_original)
+                            <span class="block text-xs text-muted line-through">Antes {{ $dinero($venta->total_original) }}</span>
+                        @endif
+                    @endif
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 md:flex md:justify-end md:gap-1">
+                    <button type="button" wire:click="verAuditoria({{ $venta->id }})" class="btn btn-sm btn-success">Ver</button>
+                    @unless($venta->fue_eliminada)
+                        <button type="button" wire:click="confirmarAccion({{ $venta->id }}, 'editar')" class="btn btn-sm btn-soft">Editar</button>
+                        <button type="button" wire:click="confirmarAccion({{ $venta->id }}, 'eliminar')" class="btn btn-sm btn-danger">Eliminar</button>
+                    @endunless
+                </div>
             </div>
-            <div class="flex flex-wrap gap-1">
-                @foreach($venta->items as $item)
-                <span class="text-xs px-2 py-0.5 rounded-full"
-                      style="background:#EFF6FF;color:#2563EB;
-                             {{ $venta->fue_eliminada ? 'opacity:0.5;text-decoration:line-through;' : '' }}">
-                    {{ $item->nombre_servicio }}
-                </span>
-                @endforeach
-            </div>
-            <span class="font-medium {{ $venta->fue_eliminada ? 'line-through' : '' }}"
-                  style="{{ $venta->fue_eliminada ? 'color:var(--muted)' : '' }}">
-                {{ $venta->barbero?->nombre ?? 'Venta directa' }}
-            </span>
-            <span>
-                @if($venta->metodo_pago === 'efectivo')
-                    <span class="text-xs px-2 py-0.5 rounded-full"
-                          style="background:#F0FDF4;color:#16A34A">Efectivo</span>
-                @elseif($venta->metodo_pago === 'nequi')
-                    <span class="text-xs px-2 py-0.5 rounded-full"
-                          style="background:#EFF6FF;color:#2563EB">Nequi</span>
-                @elseif($venta->metodo_pago === 'transferencia')
-                    <span class="text-xs px-2 py-0.5 rounded-full"
-                          style="background:#EFF6FF;color:#2563EB">Transferencia</span>
-                @else
-                    <span class="text-xs px-2 py-0.5 rounded-full"
-                          style="background:#F5F3FF;color:#7C3AED">Combinado</span>
-                @endif
-            </span>
-            <div class="text-right">
-                @if($venta->fue_eliminada)
-                <span class="font-semibold line-through" style="color:var(--muted)">
-                    ${{ number_format($venta->total_original ?? 0, 0, ',', '.') }}
-                </span>
-                <span class="block text-xs" style="color:#DC2626">$0</span>
-                @else
-                <span class="font-semibold" style="color:var(--primary)">
-                    ${{ number_format($venta->total, 0, ',', '.') }}
-                </span>
-                @if($venta->fue_editada && $venta->total_original)
-                <span class="block text-xs line-through" style="color:var(--muted)">
-                    Antes: ${{ number_format($venta->total_original, 0, ',', '.') }}
-                </span>
-                @endif
-                @endif
-            </div>
-            <div class="flex gap-1 justify-center flex-wrap">
-                <button wire:click="verAuditoria({{ $venta->id }})"
-                        class="px-2 py-1 rounded-lg text-xs font-medium"
-                        style="background:#F0FDF4;color:#16A34A">
-                    Ver
-                </button>
-                @if(!$venta->fue_eliminada)
-                <button wire:click="confirmarAccion({{ $venta->id }}, 'editar')"
-                        class="px-2 py-1 rounded-lg text-xs font-medium"
-                        style="background:#EFF6FF;color:#2563EB">
-                    Editar
-                </button>
-                <button wire:click="confirmarAccion({{ $venta->id }}, 'eliminar')"
-                        class="px-2 py-1 rounded-lg text-xs font-medium"
-                        style="background:#FEF2F2;color:#DC2626">
-                    Eliminar
-                </button>
-                @else
-                <span class="text-xs px-2 py-1 rounded-lg"
-                      style="background:#F8FAFC;color:var(--muted)">
-                    Eliminada
-                </span>
-                @endif
-            </div>
-        </div>
         @empty
-        <div class="px-4 py-10 text-center text-sm" style="color:var(--muted)">
-            No hay ventas registradas para esta fecha
-        </div>
+            <p class="tabla-vacia">No hay ventas registradas este día.</p>
         @endforelse
-
-    </div>
     </div>
 
-    {{-- Total del día --}}
-    @if($ventas->count() > 0)
-    <div class="flex justify-between items-center rounded-xl px-5 py-4"
-         style="background:var(--surface);border:1px solid var(--border)">
-        <span class="text-sm font-medium" style="color:var(--muted)">
-            Total del día — {{ $ventas->where('fue_eliminada', false)->count() }} servicios activos
-        </span>
-        <span class="text-2xl font-bold" style="color:var(--primary)">
-            ${{ number_format($ventas->where('fue_eliminada', false)->sum('total'), 0, ',', '.') }}
-        </span>
-    </div>
+    {{-- ─────────── Ventana: historial de cambios ─────────── --}}
+    @if($mostrarAuditoria)
+        <div class="modal-fondo" wire:click.self="cerrarAuditoria">
+            <div class="modal-panel sm:max-w-xl">
+                <div class="flex items-center justify-between">
+                    <h3 class="modal-titulo">Venta #{{ $auditoriaData['venta']['id'] }}</h3>
+                    <button type="button" wire:click="cerrarAuditoria" class="btn btn-sm btn-light" aria-label="Cerrar">✕</button>
+                </div>
+
+                <div class="rounded-lg border border-line bg-slate-50 p-4">
+                    <div class="mb-3 flex flex-wrap gap-1">
+                        @foreach($auditoriaData['venta']['items'] as $item)
+                            <span class="badge badge-blue">{{ $item['nombre'] }} × {{ $item['cantidad'] }}</span>
+                        @endforeach
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 text-sm">
+                        <div>
+                            <p class="text-xs text-muted">Barbero</p>
+                            <p class="font-semibold">{{ $auditoriaData['venta']['barbero'] }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-muted">Pago</p>
+                            <p class="font-semibold">{{ $metodos[$auditoriaData['venta']['metodo']][0] ?? $auditoriaData['venta']['metodo'] }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-muted">Total</p>
+                            @if($auditoriaData['venta']['eliminada'])
+                                <p class="font-semibold text-rose-600"><span class="line-through">{{ $dinero($auditoriaData['venta']['total_orig']) }}</span> $0</p>
+                            @else
+                                <p class="font-semibold text-ink">{{ $dinero($auditoriaData['venta']['total']) }}</p>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <p class="card-title">Registro de cambios</p>
+                    @forelse($auditoriaData['auditorias'] as $auditoria)
+                        @php $eliminada = $auditoria['accion'] === 'eliminada'; @endphp
+                        <div class="rounded-xl border p-4 text-sm {{ $eliminada ? 'border-rose-200 bg-rose-50/50' : 'border-amber-200 bg-amber-50/50' }}">
+                            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                                <span class="badge {{ $eliminada ? 'badge-red' : 'badge-amber' }}">{{ ucfirst($auditoria['accion']) }}</span>
+                                <span class="text-xs text-muted">{{ $auditoria['fecha'] }} · {{ $auditoria['usuario'] }}</span>
+                            </div>
+                            <p class="text-xs font-semibold text-muted">Motivo</p>
+                            <p class="mb-2">{{ $auditoria['motivo'] }}</p>
+                            <div class="grid grid-cols-2 gap-3 border-t border-black/5 pt-2">
+                                <div>
+                                    <p class="text-xs font-semibold text-muted">Antes</p>
+                                    <p>{{ $dinero($auditoria['total_antes']) }}</p>
+                                    @if($auditoria['metodo_antes'])
+                                        <p class="text-xs text-muted">{{ $metodos[$auditoria['metodo_antes']][0] ?? $auditoria['metodo_antes'] }}</p>
+                                    @endif
+                                </div>
+                                @unless($eliminada)
+                                    <div>
+                                        <p class="text-xs font-semibold text-muted">Después</p>
+                                        <p class="font-semibold text-ink">{{ $dinero($auditoria['total_despues']) }}</p>
+                                        @if($auditoria['metodo_despues'])
+                                            <p class="text-xs text-muted">{{ $metodos[$auditoria['metodo_despues']][0] ?? $auditoria['metodo_despues'] }}</p>
+                                        @endif
+                                    </div>
+                                @endunless
+                            </div>
+                        </div>
+                    @empty
+                        <p class="rounded-xl bg-slate-50 p-4 text-center text-sm text-muted">Esta venta no ha tenido cambios.</p>
+                    @endforelse
+                </div>
+
+                @if($auditoriaData['venta']['eliminada'] && $auditoriaData['venta']['tiene_productos'])
+                    @if($auditoriaData['venta']['restaurado'])
+                        <p class="alert-success">Los productos de esta venta ya se devolvieron al inventario.</p>
+                    @else
+                        <div class="flex flex-col gap-3 rounded-xl border border-line bg-slate-50 p-4">
+                            <p class="text-sm font-semibold text-ink">¿Devolver los productos al inventario?</p>
+                            <p class="text-xs text-muted">Úsalo si los productos de esta venta eliminada volvieron a la tienda. Solo se puede hacer una vez.</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" wire:click="restaurarInventario({{ $auditoriaData['venta']['id'] }}, true)" class="btn btn-primary">Sí, devolver</button>
+                                <button type="button" wire:click="restaurarInventario({{ $auditoriaData['venta']['id'] }}, false)" class="btn btn-light">No</button>
+                            </div>
+                        </div>
+                    @endif
+                @endif
+
+                <button type="button" wire:click="cerrarAuditoria" class="btn btn-light w-full">Cerrar</button>
+            </div>
+        </div>
     @endif
 
+    {{-- ─────────── Ventana: confirmar con contraseña ─────────── --}}
+    @if($mostrarModal)
+        <div class="modal-fondo" wire:click.self="cancelarModal">
+            <div class="modal-panel">
+                <div>
+                    <h3 class="modal-titulo">{{ $accion === 'eliminar' ? 'Eliminar venta' : 'Editar venta' }}</h3>
+                    <p class="mt-1 text-sm text-muted">Por seguridad, escribe el motivo y tu contraseña.</p>
+                </div>
+
+                @if($errors->any())
+                    <div class="alert-error">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>
+                @endif
+
+                <div>
+                    <label class="label" for="motivo">Motivo <span class="text-rose-600">*</span></label>
+                    <textarea id="motivo" wire:model.live.debounce.300ms="motivo" rows="3"
+                              placeholder="Mínimo 10 letras, sin números ni símbolos"
+                              class="input resize-none"></textarea>
+                    <p class="mt-1 text-xs {{ mb_strlen($motivo) >= 10 ? 'text-emerald-700' : 'text-muted' }}">{{ mb_strlen($motivo) }}/10 letras mínimo</p>
+                </div>
+
+                <div>
+                    <label class="label" for="password-confirm">Contraseña <span class="text-rose-600">*</span></label>
+                    <input id="password-confirm" wire:model="passwordConfirm" type="password" autocomplete="current-password"
+                           wire:keydown.enter="verificarPassword" class="input">
+                    @if($errorPassword)
+                        <p class="mt-1 text-xs text-rose-600">{{ $errorPassword }}</p>
+                    @endif
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                    <button type="button" wire:click="cancelarModal" class="btn btn-light">Cancelar</button>
+                    <button type="button" wire:click="verificarPassword" class="btn {{ $accion === 'eliminar' ? 'btn-danger-solid' : 'btn-primary' }}">
+                        {{ $accion === 'eliminar' ? 'Eliminar' : 'Continuar' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- ─────────── Ventana: editar venta ─────────── --}}
+    @if($mostrarEdicion)
+        <div class="modal-fondo">
+            <div class="modal-panel">
+                <h3 class="modal-titulo">Editar venta #{{ $ventaId }}</h3>
+
+                @if($errors->any())
+                    <div class="alert-error">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>
+                @endif
+
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label class="label" for="edit-barbero">Barbero</label>
+                        <select id="edit-barbero" wire:model="editBarberoId" class="input">
+                            <option value="0">Sin barbero (venta directa)</option>
+                            @foreach($barberos as $b)
+                                <option value="{{ $b->id }}">{{ $b->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label" for="edit-metodo">Método de pago</label>
+                        <select id="edit-metodo" wire:model.live="editMetodoPago" class="input">
+                            @foreach($metodos as $valor => [$texto])
+                                <option value="{{ $valor }}">{{ $texto }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                @if($editMetodoPago === 'combinado')
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="label">Efectivo</label>
+                            <input wire:model="editEfectivo" type="number" inputmode="numeric" min="0" class="input">
+                        </div>
+                        <div>
+                            <label class="label">Nequi</label>
+                            <input wire:model="editNequi" type="number" inputmode="numeric" min="0" class="input">
+                        </div>
+                    </div>
+                @endif
+
+                <div>
+                    <p class="label">Ítems de la venta</p>
+                    <div class="flex flex-col gap-2">
+                        @foreach($editItems as $index => $item)
+                            <div wire:key="edit-{{ $item['id'] }}" class="flex items-center gap-2 rounded-lg border border-line px-3 py-2">
+                                <div class="min-w-0 flex-1">
+                                    <p class="truncate text-sm font-medium">{{ $item['nombre_servicio'] }}</p>
+                                    <p class="text-xs text-muted">{{ $dinero($item['precio']) }} c/u</p>
+                                </div>
+                                <button type="button" wire:click="disminuirCantidad({{ $index }})" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 ring-1 ring-inset ring-slate-200 hover:text-ink">−</button>
+                                <span class="w-6 text-center text-sm font-bold">{{ $item['cantidad'] }}</span>
+                                <button type="button" wire:click="aumentarCantidad({{ $index }})" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 ring-1 ring-inset ring-slate-200 hover:text-ink">+</button>
+                                <span class="w-20 text-right text-sm font-semibold text-ink">{{ $dinero($item['subtotal']) }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                    <div class="mt-3 flex items-center justify-between border-t border-line pt-3">
+                        <span class="text-sm font-medium text-muted">Total</span>
+                        <span class="text-xl font-semibold text-ink">{{ $dinero(collect($editItems)->sum('subtotal')) }}</span>
+                    </div>
+                    <p class="mt-1 text-xs text-muted">El inventario se ajusta solo cuando guardas.</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                    <button type="button" wire:click="cancelarEdicion" class="btn btn-light">Cancelar</button>
+                    <button type="button" wire:click="guardarEdicion" class="btn btn-primary">Guardar cambios</button>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
