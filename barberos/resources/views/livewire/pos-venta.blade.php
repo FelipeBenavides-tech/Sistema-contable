@@ -124,6 +124,40 @@
                 @endif
             </div>
 
+            {{-- Cliente con membresía (opcional) --}}
+            <div class="border-b border-line px-4 py-4 sm:px-5">
+                <p class="card-title mb-2">Cliente con membresía</p>
+                @if($membresia)
+                    <div class="flex items-start justify-between gap-3 rounded-lg bg-brand-50 p-3 ring-1 ring-inset ring-brand-600/15">
+                        <div class="min-w-0">
+                            <p class="truncate text-sm font-semibold text-ink">{{ $membresia->cliente->nombre }}</p>
+                            <p class="text-xs text-muted">{{ $membresia->nombre_plan }} · vence {{ $membresia->fecha_vencimiento->format('d/m/Y') }}</p>
+                            <p class="mt-1 text-xs font-medium text-brand-700">Quedan {{ $membresia->visitas_restantes }} de {{ $membresia->visitas_total }} visitas</p>
+                        </div>
+                        <button type="button" wire:click="quitarMembresia" class="text-xs font-medium text-muted hover:text-rose-600">Quitar</button>
+                    </div>
+                @else
+                    <input type="search" wire:model.live.debounce.300ms="buscarCliente" placeholder="Buscar por nombre o teléfono" class="input">
+                    @if(mb_strlen(trim($buscarCliente)) >= 2)
+                        <div class="mt-2 overflow-hidden rounded-lg ring-1 ring-inset ring-slate-200">
+                            @forelse($clientesConMembresia as $m)
+                                <button type="button" wire:key="mem-{{ $m->id }}" wire:click="seleccionarMembresia({{ $m->id }})"
+                                        class="flex w-full items-center justify-between gap-2 border-b border-slate-100 px-3 py-2.5 text-left text-sm last:border-b-0 hover:bg-slate-50">
+                                    <span class="min-w-0">
+                                        <span class="block truncate font-medium">{{ $m->cliente->nombre }}</span>
+                                        <span class="block truncate text-xs text-muted">{{ $m->nombre_plan }}{{ $m->cliente->telefono ? ' · ' . $m->cliente->telefono : '' }}</span>
+                                    </span>
+                                    <span class="badge badge-blue shrink-0">{{ $m->visitas_restantes }} {{ $m->visitas_restantes === 1 ? 'visita' : 'visitas' }}</span>
+                                </button>
+                            @empty
+                                <p class="px-3 py-3 text-center text-xs text-muted">Nadie con membresía vigente con ese nombre.</p>
+                            @endforelse
+                        </div>
+                    @endif
+                    <a href="{{ route('membresias') }}" class="mt-2 inline-block text-xs font-medium text-brand-600 hover:text-brand-800">Vender una membresía →</a>
+                @endif
+            </div>
+
             {{-- 1. Lo que se va a cobrar --}}
             <div class="border-b border-line px-4 py-4 sm:px-5">
                 <p class="card-title mb-2">Detalle</p>
@@ -132,6 +166,12 @@
                         <div class="min-w-0 flex-1">
                             <p class="truncate text-sm font-medium">{{ $item['nombre_servicio'] }}</p>
                             <p class="text-xs text-muted">{{ $dinero($item['precio']) }} c/u</p>
+                            @if($membresia && empty($item['es_producto']))
+                                <button type="button" wire:click="alternarMembresia('{{ $key }}')"
+                                        class="mt-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium ring-1 ring-inset {{ !empty($item['cubierto']) ? 'bg-brand-700 text-white ring-brand-700' : 'text-slate-500 ring-slate-200 hover:text-ink' }}">
+                                    {{ !empty($item['cubierto']) ? '✓ Con membresía' : 'Usar membresía' }}
+                                </button>
+                            @endif
                         </div>
                         <div class="flex items-center rounded-lg ring-1 ring-inset ring-slate-200">
                             <button type="button" wire:click="restarItem('{{ $key }}')" class="flex h-8 w-8 items-center justify-center text-slate-500 hover:text-ink" aria-label="Quitar uno">−</button>
@@ -223,11 +263,11 @@
             @forelse($ventasHoy as $v)
                 <div class="border-b border-slate-100 px-4 py-3 text-sm last:border-b-0 sm:px-5">
                     <div class="flex items-start justify-between gap-2">
-                        <span class="font-medium">{{ $v->barbero?->nombre ?? 'Venta directa' }}</span>
+                        <span class="font-medium">{{ $v->barbero?->nombre ?? ($v->items->contains('es_membresia', true) ? 'Venta de membresía' : 'Venta directa') }}</span>
                         <span class="font-semibold">{{ $dinero($v->total) }}</span>
                     </div>
                     <div class="mt-1 flex items-center justify-between gap-2">
-                        <span class="truncate text-xs text-muted">{{ $v->items->pluck('nombre_servicio')->implode(', ') }}</span>
+                        <span class="truncate text-xs text-muted">{{ $v->items->map(fn($i) => $i->nombre_servicio . ($i->cubierto_membresia ? ' (membresía)' : ''))->implode(', ') }}</span>
                         <span class="badge {{ $v->metodo_pago === 'efectivo' ? 'badge-green' : ($v->metodo_pago === 'combinado' ? 'badge-amber' : 'badge-blue') }}">{{ ucfirst($v->metodo_pago) }}</span>
                     </div>
                 </div>
