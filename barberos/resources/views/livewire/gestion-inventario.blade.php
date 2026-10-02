@@ -39,10 +39,10 @@
                     </span>
                     <span class="text-muted md:text-center"><span class="dato">Mín.</span>{{ $item->stock_minimo }}</span>
                     <span class="text-muted md:text-right"><span class="dato">Costo</span>{{ $dinero($item->precio_costo) }}</span>
-                    <span class="hidden font-semibold text-amber-600 md:block md:text-right">{{ $item->precio_venta > 0 ? $dinero($item->precio_venta) : '—' }}</span>
+                    <span class="hidden font-semibold md:block md:text-right">{{ $item->precio_venta > 0 ? $dinero($item->precio_venta) : '—' }}</span>
                 </div>
                 @if($item->precio_venta > 0)
-                    <span class="text-sm font-semibold text-amber-600 md:hidden">Precio de venta {{ $dinero($item->precio_venta) }}</span>
+                    <span class="text-sm font-medium text-ink md:hidden"><span class="text-muted">Precio de venta</span> {{ $dinero($item->precio_venta) }}</span>
                 @endif
                 <div class="grid grid-cols-2 gap-2 md:flex md:justify-end md:gap-1">
                     <button type="button" wire:click="editar({{ $item->id }})" class="btn btn-sm btn-soft">Editar</button>
@@ -67,6 +67,7 @@
                     <div class="col-span-2">
                         <label class="label" for="nombre">Nombre del producto</label>
                         <input id="nombre" wire:model="nombre" type="text" placeholder="Cera, gel, toallas…" class="input" autofocus>
+                        <p class="mt-1 text-xs text-muted">Aquí van productos físicos. Los cortes y demás servicios se crean en <a href="{{ route('servicios') }}" class="font-medium text-brand-600 hover:text-brand-800">Servicios</a>.</p>
                     </div>
                     <div>
                         <label class="label" for="categoria">Uso</label>

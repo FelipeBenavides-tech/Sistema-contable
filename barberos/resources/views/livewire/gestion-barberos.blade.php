@@ -27,7 +27,7 @@
                     </span>
                 </div>
                 <div class="flex items-center gap-4 text-muted md:contents">
-                    <span>@if($barbero->telefono)<a href="tel:{{ $barbero->telefono }}" class="hover:text-brand-500">{{ $barbero->telefono }}</a>@else — @endif</span>
+                    <span>@if($barbero->telefono)<a href="tel:{{ $barbero->telefono }}" class="hover:text-brand-700">{{ $barbero->telefono }}</a>@else — @endif</span>
                     <span class="md:text-center"><span class="dato">Comisión</span><span class="badge badge-amber">{{ rtrim(rtrim(number_format($barbero->comision_porcentaje, 2, ',', ''), '0'), ',') }}%</span></span>
                 </div>
                 <span class="hidden text-center md:block">
@@ -68,7 +68,7 @@
                     </div>
                     @if($editandoId)
                         <label class="flex items-center gap-3 sm:col-span-2">
-                            <input wire:model="activo" type="checkbox" class="h-5 w-5 rounded border-line text-brand-500 focus:ring-brand-500">
+                            <input wire:model="activo" type="checkbox" class="h-5 w-5 rounded border-line text-brand-700 focus:ring-brand-500">
                             <span class="text-sm">Activo (aparece en la caja)</span>
                         </label>
                     @endif

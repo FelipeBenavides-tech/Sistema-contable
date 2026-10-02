@@ -24,31 +24,33 @@
 
     {{-- Fondo oscuro detrás del menú en el teléfono --}}
     <div x-cloak x-show="menu" x-transition.opacity @click="menu = false"
-         class="fixed inset-0 z-40 bg-ink/50 lg:hidden"></div>
+         class="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-[2px] lg:hidden"></div>
 
     {{-- Menú lateral (fijo en computador, deslizable en teléfono) --}}
-    <aside class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] -translate-x-full flex-col bg-brand-500 text-white transition-transform duration-200 lg:w-60 lg:translate-x-0"
+    <aside class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] -translate-x-full flex-col border-r border-white/5 bg-ink text-white transition-transform duration-200 lg:w-64 lg:translate-x-0"
            :class="menu && 'translate-x-0'">
         <div class="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
             <div class="flex min-w-0 items-center gap-3">
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-500 text-ink">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-900 text-accent-500 ring-1 ring-white/10">
                     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $links[6]['icon'] }}"/></svg>
                 </div>
                 <div class="min-w-0">
-                    <p class="text-sm font-bold">Kaixa</p>
-                    <p class="truncate text-xs text-white/60">{{ $barberia?->nombre ?? 'Mi barbería' }}</p>
+                    <p class="text-sm font-semibold tracking-tight">Kaixa</p>
+                    <p class="truncate text-xs text-slate-400">{{ $barberia?->nombre ?? 'Mi barbería' }}</p>
                 </div>
             </div>
-            <button type="button" @click="menu = false" class="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15 lg:hidden" aria-label="Cerrar menú">
+            <button type="button" @click="menu = false" class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white lg:hidden" aria-label="Cerrar menú">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
 
-        <nav class="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
+        <nav class="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
+            <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Menú</p>
             @foreach($links as $link)
                 @php $activo = request()->routeIs($link['route']); @endphp
                 <a href="{{ route($link['route']) }}"
-                   class="flex min-h-[44px] items-center gap-3 rounded-xl px-3 text-sm transition {{ $activo ? 'bg-accent-500 font-semibold text-ink' : 'text-white/75 hover:bg-white/10 hover:text-white' }}">
+                   class="relative flex min-h-[42px] items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors {{ $activo ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-white' }}">
+                    @if($activo)<span class="absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent-500"></span>@endif
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $link['icon'] }}"/></svg>
                     {{ $link['largo'] }}
                 </a>
@@ -56,56 +58,57 @@
         </nav>
 
         @if($barberia?->fecha_vencimiento && $barberia->dias_restantes <= 7)
-            <div class="mx-3 mb-3 rounded-xl bg-accent-500/20 p-3 text-xs text-white">
+            <div class="mx-3 mb-3 rounded-lg bg-white/5 p-3 text-xs text-slate-300 ring-1 ring-inset ring-white/10">
                 Tu plan vence en {{ $barberia->dias_restantes }} {{ $barberia->dias_restantes === 1 ? 'día' : 'días' }}.
             </div>
         @endif
 
         <div class="flex items-center justify-between gap-2 border-t border-white/10 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <div class="min-w-0">
-                <p class="truncate text-xs font-medium">{{ auth()->user()->name }}</p>
-                <p id="reloj" class="text-[11px] text-white/50"></p>
+                <p class="truncate text-sm font-medium">{{ auth()->user()->name }}</p>
+                <p id="reloj" class="text-xs text-slate-500"></p>
             </div>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <button type="submit" class="rounded-lg border border-white/20 px-3 py-1.5 text-xs text-white/80 hover:bg-white/10">Salir</button>
+                <button type="submit" class="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-300 ring-1 ring-inset ring-white/15 hover:bg-white/10 hover:text-white">Salir</button>
             </form>
         </div>
     </aside>
 
-    <div class="flex min-h-screen flex-col lg:pl-60">
+    <div class="flex min-h-screen flex-col lg:pl-64">
         {{-- Barra superior --}}
-        <header class="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-white/95 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur sm:px-6">
-            <button type="button" @click="menu = true" class="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-500 lg:hidden" aria-label="Abrir menú">
+        <header class="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-white/90 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur sm:px-8">
+            <button type="button" @click="menu = true" class="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 lg:hidden" aria-label="Abrir menú">
                 <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
             </button>
             <div class="min-w-0 flex-1">
-                <h1 class="truncate text-base font-bold text-ink">{{ $title ?? 'Panel' }}</h1>
+                <h1 class="truncate text-base font-semibold text-ink sm:text-lg">{{ $title ?? 'Panel' }}</h1>
                 <p class="truncate text-xs text-muted lg:hidden">{{ $barberia?->nombre }}</p>
             </div>
-            <p class="hidden text-xs text-muted sm:block">{{ now()->translatedFormat('l j \d\e F') }}</p>
+            <p class="hidden text-sm text-muted sm:block">{{ ucfirst(now()->translatedFormat('l j \d\e F')) }}</p>
         </header>
 
         {{-- Contenido (con espacio abajo para la barra del teléfono) --}}
-        <main class="mx-auto w-full max-w-7xl flex-1 p-4 pb-28 sm:p-6 lg:pb-6">
+        <main class="mx-auto w-full max-w-7xl flex-1 p-4 pb-28 sm:p-6 lg:p-8">
             {{ $slot }}
         </main>
     </div>
 
     {{-- Barra inferior solo en teléfono --}}
-    <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+    <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
         @foreach(collect($links)->whereIn('route', $barraInferior) as $link)
             @php $activo = request()->routeIs($link['route']); @endphp
             <a href="{{ route($link['route']) }}"
-               class="flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium {{ $activo ? 'text-brand-500' : 'text-muted' }}">
-                <span class="flex h-7 w-12 items-center justify-center rounded-full {{ $activo ? 'bg-brand-50' : '' }}">
+               class="relative flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium {{ $activo ? 'text-brand-700' : 'text-slate-500' }}">
+                @if($activo)<span class="absolute inset-x-5 top-0 h-0.5 rounded-full bg-brand-700"></span>@endif
+                <span class="flex h-7 w-12 items-center justify-center">
                     <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $link['icon'] }}"/></svg>
                 </span>
                 {{ $link['label'] }}
             </a>
         @endforeach
-        <button type="button" @click="menu = true" class="flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium text-muted">
-            <span class="flex h-7 w-12 items-center justify-center rounded-full">
+        <button type="button" @click="menu = true" class="flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium text-slate-500">
+            <span class="flex h-7 w-12 items-center justify-center">
                 <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" d="M5 12h.01M12 12h.01M19 12h.01"/></svg>
             </span>
             Más

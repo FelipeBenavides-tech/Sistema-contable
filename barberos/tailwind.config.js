@@ -13,30 +13,36 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['"Plus Jakarta Sans"', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', ...defaultTheme.fontFamily.sans],
             },
             colors: {
+                // Acento principal: azul marino apagado
                 brand: {
-                    50:  '#EEF3FF',
-                    100: '#DCE6FF',
-                    200: '#B9CCFF',
-                    500: '#0047FF',
-                    600: '#003BD6',
-                    700: '#002FA8',
-                    900: '#0A1628',
+                    50:  '#F3F5F9',
+                    100: '#E4E9F2',
+                    200: '#C9D3E5',
+                    300: '#A1B1CF',
+                    400: '#6F86B2',
+                    500: '#4A6396',
+                    600: '#3B527F',
+                    700: '#2F4267',
+                    800: '#253453',
+                    900: '#18233A',
                 },
+                // Dorado suave: solo para la marca (logo)
                 accent: {
-                    100: '#FFF4D6',
-                    400: '#FFC633',
-                    500: '#FFB800',
+                    100: '#F5EEDC',
+                    400: '#D2B56E',
+                    500: '#C2A15A',
                 },
-                ink:   '#0A1628',
-                muted: '#5A6A8A',
-                line:  '#DDE3FF',
-                fondo: '#F0F4FF',
+                ink:   '#0F172A',
+                muted: '#64748B',
+                line:  '#E5E7EB',
+                fondo: '#F6F7F9',
             },
             boxShadow: {
-                card: '0 1px 2px rgba(10, 22, 40, 0.04), 0 1px 12px rgba(10, 22, 40, 0.04)',
+                card: '0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06)',
+                elevada: '0 4px 6px -2px rgba(15, 23, 42, 0.05), 0 12px 24px -6px rgba(15, 23, 42, 0.12)',
             },
         },
     },

@@ -2,16 +2,16 @@
 
     <div class="grid grid-cols-3 gap-3">
         <div class="kpi">
-            <p class="kpi-label">Barberías</p>
-            <p class="kpi-value text-brand-500">{{ $stats['total'] }}</p>
+            <p class="kpi-label"><span class="kpi-dot bg-brand-500"></span>Barberías</p>
+            <p class="kpi-value">{{ $stats['total'] }}</p>
         </div>
         <div class="kpi">
-            <p class="kpi-label">Activas</p>
-            <p class="kpi-value text-green-600">{{ $stats['activas'] }}</p>
+            <p class="kpi-label"><span class="kpi-dot bg-emerald-500"></span>Activas</p>
+            <p class="kpi-value">{{ $stats['activas'] }}</p>
         </div>
         <div class="kpi">
-            <p class="kpi-label">Vencidas</p>
-            <p class="kpi-value text-red-600">{{ $stats['vencidas'] }}</p>
+            <p class="kpi-label"><span class="kpi-dot bg-rose-500"></span>Vencidas</p>
+            <p class="kpi-value">{{ $stats['vencidas'] }}</p>
         </div>
     </div>
 
@@ -36,7 +36,7 @@
                         <p class="font-semibold">{{ $barberia->nombre }}</p>
                         <p class="text-xs text-muted">
                             {{ $barberia->propietario ?: '—' }}
-                            @if($barberia->telefono) · <a href="tel:{{ $barberia->telefono }}" class="hover:text-brand-500">{{ $barberia->telefono }}</a>@endif
+                            @if($barberia->telefono) · <a href="tel:{{ $barberia->telefono }}" class="hover:text-brand-700">{{ $barberia->telefono }}</a>@endif
                         </p>
                     </div>
                     <span class="md:hidden">
@@ -45,11 +45,11 @@
                 </div>
                 <div class="flex flex-wrap items-center gap-2 text-xs md:contents md:text-sm">
                     <span class="md:text-center"><span class="badge badge-blue">{{ ucfirst($barberia->plan) }}</span></span>
-                    <span class="text-muted md:text-center md:font-semibold md:text-brand-500"><span class="dato">Ventas:</span>{{ $barberia->ventas_count }}</span>
+                    <span class="text-muted md:text-center md:font-semibold md:text-ink"><span class="dato">Ventas:</span>{{ $barberia->ventas_count }}</span>
                     <span class="md:text-center">
                         @if($barberia->fecha_vencimiento)
-                            <span class="{{ $barberia->vencida ? 'text-red-600' : 'text-muted' }}">{{ $barberia->fecha_vencimiento->format('d/m/Y') }}</span>
-                            <span class="block text-xs {{ $barberia->vencida ? 'text-red-600' : 'text-green-700' }} max-md:inline max-md:ml-1">
+                            <span class="{{ $barberia->vencida ? 'text-rose-600' : 'text-muted' }}">{{ $barberia->fecha_vencimiento->format('d/m/Y') }}</span>
+                            <span class="block text-xs {{ $barberia->vencida ? 'text-rose-600' : 'text-emerald-700' }} max-md:inline max-md:ml-1">
                                 {{ $barberia->vencida ? 'Vencida' : $barberia->dias_restantes . ' días' }}
                             </span>
                         @else
@@ -138,7 +138,7 @@
             <form wire:submit="actualizarCredenciales" class="modal-panel">
                 <div>
                     <h3 class="modal-titulo">Datos de acceso</h3>
-                    <p class="mt-1 text-xs text-muted">Correo actual: <span class="font-semibold text-brand-500">{{ $credencialesEmail }}</span></p>
+                    <p class="mt-1 text-xs text-muted">Correo actual: <span class="font-semibold text-ink">{{ $credencialesEmail }}</span></p>
                 </div>
 
                 @if($errors->any())

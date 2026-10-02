@@ -22,11 +22,11 @@
             <div wire:key="servicio-{{ $servicio->id }}" class="tabla-row md:grid-cols-[1fr_110px_120px_100px_260px]">
                 <div class="flex items-center justify-between gap-2">
                     <span class="font-semibold">{{ $servicio->nombre }}</span>
-                    <span class="text-base font-bold text-brand-500 md:hidden">${{ number_format($servicio->precio, 0, ',', '.') }}</span>
+                    <span class="text-base font-semibold text-ink md:hidden">${{ number_format($servicio->precio, 0, ',', '.') }}</span>
                 </div>
                 <div class="flex items-center gap-2 md:contents">
                     <span class="md:text-center"><span class="badge {{ $servicio->categoria === 'producto' ? 'badge-amber' : 'badge-blue' }}">{{ ucfirst($servicio->categoria) }}</span></span>
-                    <span class="hidden text-right font-semibold text-brand-500 md:block">${{ number_format($servicio->precio, 0, ',', '.') }}</span>
+                    <span class="hidden text-right font-semibold text-ink md:block">${{ number_format($servicio->precio, 0, ',', '.') }}</span>
                     <span class="md:text-center"><span class="badge {{ $servicio->activo ? 'badge-green' : 'badge-red' }}">{{ $servicio->activo ? 'Activo' : 'Inactivo' }}</span></span>
                 </div>
                 <div class="grid grid-cols-3 gap-2 md:flex md:justify-end md:gap-1">

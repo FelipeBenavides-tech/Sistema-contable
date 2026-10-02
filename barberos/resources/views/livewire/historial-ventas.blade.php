@@ -24,20 +24,20 @@
     {{-- ─────────── Totales del día ─────────── --}}
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div class="kpi">
-            <p class="kpi-label">Total del día</p>
-            <p class="kpi-value text-brand-500">{{ $dinero($activas->sum('total')) }}</p>
+            <p class="kpi-label"><span class="kpi-dot bg-brand-500"></span>Total del día</p>
+            <p class="kpi-value">{{ $dinero($activas->sum('total')) }}</p>
         </div>
         <div class="kpi">
-            <p class="kpi-label">Ventas</p>
+            <p class="kpi-label"><span class="kpi-dot bg-slate-400"></span>Ventas</p>
             <p class="kpi-value">{{ $activas->count() }}</p>
         </div>
         <div class="kpi">
-            <p class="kpi-label">Efectivo</p>
-            <p class="kpi-value text-green-600">{{ $dinero($activas->sum('monto_efectivo')) }}</p>
+            <p class="kpi-label"><span class="kpi-dot bg-emerald-500"></span>Efectivo</p>
+            <p class="kpi-value">{{ $dinero($activas->sum('monto_efectivo')) }}</p>
         </div>
         <div class="kpi">
-            <p class="kpi-label">Nequi / transf.</p>
-            <p class="kpi-value text-blue-600">{{ $dinero($activas->sum('monto_nequi')) }}</p>
+            <p class="kpi-label"><span class="kpi-dot bg-sky-500"></span>Nequi / transf.</p>
+            <p class="kpi-value">{{ $dinero($activas->sum('monto_nequi')) }}</p>
         </div>
     </div>
 
@@ -54,7 +54,7 @@
 
         @forelse($ventas as $venta)
             <div wire:key="venta-{{ $venta->id }}"
-                 class="tabla-row md:grid-cols-[70px_1fr_140px_120px_110px_190px] {{ $venta->fue_eliminada ? 'bg-red-50/60' : ($venta->fue_editada ? 'bg-amber-50/60' : '') }}">
+                 class="tabla-row md:grid-cols-[70px_1fr_140px_120px_110px_190px] {{ $venta->fue_eliminada ? 'bg-rose-50/40' : ($venta->fue_editada ? 'bg-amber-50/40' : '') }}">
 
                 {{-- Número y estado (en teléfono va junto al total) --}}
                 <div class="flex items-center justify-between md:block">
@@ -66,7 +66,7 @@
                             <span class="badge badge-amber">Editada</span>
                         @endif
                     </div>
-                    <span class="text-lg font-bold md:hidden {{ $venta->fue_eliminada ? 'text-muted line-through' : 'text-brand-500' }}">
+                    <span class="text-lg font-semibold md:hidden {{ $venta->fue_eliminada ? 'text-muted line-through' : 'text-ink' }}">
                         {{ $dinero($venta->fue_eliminada ? $venta->total_original : $venta->total) }}
                     </span>
                 </div>
@@ -89,9 +89,9 @@
                 <div class="hidden text-right md:block">
                     @if($venta->fue_eliminada)
                         <span class="font-semibold text-muted line-through">{{ $dinero($venta->total_original) }}</span>
-                        <span class="block text-xs text-red-600">$0</span>
+                        <span class="block text-xs text-rose-600">$0</span>
                     @else
-                        <span class="font-semibold text-brand-500">{{ $dinero($venta->total) }}</span>
+                        <span class="font-semibold text-ink">{{ $dinero($venta->total) }}</span>
                         @if($venta->fue_editada && $venta->total_original)
                             <span class="block text-xs text-muted line-through">Antes {{ $dinero($venta->total_original) }}</span>
                         @endif
@@ -120,7 +120,7 @@
                     <button type="button" wire:click="cerrarAuditoria" class="btn btn-sm btn-light" aria-label="Cerrar">✕</button>
                 </div>
 
-                <div class="rounded-xl border border-line bg-slate-50 p-4">
+                <div class="rounded-lg border border-line bg-slate-50 p-4">
                     <div class="mb-3 flex flex-wrap gap-1">
                         @foreach($auditoriaData['venta']['items'] as $item)
                             <span class="badge badge-blue">{{ $item['nombre'] }} × {{ $item['cantidad'] }}</span>
@@ -138,9 +138,9 @@
                         <div>
                             <p class="text-xs text-muted">Total</p>
                             @if($auditoriaData['venta']['eliminada'])
-                                <p class="font-semibold text-red-600"><span class="line-through">{{ $dinero($auditoriaData['venta']['total_orig']) }}</span> $0</p>
+                                <p class="font-semibold text-rose-600"><span class="line-through">{{ $dinero($auditoriaData['venta']['total_orig']) }}</span> $0</p>
                             @else
-                                <p class="font-semibold text-brand-500">{{ $dinero($auditoriaData['venta']['total']) }}</p>
+                                <p class="font-semibold text-ink">{{ $dinero($auditoriaData['venta']['total']) }}</p>
                             @endif
                         </div>
                     </div>
@@ -150,9 +150,9 @@
                     <p class="card-title">Registro de cambios</p>
                     @forelse($auditoriaData['auditorias'] as $auditoria)
                         @php $eliminada = $auditoria['accion'] === 'eliminada'; @endphp
-                        <div class="rounded-xl border p-4 text-sm {{ $eliminada ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50' }}">
+                        <div class="rounded-xl border p-4 text-sm {{ $eliminada ? 'border-rose-200 bg-rose-50/50' : 'border-amber-200 bg-amber-50/50' }}">
                             <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-                                <span class="badge {{ $eliminada ? 'bg-red-600 text-white' : 'bg-amber-500 text-white' }}">{{ ucfirst($auditoria['accion']) }}</span>
+                                <span class="badge {{ $eliminada ? 'badge-red' : 'badge-amber' }}">{{ ucfirst($auditoria['accion']) }}</span>
                                 <span class="text-xs text-muted">{{ $auditoria['fecha'] }} · {{ $auditoria['usuario'] }}</span>
                             </div>
                             <p class="text-xs font-semibold text-muted">Motivo</p>
@@ -168,7 +168,7 @@
                                 @unless($eliminada)
                                     <div>
                                         <p class="text-xs font-semibold text-muted">Después</p>
-                                        <p class="font-semibold text-brand-500">{{ $dinero($auditoria['total_despues']) }}</p>
+                                        <p class="font-semibold text-ink">{{ $dinero($auditoria['total_despues']) }}</p>
                                         @if($auditoria['metodo_despues'])
                                             <p class="text-xs text-muted">{{ $metodos[$auditoria['metodo_despues']][0] ?? $auditoria['metodo_despues'] }}</p>
                                         @endif
@@ -185,11 +185,11 @@
                     @if($auditoriaData['venta']['restaurado'])
                         <p class="alert-success">Los productos de esta venta ya se devolvieron al inventario.</p>
                     @else
-                        <div class="flex flex-col gap-3 rounded-xl border border-green-200 bg-green-50 p-4">
-                            <p class="text-sm font-semibold text-green-700">¿Devolver los productos al inventario?</p>
-                            <p class="text-xs text-green-700/80">Úsalo si los productos de esta venta eliminada volvieron a la tienda. Solo se puede hacer una vez.</p>
+                        <div class="flex flex-col gap-3 rounded-xl border border-line bg-slate-50 p-4">
+                            <p class="text-sm font-semibold text-ink">¿Devolver los productos al inventario?</p>
+                            <p class="text-xs text-muted">Úsalo si los productos de esta venta eliminada volvieron a la tienda. Solo se puede hacer una vez.</p>
                             <div class="grid grid-cols-2 gap-2">
-                                <button type="button" wire:click="restaurarInventario({{ $auditoriaData['venta']['id'] }}, true)" class="btn bg-green-600 text-white hover:bg-green-700">Sí, devolver</button>
+                                <button type="button" wire:click="restaurarInventario({{ $auditoriaData['venta']['id'] }}, true)" class="btn btn-primary">Sí, devolver</button>
                                 <button type="button" wire:click="restaurarInventario({{ $auditoriaData['venta']['id'] }}, false)" class="btn btn-light">No</button>
                             </div>
                         </div>
@@ -215,25 +215,25 @@
                 @endif
 
                 <div>
-                    <label class="label" for="motivo">Motivo <span class="text-red-600">*</span></label>
+                    <label class="label" for="motivo">Motivo <span class="text-rose-600">*</span></label>
                     <textarea id="motivo" wire:model.live.debounce.300ms="motivo" rows="3"
                               placeholder="Mínimo 10 letras, sin números ni símbolos"
                               class="input resize-none"></textarea>
-                    <p class="mt-1 text-xs {{ mb_strlen($motivo) >= 10 ? 'text-green-700' : 'text-muted' }}">{{ mb_strlen($motivo) }}/10 letras mínimo</p>
+                    <p class="mt-1 text-xs {{ mb_strlen($motivo) >= 10 ? 'text-emerald-700' : 'text-muted' }}">{{ mb_strlen($motivo) }}/10 letras mínimo</p>
                 </div>
 
                 <div>
-                    <label class="label" for="password-confirm">Contraseña <span class="text-red-600">*</span></label>
+                    <label class="label" for="password-confirm">Contraseña <span class="text-rose-600">*</span></label>
                     <input id="password-confirm" wire:model="passwordConfirm" type="password" autocomplete="current-password"
                            wire:keydown.enter="verificarPassword" class="input">
                     @if($errorPassword)
-                        <p class="mt-1 text-xs text-red-600">{{ $errorPassword }}</p>
+                        <p class="mt-1 text-xs text-rose-600">{{ $errorPassword }}</p>
                     @endif
                 </div>
 
                 <div class="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
                     <button type="button" wire:click="cancelarModal" class="btn btn-light">Cancelar</button>
-                    <button type="button" wire:click="verificarPassword" class="btn {{ $accion === 'eliminar' ? 'bg-red-600 text-white hover:bg-red-700' : 'btn-primary' }}">
+                    <button type="button" wire:click="verificarPassword" class="btn {{ $accion === 'eliminar' ? 'btn-danger-solid' : 'btn-primary' }}">
                         {{ $accion === 'eliminar' ? 'Eliminar' : 'Continuar' }}
                     </button>
                 </div>
@@ -272,14 +272,14 @@
                 </div>
 
                 @if($editMetodoPago === 'combinado')
-                    <div class="grid grid-cols-2 gap-3 rounded-xl bg-amber-50 p-3">
+                    <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="label !text-amber-800">Efectivo</label>
-                            <input wire:model="editEfectivo" type="number" inputmode="numeric" min="0" class="input bg-white">
+                            <label class="label">Efectivo</label>
+                            <input wire:model="editEfectivo" type="number" inputmode="numeric" min="0" class="input">
                         </div>
                         <div>
-                            <label class="label !text-amber-800">Nequi</label>
-                            <input wire:model="editNequi" type="number" inputmode="numeric" min="0" class="input bg-white">
+                            <label class="label">Nequi</label>
+                            <input wire:model="editNequi" type="number" inputmode="numeric" min="0" class="input">
                         </div>
                     </div>
                 @endif
@@ -288,21 +288,21 @@
                     <p class="label">Ítems de la venta</p>
                     <div class="flex flex-col gap-2">
                         @foreach($editItems as $index => $item)
-                            <div wire:key="edit-{{ $item['id'] }}" class="flex items-center gap-2 rounded-xl border border-line bg-slate-50 px-3 py-2">
+                            <div wire:key="edit-{{ $item['id'] }}" class="flex items-center gap-2 rounded-lg border border-line px-3 py-2">
                                 <div class="min-w-0 flex-1">
                                     <p class="truncate text-sm font-medium">{{ $item['nombre_servicio'] }}</p>
                                     <p class="text-xs text-muted">{{ $dinero($item['precio']) }} c/u</p>
                                 </div>
-                                <button type="button" wire:click="disminuirCantidad({{ $index }})" class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 font-bold text-red-600">−</button>
+                                <button type="button" wire:click="disminuirCantidad({{ $index }})" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 ring-1 ring-inset ring-slate-200 hover:text-ink">−</button>
                                 <span class="w-6 text-center text-sm font-bold">{{ $item['cantidad'] }}</span>
-                                <button type="button" wire:click="aumentarCantidad({{ $index }})" class="flex h-8 w-8 items-center justify-center rounded-lg bg-green-50 font-bold text-green-700">+</button>
-                                <span class="w-20 text-right text-sm font-semibold text-brand-500">{{ $dinero($item['subtotal']) }}</span>
+                                <button type="button" wire:click="aumentarCantidad({{ $index }})" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 ring-1 ring-inset ring-slate-200 hover:text-ink">+</button>
+                                <span class="w-20 text-right text-sm font-semibold text-ink">{{ $dinero($item['subtotal']) }}</span>
                             </div>
                         @endforeach
                     </div>
                     <div class="mt-3 flex items-center justify-between border-t border-line pt-3">
                         <span class="text-sm font-medium text-muted">Total</span>
-                        <span class="text-xl font-bold text-brand-500">{{ $dinero(collect($editItems)->sum('subtotal')) }}</span>
+                        <span class="text-xl font-semibold text-ink">{{ $dinero(collect($editItems)->sum('subtotal')) }}</span>
                     </div>
                     <p class="mt-1 text-xs text-muted">El inventario se ajusta solo cuando guardas.</p>
                 </div>

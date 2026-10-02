@@ -8,7 +8,8 @@ teléfono se puede "Agregar a la pantalla de inicio" para abrirla como una app.
 
 - **Caja del día**: cobrar servicios y productos en efectivo, Nequi/transferencia o pago combinado.
 - **Historial de ventas**: editar o eliminar ventas pidiendo motivo y contraseña; cada cambio queda auditado.
-- **Inventario**: insumos y productos para la venta, con aviso de stock bajo. Al vender se descuenta solo.
+- **Inventario**: insumos y productos físicos para la venta, con aviso de stock bajo. Al vender se descuenta solo.
+  Los cortes y demás servicios no van aquí sino en **Servicios**.
 - **Gastos** del negocio por categoría.
 - **Barberos** con su porcentaje de comisión. La comisión se calcula **solo sobre servicios**, nunca sobre productos.
 - **Reportes** mensuales con ingresos, gastos, comisiones y ganancia, descargables en Excel y PDF.
@@ -37,6 +38,15 @@ php artisan serve
 
 Abre http://127.0.0.1:8000 en el navegador.
 
+> **Si `php artisan serve` no arranca** (por ejemplo en Windows con Laravel Herd sale "Failed to listen"),
+> usa en su lugar:
+>
+> ```bash
+> php -S 127.0.0.1:8000 -t public server.php
+> ```
+>
+> El `server.php` del final es importante: sin él los botones y filtros no responden.
+
 Al ejecutar `php artisan migrate --seed` la terminal muestra una tabla con el correo y la contraseña
 del administrador y de una barbería de prueba. Si prefieres elegirlas tú, escríbelas antes en el
 archivo `.env` (`SEED_ADMIN_PASSWORD` y `SEED_DEMO_PASSWORD`).
@@ -47,6 +57,7 @@ archivo `.env` (`SEED_ADMIN_PASSWORD` y `SEED_DEMO_PASSWORD`).
 ## Verlo en tu teléfono (misma red WiFi)
 
 1. Inicia el servidor así: `php artisan serve --host=0.0.0.0 --port=8000`
+   (o, si ese comando no te funciona: `php -S 0.0.0.0:8000 -t public server.php`)
 2. Busca la IP de tu computador (en Windows: `ipconfig`, en Mac: `ipconfig getifaddr en0`), por ejemplo `192.168.1.20`.
 3. En el teléfono abre `http://192.168.1.20:8000`.
 

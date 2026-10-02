@@ -16,8 +16,8 @@
 
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="kpi sm:min-w-[240px]">
-            <p class="kpi-label">Gastos de {{ now()->translatedFormat('F') }}</p>
-            <p class="kpi-value text-red-600">{{ $dinero($totalMes) }}</p>
+            <p class="kpi-label"><span class="kpi-dot bg-rose-500"></span>Gastos de {{ now()->translatedFormat('F') }}</p>
+            <p class="kpi-value">{{ $dinero($totalMes) }}</p>
         </div>
         <button type="button" wire:click="nuevo" class="btn btn-accent">+ Registrar gasto</button>
     </div>
@@ -41,14 +41,14 @@
                             <p class="mt-0.5 text-xs text-muted">{{ $gasto->observacion }}</p>
                         @endif
                     </div>
-                    <span class="font-bold text-red-600 md:hidden">{{ $dinero($gasto->valor) }}</span>
+                    <span class="font-semibold md:hidden">{{ $dinero($gasto->valor) }}</span>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 text-muted md:contents">
                     <span><span class="badge badge-violet">{{ $categorias[$gasto->categoria] ?? $gasto->categoria }}</span></span>
                     <span>{{ $metodos[$gasto->metodo_pago] ?? $gasto->metodo_pago }}</span>
                     <span class="text-xs md:text-center">{{ $gasto->fecha->format('d/m/Y') }}</span>
                 </div>
-                <span class="hidden text-right font-semibold text-red-600 md:block">{{ $dinero($gasto->valor) }}</span>
+                <span class="hidden text-right font-semibold md:block">{{ $dinero($gasto->valor) }}</span>
                 <div class="md:flex md:justify-end">
                     <button type="button" wire:click="eliminar({{ $gasto->id }})" wire:confirm="¿Seguro que deseas eliminar este gasto?" class="btn btn-sm btn-danger w-full md:w-auto">Eliminar</button>
                 </div>
