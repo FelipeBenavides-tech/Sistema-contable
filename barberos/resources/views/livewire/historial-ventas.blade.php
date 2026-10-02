@@ -73,8 +73,9 @@
 
                 <div class="flex flex-wrap gap-1 {{ $venta->fue_eliminada ? 'opacity-50' : '' }}">
                     @foreach($venta->items as $item)
-                        <span class="badge {{ $item->es_producto ? 'badge-amber' : 'badge-blue' }} {{ $venta->fue_eliminada ? 'line-through' : '' }}">
+                        <span class="badge {{ $item->es_producto ? 'badge-amber' : ($item->es_membresia ? 'badge-green' : 'badge-blue') }} {{ $venta->fue_eliminada ? 'line-through' : '' }}">
                             {{ $item->nombre_servicio }}@if($item->cantidad > 1) ×{{ $item->cantidad }}@endif
+                            @if($item->cubierto_membresia) · membresía @endif
                         </span>
                     @endforeach
                 </div>
@@ -291,11 +292,15 @@
                             <div wire:key="edit-{{ $item['id'] }}" class="flex items-center gap-2 rounded-lg border border-line px-3 py-2">
                                 <div class="min-w-0 flex-1">
                                     <p class="truncate text-sm font-medium">{{ $item['nombre_servicio'] }}</p>
-                                    <p class="text-xs text-muted">{{ $dinero($item['precio']) }} c/u</p>
+                                    <p class="text-xs text-muted">{{ $dinero($item['precio']) }} c/u{{ !empty($item['cubierto']) ? ' · pagado con membresía' : '' }}</p>
                                 </div>
+                                @if(!empty($item['es_membresia']))
+                                    <span class="text-xs text-muted">No editable</span>
+                                @else
                                 <button type="button" wire:click="disminuirCantidad({{ $index }})" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 ring-1 ring-inset ring-slate-200 hover:text-ink">−</button>
                                 <span class="w-6 text-center text-sm font-bold">{{ $item['cantidad'] }}</span>
                                 <button type="button" wire:click="aumentarCantidad({{ $index }})" class="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 ring-1 ring-inset ring-slate-200 hover:text-ink">+</button>
+                                @endif
                                 <span class="w-20 text-right text-sm font-semibold text-ink">{{ $dinero($item['subtotal']) }}</span>
                             </div>
                         @endforeach

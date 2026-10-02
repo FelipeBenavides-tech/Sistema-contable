@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\AuditoriaVenta;
 use App\Models\Barbero;
 use App\Models\Inventario;
+use App\Models\Membresia;
 use App\Models\Venta;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -113,12 +114,34 @@ class HistorialVentas extends Component
     private function ejecutarEliminar(): void
     {
         DB::transaction(function () {
-            $venta = Venta::where('barberia_id', $this->barberiaId())
+            $venta = Venta::with('items')
+                ->where('barberia_id', $this->barberiaId())
                 ->lockForUpdate()
                 ->findOrFail($this->ventaId);
 
             if ($venta->fue_eliminada) {
                 return;
+            }
+
+            // Membresías: devolver las visitas usadas y anular la vendida
+            foreach ($venta->items as $item) {
+                if (!$item->membresia_id) {
+                    continue;
+                }
+
+                $membresia = Membresia::where('barberia_id', $this->barberiaId())
+                    ->lockForUpdate()
+                    ->find($item->membresia_id);
+
+                if (!$membresia) {
+                    continue;
+                }
+
+                if ($item->es_membresia) {
+                    $membresia->update(['anulada' => true]);
+                } elseif ($item->cubierto_membresia) {
+                    $membresia->update(['visitas_usadas' => max(0, $membresia->visitas_usadas - $item->cantidad)]);
+                }
             }
 
             // Guardar en auditoría ANTES de eliminar
@@ -152,7 +175,7 @@ class HistorialVentas extends Component
 
     private function ejecutarEditar(): void
     {
-        $venta = Venta::with('items.inventario')
+        $venta = Venta::with(['items.inventario', 'items.membresia'])
             ->where('barberia_id', $this->barberiaId())
             ->findOrFail($this->ventaId);
 
@@ -167,10 +190,16 @@ class HistorialVentas extends Component
             'cantidad'        => $item->cantidad,
             'subtotal'        => (float) $item->subtotal,
             'es_producto'     => $item->es_producto,
+            'es_membresia'    => $item->es_membresia,
+            'cubierto'        => $item->cubierto_membresia,
             // Máximo posible = lo que ya tenía la venta + lo que queda en bodega
-            'maximo'          => $item->inventario_id
-                ? $item->cantidad + (int) ($item->inventario?->stock_actual ?? 0)
-                : null,
+            // (o las visitas que le quedan a la membresía)
+            'maximo'          => match (true) {
+                $item->es_membresia       => $item->cantidad,
+                $item->cubierto_membresia => $item->cantidad + ($item->membresia?->vigente ? $item->membresia->visitas_restantes : 0),
+                (bool) $item->inventario_id => $item->cantidad + (int) ($item->inventario?->stock_actual ?? 0),
+                default                   => null,
+            },
         ])->values()->toArray();
 
         $this->resetErrorBag();
@@ -213,8 +242,25 @@ class HistorialVentas extends Component
                 $itemsFinales = [];
 
                 foreach ($venta->items as $item) {
-                    $nueva = $cantidades->get($item->id, 0);
+                    // La venta de una membresía no se edita: para anularla se elimina la venta
+                    $nueva = $item->es_membresia ? $item->cantidad : $cantidades->get($item->id, 0);
                     $diferencia = $nueva - $item->cantidad;
+
+                    // Ajustar las visitas de la membresía por la diferencia
+                    if ($item->cubierto_membresia && $item->membresia_id && $diferencia !== 0) {
+                        $membresia = Membresia::where('barberia_id', $barberiaId)
+                            ->lockForUpdate()
+                            ->find($item->membresia_id);
+
+                        if ($membresia && $diferencia > 0
+                            && (!$membresia->vigente || $membresia->visitas_restantes < $diferencia)) {
+                            throw ValidationException::withMessages([
+                                'editItems' => "La membresía no tiene visitas disponibles para más {$item->nombre_servicio}.",
+                            ]);
+                        }
+
+                        $membresia?->update(['visitas_usadas' => max(0, $membresia->visitas_usadas + $diferencia)]);
+                    }
 
                     // Ajustar el stock solo al guardar, y solo por la diferencia
                     if ($item->inventario_id && $diferencia !== 0) {
@@ -239,14 +285,20 @@ class HistorialVentas extends Component
                         continue;
                     }
 
+                    $subtotal = $item->cubierto_membresia ? 0 : (float) $item->precio * $nueva;
+
                     $item->update([
                         'cantidad' => $nueva,
-                        'subtotal' => $item->precio * $nueva,
+                        'subtotal' => $subtotal,
                     ]);
 
                     $itemsFinales[] = [
-                        'subtotal'    => (float) $item->precio * $nueva,
-                        'es_producto' => $item->es_producto,
+                        'precio'             => (float) $item->precio,
+                        'cantidad'           => $nueva,
+                        'subtotal'           => $subtotal,
+                        'es_producto'        => $item->es_producto,
+                        'es_membresia'       => $item->es_membresia,
+                        'cubierto_membresia' => $item->cubierto_membresia,
                     ];
                 }
 
@@ -418,12 +470,14 @@ class HistorialVentas extends Component
 
         $maximo = $this->editItems[$index]['maximo'] ?? null;
         if ($maximo !== null && $this->editItems[$index]['cantidad'] >= $maximo) {
-            $this->addError('editItems', "Sin stock disponible para: {$this->editItems[$index]['nombre_servicio']}");
+            $this->addError('editItems', !empty($this->editItems[$index]['cubierto'])
+                ? "La membresía no tiene más visitas para: {$this->editItems[$index]['nombre_servicio']}"
+                : "Sin stock disponible para: {$this->editItems[$index]['nombre_servicio']}");
             return;
         }
 
         $this->editItems[$index]['cantidad']++;
-        $this->editItems[$index]['subtotal'] = $this->editItems[$index]['precio'] * $this->editItems[$index]['cantidad'];
+        $this->recalcularEditSubtotal($index);
     }
 
     public function disminuirCantidad(int $index): void
@@ -432,13 +486,25 @@ class HistorialVentas extends Component
             return;
         }
 
+        if (!empty($this->editItems[$index]['es_membresia'])) {
+            $this->addError('editItems', 'La venta de una membresía no se puede quitar. Si fue un error, elimina la venta.');
+            return;
+        }
+
         if ($this->editItems[$index]['cantidad'] > 1) {
             $this->editItems[$index]['cantidad']--;
-            $this->editItems[$index]['subtotal'] = $this->editItems[$index]['precio'] * $this->editItems[$index]['cantidad'];
+            $this->recalcularEditSubtotal($index);
         } else {
             // El stock se devuelve al guardar, no antes
             array_splice($this->editItems, $index, 1);
         }
+    }
+
+    private function recalcularEditSubtotal(int $index): void
+    {
+        $this->editItems[$index]['subtotal'] = !empty($this->editItems[$index]['cubierto'])
+            ? 0
+            : $this->editItems[$index]['precio'] * $this->editItems[$index]['cantidad'];
     }
 
     public function render()

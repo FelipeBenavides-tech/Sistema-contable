@@ -5,6 +5,7 @@ namespace Tests\Concerns;
 use App\Models\Barberia;
 use App\Models\Barbero;
 use App\Models\Inventario;
+use App\Models\PlanMembresia;
 use App\Models\Servicio;
 use App\Models\User;
 
@@ -62,6 +63,18 @@ trait CreaDatosDePrueba
             'precio_costo' => 5000,
             'precio_venta' => $precio,
             'unidad'       => 'unidad',
+        ]);
+    }
+
+    protected function crearPlan(Barberia $barberia, float $precio = 80000, int $visitas = 5, int $dias = 30): PlanMembresia
+    {
+        return PlanMembresia::create([
+            'barberia_id'   => $barberia->id,
+            'nombre'        => 'Mensual ' . $visitas,
+            'precio'        => $precio,
+            'visitas'       => $visitas,
+            'duracion_dias' => $dias,
+            'activo'        => true,
         ]);
     }
 }

@@ -6,6 +6,7 @@ use App\Livewire\GestionBarberos;
 use App\Livewire\GestionServicios;
 use App\Livewire\GestionInventario;
 use App\Livewire\GestionGastos;
+use App\Livewire\GestionMembresias;
 use App\Livewire\HistorialVentas;
 use App\Livewire\Reportes;
 use App\Livewire\Admin\PanelAdmin;
@@ -21,6 +22,7 @@ Route::middleware(['auth', 'barberia'])->group(function () {
     Route::redirect('/', '/pos');
     Route::get('/pos', PosVenta::class)->name('pos');
     Route::get('/ventas', HistorialVentas::class)->name('ventas');
+    Route::get('/membresias', GestionMembresias::class)->name('membresias');
     Route::get('/inventario', GestionInventario::class)->name('inventario');
     Route::get('/gastos', GestionGastos::class)->name('gastos');
     Route::get('/reportes', Reportes::class)->name('reportes');
