@@ -67,7 +67,8 @@ class Venta extends Model
 
     /**
      * La comisión del barbero se calcula solo sobre los servicios,
-     * nunca sobre los productos vendidos.
+     * nunca sobre los productos ni sobre la venta de membresías.
+     * Un servicio pagado con membresía cuenta a su precio normal.
      */
     public static function calcularComision(?Barbero $barbero, iterable $items): float
     {
@@ -76,21 +77,48 @@ class Venta extends Model
         }
 
         $baseServicios = collect($items)
-            ->reject(fn($item) => !empty($item['es_producto']))
-            ->sum('subtotal');
+            ->reject(fn($item) => !empty($item['es_producto']) || !empty($item['es_membresia']))
+            ->sum(fn($item) => !empty($item['cubierto_membresia'])
+                ? (float) $item['precio'] * (int) $item['cantidad']
+                : (float) $item['subtotal']);
 
         return round($baseServicios * ($barbero->comision_porcentaje / 100), 2);
     }
 
     /**
-     * Registra la venta, sus ítems y descuenta el stock en una sola transacción:
-     * si algo falla no queda nada a medias.
+     * Registra la venta, sus ítems, descuenta el stock y las visitas de
+     * membresía en una sola transacción: si algo falla no queda nada a medias.
      *
      * @throws ValidationException si un producto no tiene stock suficiente
+     *                             o la membresía no tiene visitas disponibles
      */
     public static function registrar(array $data, array $items, ?Barbero $barbero, int $barberiaId): self
     {
         return DB::transaction(function () use ($data, $items, $barbero, $barberiaId) {
+            $visitas = collect($items)->where('cubierto_membresia', true)->sum('cantidad');
+            $membresiaId = null;
+
+            if ($visitas > 0) {
+                $membresia = Membresia::where('barberia_id', $barberiaId)
+                    ->lockForUpdate()
+                    ->find($data['membresia_id'] ?? 0);
+
+                if (!$membresia || !$membresia->vigente) {
+                    throw ValidationException::withMessages([
+                        'carrito' => 'La membresía del cliente ya no está vigente.',
+                    ]);
+                }
+
+                if ($membresia->visitas_restantes < $visitas) {
+                    throw ValidationException::withMessages([
+                        'carrito' => "A la membresía solo le quedan {$membresia->visitas_restantes} visitas.",
+                    ]);
+                }
+
+                $membresia->increment('visitas_usadas', $visitas);
+                $membresiaId = $membresia->id;
+            }
+
             foreach ($items as $item) {
                 if (empty($item['inventario_id'])) {
                     continue;
@@ -129,7 +157,10 @@ class Venta extends Model
                 $venta->items()->create([
                     'servicio_id'     => $item['servicio_id'] ?? null,
                     'inventario_id'   => $item['inventario_id'] ?? null,
+                    'membresia_id'    => !empty($item['cubierto_membresia']) ? $membresiaId : ($item['membresia_id'] ?? null),
                     'es_producto'     => !empty($item['es_producto']),
+                    'es_membresia'       => !empty($item['es_membresia']),
+                    'cubierto_membresia' => !empty($item['cubierto_membresia']),
                     'nombre_servicio' => $item['nombre_servicio'],
                     'precio'          => $item['precio'],
                     'cantidad'        => $item['cantidad'],

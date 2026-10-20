@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Barbero;
 use App\Models\Inventario;
+use App\Models\Membresia;
 use App\Models\Servicio;
 use App\Models\Venta;
 use Illuminate\Validation\ValidationException;
@@ -19,6 +20,10 @@ class PosVenta extends Component
     public bool   $ventaExitosa  = false;
     public string $categoria     = 'todos';
     public array  $resumenDia    = [];
+
+    // Cliente con membresía que se atiende en esta venta
+    public int    $membresiaId   = 0;
+    public string $buscarCliente = '';
 
     private function barberiaId(): int
     {
@@ -49,7 +54,9 @@ class PosVenta extends Component
                 'precio'          => (float) $servicio->precio,
                 'cantidad'        => 1,
                 'es_producto'     => $servicio->categoria === 'producto',
+                'cubierto'        => false,
             ];
+            $this->cubrirPrimerServicio();
         }
 
         $this->recalcularSubtotal($key);
@@ -81,6 +88,7 @@ class PosVenta extends Component
                 'precio'          => (float) $producto->precio_venta,
                 'cantidad'        => 1,
                 'es_producto'     => true,
+                'cubierto'        => false,
             ];
         }
 
@@ -109,12 +117,78 @@ class PosVenta extends Component
 
     private function recalcularSubtotal(string $key): void
     {
-        $this->carrito[$key]['subtotal'] = $this->carrito[$key]['precio'] * $this->carrito[$key]['cantidad'];
+        $this->carrito[$key]['subtotal'] = !empty($this->carrito[$key]['cubierto'])
+            ? 0
+            : $this->carrito[$key]['precio'] * $this->carrito[$key]['cantidad'];
+    }
+
+    private function membresiaSeleccionada(): ?Membresia
+    {
+        if (!$this->membresiaId) {
+            return null;
+        }
+
+        return Membresia::with('cliente')
+            ->where('barberia_id', $this->barberiaId())
+            ->find($this->membresiaId);
+    }
+
+    public function seleccionarMembresia(int $membresiaId): void
+    {
+        $membresia = Membresia::where('barberia_id', $this->barberiaId())
+            ->vigentes()
+            ->findOrFail($membresiaId);
+
+        $this->membresiaId   = $membresia->id;
+        $this->buscarCliente = '';
+        $this->ventaExitosa  = false;
+        $this->resetErrorBag('carrito');
+        $this->cubrirPrimerServicio();
+    }
+
+    public function quitarMembresia(): void
+    {
+        $this->membresiaId = 0;
+
+        foreach (array_keys($this->carrito) as $key) {
+            $this->carrito[$key]['cubierto'] = false;
+            $this->recalcularSubtotal($key);
+        }
+    }
+
+    /** Marca o desmarca un servicio del carrito como pagado con la membresía. */
+    public function alternarMembresia(string $key): void
+    {
+        if (!$this->membresiaId || !isset($this->carrito[$key]) || !empty($this->carrito[$key]['es_producto'])) {
+            return;
+        }
+
+        $this->carrito[$key]['cubierto'] = empty($this->carrito[$key]['cubierto']);
+        $this->recalcularSubtotal($key);
+    }
+
+    /**
+     * Al atender a un cliente con membresía, el primer servicio del carrito
+     * se paga con una visita (si ninguno lo está ya).
+     */
+    private function cubrirPrimerServicio(): void
+    {
+        if (!$this->membresiaId || collect($this->carrito)->contains('cubierto', true)) {
+            return;
+        }
+
+        foreach ($this->carrito as $key => $item) {
+            if (empty($item['es_producto'])) {
+                $this->carrito[$key]['cubierto'] = true;
+                $this->recalcularSubtotal($key);
+                return;
+            }
+        }
     }
 
     public function vaciarCarrito(): void
     {
-        $this->reset(['carrito', 'metodoPago', 'montoEfectivo', 'montoNequi', 'ventaExitosa']);
+        $this->reset(['carrito', 'metodoPago', 'montoEfectivo', 'montoNequi', 'ventaExitosa', 'membresiaId', 'buscarCliente']);
     }
 
     public function getTotalCarritoProperty(): float
@@ -147,14 +221,18 @@ class PosVenta extends Component
                 ];
             } else {
                 $servicio = Servicio::where('barberia_id', $barberiaId)->findOrFail($item['servicio_id']);
+                $esProducto = $servicio->categoria === 'producto';
+                // Pagado con membresía: no se cobra, pero guarda el precio normal
+                $cubierto = $this->membresiaId && !$esProducto && !empty($item['cubierto']);
                 $items[] = [
-                    'servicio_id'     => $servicio->id,
-                    'inventario_id'   => null,
-                    'es_producto'     => $servicio->categoria === 'producto',
-                    'nombre_servicio' => $servicio->nombre,
-                    'precio'          => (float) $servicio->precio,
-                    'cantidad'        => $cantidad,
-                    'subtotal'        => (float) $servicio->precio * $cantidad,
+                    'servicio_id'        => $servicio->id,
+                    'inventario_id'      => null,
+                    'es_producto'        => $esProducto,
+                    'cubierto_membresia' => $cubierto,
+                    'nombre_servicio'    => $servicio->nombre,
+                    'precio'             => (float) $servicio->precio,
+                    'cantidad'           => $cantidad,
+                    'subtotal'           => $cubierto ? 0 : (float) $servicio->precio * $cantidad,
                 ];
             }
         }
@@ -210,6 +288,7 @@ class PosVenta extends Component
                     'metodo_pago'    => $this->metodoPago,
                     'monto_efectivo' => $efectivo,
                     'monto_nequi'    => $nequi,
+                    'membresia_id'   => $this->membresiaId ?: null,
                 ],
                 $items,
                 $barbero,
@@ -221,7 +300,7 @@ class PosVenta extends Component
         }
 
         $this->resumenDia = Venta::resumenDia(null, $this->barberiaId());
-        $this->reset(['carrito', 'metodoPago', 'montoEfectivo', 'montoNequi']);
+        $this->reset(['carrito', 'metodoPago', 'montoEfectivo', 'montoNequi', 'membresiaId', 'buscarCliente']);
         $this->ventaExitosa = true;
     }
 
@@ -259,7 +338,22 @@ class PosVenta extends Component
             ->limit(15)
             ->get();
 
+        $termino = trim($this->buscarCliente);
+        $clientesConMembresia = mb_strlen($termino) >= 2
+            ? Membresia::with('cliente')
+                ->where('barberia_id', $barberiaId)
+                ->vigentes()
+                ->whereHas('cliente', fn($q) => $q->where(fn($q) => $q
+                    ->where('nombre', 'like', "%{$termino}%")
+                    ->orWhere('telefono', 'like', "%{$termino}%")))
+                ->orderBy('fecha_vencimiento')
+                ->limit(6)
+                ->get()
+            : collect();
+
         return view('livewire.pos-venta', [
+            'membresia'            => $this->membresiaSeleccionada(),
+            'clientesConMembresia' => $clientesConMembresia,
             'servicios'           => $servicios,
             'productosInventario' => $productosInventario,
             'barberos'            => $barberos,

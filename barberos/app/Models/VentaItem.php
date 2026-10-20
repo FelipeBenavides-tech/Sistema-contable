@@ -11,7 +11,10 @@ class VentaItem extends Model
         'venta_id',
         'servicio_id',
         'inventario_id',
+        'membresia_id',
         'es_producto',
+        'es_membresia',
+        'cubierto_membresia',
         'nombre_servicio',
         'precio',
         'cantidad',
@@ -22,6 +25,8 @@ class VentaItem extends Model
         'precio'   => 'decimal:2',
         'subtotal'    => 'decimal:2',
         'es_producto' => 'boolean',
+        'es_membresia'       => 'boolean',
+        'cubierto_membresia' => 'boolean',
     ];
 
     public function venta(): BelongsTo
@@ -37,5 +42,10 @@ class VentaItem extends Model
     public function inventario(): BelongsTo
     {
         return $this->belongsTo(Inventario::class);
+    }
+
+    public function membresia(): BelongsTo
+    {
+        return $this->belongsTo(Membresia::class);
     }
 }
