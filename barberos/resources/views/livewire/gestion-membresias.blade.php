@@ -22,7 +22,7 @@
             <p class="kpi-value">{{ $visitasPendientes }}</p>
         </div>
         <div class="col-span-2 flex items-center justify-end gap-2">
-            <button type="button" wire:click="nuevoPlan" class="btn btn-light">+ Plan</button>
+            <button type="button" wire:click="nuevoPlan" class="btn btn-light">+ Nuevo plan</button>
             <button type="button" wire:click="nuevaVenta" class="btn btn-primary" @disabled($planesActivos->isEmpty())>Vender membresía</button>
         </div>
     </div>
@@ -36,7 +36,7 @@
 
     <div class="segmentado w-full sm:w-auto sm:self-start">
         <button type="button" wire:click="$set('tab', 'membresias')" class="segmento {{ $tab === 'membresias' ? 'segmento-activo' : '' }}">Clientes</button>
-        <button type="button" wire:click="$set('tab', 'planes')" class="segmento {{ $tab === 'planes' ? 'segmento-activo' : '' }}">Planes ({{ $planes->count() }})</button>
+        <button type="button" wire:click="$set('tab', 'planes')" class="segmento {{ $tab === 'planes' ? 'segmento-activo' : '' }}">Planes y precios ({{ $planes->count() }})</button>
     </div>
 
     @if($tab === 'membresias')
@@ -123,7 +123,7 @@
                     <span class="hidden text-right font-semibold md:block">{{ $dinero($plan->precio) }}</span>
                     <div class="flex items-center gap-2 text-sm md:contents">
                         <span class="md:text-center">{{ $plan->visitas }} {{ $plan->visitas === 1 ? 'visita' : 'visitas' }}</span>
-                        <span class="text-muted md:text-center md:text-ink">· {{ $plan->duracion_dias }} días</span>
+                        <span class="text-muted md:text-center md:text-ink"><span class="md:hidden">· </span>{{ $plan->duracion_dias }} días</span>
                         <span class="md:text-center"><span class="badge {{ $plan->activo ? 'badge-green' : 'badge-red' }}">{{ $plan->activo ? 'Activo' : 'Inactivo' }}</span></span>
                     </div>
                     <div class="grid grid-cols-3 gap-2 md:flex md:justify-end md:gap-1">

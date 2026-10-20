@@ -285,6 +285,33 @@ class MembresiasTest extends TestCase
         Livewire::actingAs($this->crearUsuario($mia))->test(GestionMembresias::class)->call('editarPlan', $planAjeno->id);
     }
 
+    public function test_cambiar_el_precio_de_un_plan_no_altera_las_membresias_vendidas(): void
+    {
+        $barberia  = $this->crearBarberia();
+        $usuario   = $this->crearUsuario($barberia);
+        $plan      = $this->crearPlan($barberia, precio: 80000, visitas: 5);
+        $membresia = $this->venderMembresia($barberia, $usuario, $plan->id);
+
+        Livewire::actingAs($usuario)
+            ->test(GestionMembresias::class)
+            ->call('editarPlan', $plan->id)
+            ->set('planPrecio', 90000)
+            ->set('planVisitas', 6)
+            ->call('guardarPlan')
+            ->assertHasNoErrors()
+            ->assertSet('tab', 'planes')
+            ->call('togglePlan', $plan->id);
+
+        $plan->refresh();
+        $this->assertEquals(90000, $plan->precio);
+        $this->assertSame(6, $plan->visitas);
+        $this->assertFalse($plan->activo);
+
+        $membresia->refresh();
+        $this->assertEquals(80000, $membresia->precio);
+        $this->assertSame(5, $membresia->visitas_total);
+    }
+
     public function test_la_pantalla_de_membresias_carga(): void
     {
         $barberia = $this->crearBarberia();
