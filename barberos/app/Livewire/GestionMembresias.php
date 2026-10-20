@@ -6,10 +6,13 @@ use App\Models\Cliente;
 use App\Models\Membresia;
 use App\Models\PlanMembresia;
 use Illuminate\Support\Facades\DB;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class GestionMembresias extends Component
 {
+    // La pestaña queda en la dirección (/membresias?tab=planes) para entrar directo a los planes
+    #[Url]
     public string $tab    = 'membresias';
     public string $filtro = 'activas';
     public string $buscar = '';
@@ -89,11 +92,14 @@ class GestionMembresias extends Component
         if ($this->planId) {
             // Las membresías ya vendidas conservan las condiciones con que se vendieron
             PlanMembresia::where('barberia_id', $this->barberiaId())->findOrFail($this->planId)->update($datos);
+            $this->exito = "Plan \"{$this->planNombre}\" actualizado. Las membresías ya vendidas no cambian.";
         } else {
             PlanMembresia::create($datos + ['barberia_id' => $this->barberiaId(), 'activo' => true]);
+            $this->exito = "Plan \"{$this->planNombre}\" creado. Ya lo puedes vender.";
         }
 
         $this->mostrarPlan = false;
+        $this->tab = 'planes';
     }
 
     public function togglePlan(int $id): void
