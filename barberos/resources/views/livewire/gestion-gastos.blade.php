@@ -8,6 +8,7 @@
         'publicidad'         => 'Publicidad',
         'mantenimiento'      => 'Mantenimiento',
         'operativo'          => 'Operativo',
+        'suscripcion'        => 'Suscripción Kaixa',
         'otros'              => 'Otros',
     ];
     $metodos = ['efectivo' => 'Efectivo', 'transferencia' => 'Transferencia', 'tarjeta' => 'Tarjeta'];

@@ -8,6 +8,7 @@ use App\Livewire\GestionInventario;
 use App\Livewire\GestionGastos;
 use App\Livewire\GestionMembresias;
 use App\Livewire\HistorialVentas;
+use App\Livewire\MiPlan;
 use App\Livewire\Reportes;
 use App\Livewire\Admin\PanelAdmin;
 use App\Http\Controllers\ReporteController;
@@ -28,6 +29,7 @@ Route::middleware(['auth', 'barberia'])->group(function () {
     Route::get('/reportes', Reportes::class)->name('reportes');
     Route::get('/barberos', GestionBarberos::class)->name('barberos');
     Route::get('/servicios', GestionServicios::class)->name('servicios');
+    Route::get('/mi-plan', MiPlan::class)->name('mi-plan');
 
     // Exportaciones
     Route::get('/reportes/excel/{mes}/{anio}', [ReporteController::class, 'exportarExcel'])

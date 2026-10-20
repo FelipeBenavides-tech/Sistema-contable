@@ -39,6 +39,7 @@ class DatabaseSeeder extends Seeder
             'activo'            => true,
             'plan'              => 'mensual',
             'fecha_vencimiento' => now()->addMonth(),
+            'contrato_hasta'    => now()->addMonths((int) config('suscripcion.contrato_minimo_meses')),
         ]);
 
         // ── Usuario de la barbería de prueba ─────────────────────────────────

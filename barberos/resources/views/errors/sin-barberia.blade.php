@@ -1,11 +1,18 @@
 @php
     $textos = [
         'vencida' => [
-            'etiqueta' => 'Suscripción vencida',
-            'titulo'   => 'Tu plan ha expirado',
-            'detalle'  => 'Tu período de suscripción llegó a su fin. Para seguir usando Kaixa y ver tus datos, renueva tu plan.',
-            'ayuda'    => 'Para renovar, contacta a soporte de Kaixa.',
-            'badge'    => 'badge-amber',
+            'etiqueta' => 'Sistema deshabilitado por falta de pago',
+            'titulo'   => 'Tu plan está vencido',
+            'detalle'  => 'Pasaron los ' . config('suscripcion.dias_gracia') . ' días de gracia sin registrar el pago. Tus datos están guardados: apenas se registre el pago, vuelves a entrar con todo como lo dejaste.',
+            'ayuda'    => 'Para pagar, contacta a soporte de Kaixa.',
+            'badge'    => 'badge-red',
+        ],
+        'sin_saldo' => [
+            'etiqueta' => 'Sin saldo',
+            'titulo'   => 'Se acabó tu saldo de Kaixa',
+            'detalle'  => 'En el plan por uso, cada venta descuenta el ' . str_replace('.', ',', config('suscripcion.porcentaje.valor')) . '% de su valor. Recarga para seguir vendiendo; tus datos están guardados.',
+            'ayuda'    => 'Para recargar, contacta a soporte de Kaixa.',
+            'badge'    => 'badge-red',
         ],
         'inactiva' => [
             'etiqueta' => 'Cuenta suspendida',
@@ -23,6 +30,8 @@
         ],
     ];
     $t = $textos[$tipo] ?? $textos['sin_asignar'];
+    $barberia = $barberia ?? null;
+    $whatsapp = preg_replace('/\D/', '', (string) config('suscripcion.whatsapp_soporte'));
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -52,8 +61,33 @@
                     <dt class="text-muted">Correo</dt>
                     <dd class="truncate font-medium">{{ auth()->user()->email }}</dd>
                 </div>
+                @if($barberia)
+                    <div class="flex justify-between gap-4 px-4 py-3">
+                        <dt class="text-muted">Plan</dt>
+                        <dd class="font-medium">{{ $barberia->nombre_plan }}</dd>
+                    </div>
+                    @if($barberia->por_uso)
+                        <div class="flex justify-between gap-4 px-4 py-3">
+                            <dt class="text-muted">Saldo</dt>
+                            <dd class="font-medium text-rose-600">${{ number_format((float) $barberia->saldo, 0, ',', '.') }}</dd>
+                        </div>
+                    @elseif($barberia->fecha_vencimiento)
+                        <div class="flex justify-between gap-4 px-4 py-3">
+                            <dt class="text-muted">Venció el</dt>
+                            <dd class="font-medium text-rose-600">{{ $barberia->fecha_vencimiento->format('d/m/Y') }}</dd>
+                        </div>
+                        <div class="flex justify-between gap-4 px-4 py-3">
+                            <dt class="text-muted">Valor a pagar</dt>
+                            <dd class="font-medium">${{ number_format($barberia->precio_plan, 0, ',', '.') }}</dd>
+                        </div>
+                    @endif
+                @endif
             </dl>
             <p class="mt-4 text-sm text-slate-600">{{ $t['ayuda'] }}</p>
+            @if($barberia && $whatsapp)
+                <a href="https://wa.me/{{ $whatsapp }}?text={{ rawurlencode('Hola, quiero pagar Kaixa para ' . $barberia->nombre) }}"
+                   target="_blank" rel="noopener" class="btn btn-primary mt-4 w-full">Escribir a soporte por WhatsApp</a>
+            @endif
 
             <form method="POST" action="{{ route('logout') }}" class="mt-6">
                 @csrf
