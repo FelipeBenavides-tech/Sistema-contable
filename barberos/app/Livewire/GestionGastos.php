@@ -38,7 +38,7 @@ class GestionGastos extends Component
     {
         $this->validate([
             'concepto'    => 'required|min:2|max:255',
-            'categoria'   => 'required|in:arriendo,servicios_publicos,insumos,nomina,publicidad,mantenimiento,operativo,otros',
+            'categoria'   => 'required|in:arriendo,servicios_publicos,insumos,nomina,publicidad,mantenimiento,operativo,suscripcion,otros',
             'valor'       => 'required|numeric|min:1|max:99999999',
             'metodo_pago' => 'required|in:efectivo,transferencia,tarjeta',
             'fecha'       => 'required|date',

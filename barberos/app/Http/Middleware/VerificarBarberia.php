@@ -31,10 +31,12 @@ class VerificarBarberia
             ], 403);
         }
 
-        if ($user && $user->barberia && $user->barberia->vencida) {
+        // Venció y pasaron los días de gracia, o se acabó el saldo del plan por uso
+        if ($user && $user->barberia && $user->barberia->estado_pago === 'bloqueada') {
             return response()->view('errors.sin-barberia', [
-                'tipo'    => 'vencida',
-                'mensaje' => 'Tu suscripción ha vencido.',
+                'tipo'     => $user->barberia->por_uso ? 'sin_saldo' : 'vencida',
+                'mensaje'  => 'Tu suscripción ha vencido.',
+                'barberia' => $user->barberia,
             ], 403);
         }
 

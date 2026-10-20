@@ -17,6 +17,7 @@ class Venta extends Model
         'total',
         'comision_barbero',
         'ganancia_local',
+        'cargo_plataforma',
         'metodo_pago',
         'monto_efectivo',
         'monto_nequi',
@@ -32,6 +33,7 @@ class Venta extends Model
         'total'            => 'decimal:2',
         'comision_barbero' => 'decimal:2',
         'ganancia_local'   => 'decimal:2',
+        'cargo_plataforma' => 'decimal:2',
         'monto_efectivo'   => 'decimal:2',
         'monto_nequi'      => 'decimal:2',
         'total_original'   => 'decimal:2',
@@ -140,6 +142,7 @@ class Venta extends Model
 
             $total    = collect($items)->sum('subtotal');
             $comision = self::calcularComision($barbero, $items);
+            $cargo    = Barberia::cobrarUso($barberiaId, (float) $total);
 
             $venta = self::create([
                 'barberia_id'      => $barberiaId,
@@ -147,6 +150,7 @@ class Venta extends Model
                 'total'            => $total,
                 'comision_barbero' => $comision,
                 'ganancia_local'   => $total - $comision,
+                'cargo_plataforma' => $cargo,
                 'metodo_pago'      => $data['metodo_pago'],
                 'monto_efectivo'   => $data['monto_efectivo'] ?? 0,
                 'monto_nequi'      => $data['monto_nequi'] ?? 0,

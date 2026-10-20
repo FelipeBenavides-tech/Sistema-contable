@@ -9,10 +9,34 @@
         ['route' => 'barberos',   'label' => 'Barberos',   'largo' => 'Barberos',         'icon' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'],
         ['route' => 'servicios',  'label' => 'Servicios',  'largo' => 'Servicios',        'icon' => 'M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z'],
         ['route' => 'mi-barberia', 'label' => 'Mi barbería', 'largo' => 'Mi barbería',     'icon' => 'M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z'],
+        ['route' => 'mi-plan',    'label' => 'Mi plan',    'largo' => 'Mi plan Kaixa',    'icon' => 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'],
     ];
     // En el teléfono, la barra de abajo muestra las 4 pantallas más usadas + "Más"
     $barraInferior = ['pos', 'ventas', 'inventario', 'gastos'];
     $barberia = auth()->user()->barberia;
+
+    // Estado del pago de Kaixa: siempre visible arriba y en el menú
+    $estadoPago = $barberia?->estado_pago;
+    $dineroPlan = fn($valor) => '$' . number_format((float) $valor, 0, ',', '.');
+    $chipPlan = match (true) {
+        !$barberia                  => null,
+        $barberia->por_uso          => ['texto' => 'Saldo ' . $dineroPlan($barberia->saldo), 'corto' => $dineroPlan($barberia->saldo)],
+        !$barberia->fecha_vencimiento => null,
+        $estadoPago === 'en_gracia' => ['texto' => 'Vencido · se bloquea el ' . $barberia->fecha_limite->format('d/m'), 'corto' => 'Vencido ' . $barberia->fecha_vencimiento->format('d/m')],
+        default                     => ['texto' => 'Vence el ' . $barberia->fecha_vencimiento->format('d/m/Y'), 'corto' => 'Vence ' . $barberia->fecha_vencimiento->format('d/m')],
+    };
+    $claseChip = match ($estadoPago) {
+        'en_gracia'  => 'bg-rose-50 text-rose-700 ring-rose-600/20',
+        'por_vencer' => 'bg-amber-50 text-amber-800 ring-amber-600/20',
+        default      => 'bg-slate-50 text-slate-600 ring-slate-500/20',
+    };
+
+    // Aviso de no pago: sale una vez cada vez que se inicia sesión y se puede cerrar
+    $avisoPago = $barberia && ($estadoPago === 'en_gracia' || ($estadoPago === 'por_vencer' && $barberia->por_uso))
+        && !session()->has('aviso_pago_visto');
+    if ($avisoPago) {
+        session()->put('aviso_pago_visto', true);
+    }
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -59,10 +83,28 @@
             @endforeach
         </nav>
 
-        @if($barberia?->fecha_vencimiento && $barberia->dias_restantes <= 7)
-            <div class="mx-3 mb-3 rounded-lg bg-white/5 p-3 text-xs text-slate-300 ring-1 ring-inset ring-white/10">
-                Tu plan vence en {{ $barberia->dias_restantes }} {{ $barberia->dias_restantes === 1 ? 'día' : 'días' }}.
-            </div>
+        @if($barberia)
+            <a href="{{ route('mi-plan') }}" class="mx-3 mb-3 block rounded-lg bg-white/5 p-3 text-xs text-slate-300 ring-1 ring-inset {{ $estadoPago === 'en_gracia' ? 'ring-rose-400/40' : ($estadoPago === 'por_vencer' ? 'ring-amber-400/40' : 'ring-white/10') }} hover:bg-white/10">
+                <span class="flex items-center justify-between gap-2">
+                    <span class="font-semibold text-white">Plan {{ $barberia->nombre_plan }}</span>
+                    @if($estadoPago === 'en_gracia')
+                        <span class="rounded bg-rose-500/20 px-1.5 py-0.5 text-[11px] font-medium text-rose-200">Vencido</span>
+                    @elseif($estadoPago === 'por_vencer')
+                        <span class="rounded bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-medium text-amber-200">{{ $barberia->por_uso ? 'Saldo bajo' : 'Por vencer' }}</span>
+                    @else
+                        <span class="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[11px] font-medium text-emerald-200">Al día</span>
+                    @endif
+                </span>
+                <span class="mt-1 block">
+                    @if($barberia->por_uso)
+                        Saldo: {{ $dineroPlan($barberia->saldo) }}
+                    @elseif($estadoPago === 'en_gracia')
+                        Venció el {{ $barberia->fecha_vencimiento->format('d/m/Y') }}. Se bloquea el {{ $barberia->fecha_limite->format('d/m/Y') }}.
+                    @elseif($barberia->fecha_vencimiento)
+                        Vence el {{ $barberia->fecha_vencimiento->format('d/m/Y') }}
+                    @endif
+                </span>
+            </a>
         @endif
 
         <div class="flex items-center justify-between gap-2 border-t border-white/10 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
@@ -87,7 +129,14 @@
                 <h1 class="truncate text-base font-semibold text-ink sm:text-lg">{{ $title ?? 'Panel' }}</h1>
                 <p class="truncate text-xs text-muted lg:hidden">{{ $barberia?->nombre }}</p>
             </div>
-            <p class="hidden text-sm text-muted sm:block">{{ ucfirst(now()->translatedFormat('l j \d\e F')) }}</p>
+            <p class="hidden text-sm text-muted xl:block">{{ ucfirst(now()->translatedFormat('l j \d\e F')) }}</p>
+            @if($chipPlan)
+                <a href="{{ route('mi-plan') }}" class="inline-flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ $claseChip }}" title="Estado de tu plan Kaixa">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    <span class="sm:hidden">{{ $chipPlan['corto'] }}</span>
+                    <span class="hidden sm:inline">{{ $chipPlan['texto'] }}</span>
+                </a>
+            @endif
         </header>
 
         {{-- Contenido (con espacio abajo para la barra del teléfono) --}}
@@ -116,6 +165,36 @@
             Más
         </button>
     </nav>
+
+    @if($avisoPago)
+        <div x-data="{ abierto: true }" x-show="abierto" x-cloak class="modal-fondo" @click.self="abierto = false" @keydown.escape.window="abierto = false">
+            <div class="modal-panel" role="alertdialog" aria-labelledby="aviso-pago-titulo">
+                <div class="flex items-start gap-3">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full {{ $estadoPago === 'en_gracia' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-700' }}">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008v.008H12v-.008zM10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                    </span>
+                    <div>
+                        @if($barberia->por_uso)
+                            <h3 id="aviso-pago-titulo" class="modal-titulo">Tu saldo de Kaixa está bajo</h3>
+                            <p class="mt-1 text-sm text-muted">Te quedan <span class="font-semibold text-ink">{{ $dineroPlan($barberia->saldo) }}</span>. Cuando se acabe no podrás registrar ventas hasta recargar.</p>
+                        @else
+                            <h3 id="aviso-pago-titulo" class="modal-titulo">Tienes un pago pendiente</h3>
+                            <p class="mt-1 text-sm text-muted">
+                                Tu plan {{ $barberia->nombre_plan }} venció el <span class="font-semibold text-ink">{{ $barberia->fecha_vencimiento->format('d/m/Y') }}</span>.
+                                Puedes seguir usando Kaixa hasta el <span class="font-semibold text-ink">{{ $barberia->fecha_limite->format('d/m/Y') }}</span>
+                                ({{ $barberia->dias_gracia_restantes === 0 ? 'hoy es el último día' : 'quedan ' . $barberia->dias_gracia_restantes . ($barberia->dias_gracia_restantes === 1 ? ' día' : ' días') }}).
+                                Después el sistema se deshabilita hasta que se registre el pago.
+                            </p>
+                        @endif
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+                    <button type="button" @click="abierto = false" class="btn btn-light">Cerrar aviso</button>
+                    <a href="{{ route('mi-plan') }}" class="btn btn-primary">Ver cómo pagar</a>
+                </div>
+            </div>
+        </div>
+    @endif
 
     @livewireScripts
     <script>

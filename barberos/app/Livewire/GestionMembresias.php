@@ -7,6 +7,7 @@ use App\Models\Membresia;
 use App\Models\PlanMembresia;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Url;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 
 class GestionMembresias extends Component
@@ -191,19 +192,25 @@ class GestionMembresias extends Component
                 'telefono'    => trim($this->nuevoTelefono) ?: null,
             ]);
 
-        $membresia = Membresia::vender($cliente, $plan, [
-            'metodo_pago'    => $this->metodoPago,
-            'monto_efectivo' => match ($this->metodoPago) {
-                'efectivo'  => $total,
-                'combinado' => $this->montoEfectivo,
-                default     => 0,
-            },
-            'monto_nequi'    => match ($this->metodoPago) {
-                'nequi', 'transferencia' => $total,
-                'combinado'              => $this->montoNequi,
-                default                  => 0,
-            },
-        ], $barberiaId);
+        try {
+            $membresia = Membresia::vender($cliente, $plan, [
+                'metodo_pago'    => $this->metodoPago,
+                'monto_efectivo' => match ($this->metodoPago) {
+                    'efectivo'  => $total,
+                    'combinado' => $this->montoEfectivo,
+                    default     => 0,
+                },
+                'monto_nequi'    => match ($this->metodoPago) {
+                    'nequi', 'transferencia' => $total,
+                    'combinado'              => $this->montoNequi,
+                    default                  => 0,
+                },
+            ], $barberiaId);
+        } catch (ValidationException $e) {
+            // Por ejemplo, saldo de Kaixa insuficiente en el plan por uso
+            $this->addError('ventaPlanId', collect($e->errors())->flatten()->first());
+            return;
+        }
 
         $this->mostrarVenta = false;
         $this->tab    = 'membresias';

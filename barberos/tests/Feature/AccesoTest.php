@@ -53,10 +53,10 @@ class AccesoTest extends TestCase
         $this->actingAs($usuario)->get('/pos')->assertForbidden()->assertSee('Cuenta no configurada');
     }
 
-    public function test_una_barberia_vencida_no_puede_entrar(): void
+    public function test_una_barberia_vencida_no_puede_entrar_pasada_la_gracia(): void
     {
         $barberia = $this->crearBarberia();
-        $barberia->update(['fecha_vencimiento' => now()->subDay()]);
+        $barberia->update(['fecha_vencimiento' => now()->subDays(6)]);
 
         $this->actingAs($this->crearUsuario($barberia))->get('/pos')->assertForbidden();
     }

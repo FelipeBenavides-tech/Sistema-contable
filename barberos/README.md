@@ -13,8 +13,25 @@ teléfono se puede "Agregar a la pantalla de inicio" para abrirla como una app.
 - **Gastos** del negocio por categoría.
 - **Barberos** con su porcentaje de comisión. La comisión se calcula **solo sobre servicios**, nunca sobre productos.
 - **Reportes** mensuales con ingresos, gastos, comisiones y ganancia, descargables en Excel y PDF.
-- **Panel de administrador** (`/admin`) para crear barberías, sus usuarios, planes y vencimientos.
+- **Panel de administrador** (`/admin`) para crear barberías, sus usuarios, registrar sus pagos y recargas.
   No hay registro público: las cuentas las crea el administrador.
+
+## Planes de Kaixa
+
+| Plan | Precio | Notas |
+|---|---|---|
+| Mensual | $130.000 al mes | Contrato mínimo de 6 meses |
+| Semestral | $700.000 | Ahorra $80.000 (10%) frente al mensual |
+| Anual | $1.200.000 | Ahorra $360.000 (23%) frente al mensual |
+| Por uso | 2,5% de cada venta | Saldo prepagado que se recarga: la primera recarga es de mínimo $200.000. Contrato mínimo de 6 meses; al terminar, el saldo a favor se devuelve |
+
+La instalación y entrega del sistema cuesta $65.000, en un solo pago, para cualquier plan.
+
+- El administrador registra cada pago o recarga en `/admin`. Cada uno se anota solo en los **Gastos** de la barbería (categoría "Suscripción Kaixa").
+- Cuando un plan vence hay **5 días de gracia**: al iniciar sesión sale un aviso de no pago (se puede cerrar) y arriba de la pantalla
+  siempre se ve la fecha de vencimiento. Pasada la gracia, o si el saldo del plan por uso llega a $0, el sistema se deshabilita hasta que se pague.
+- La barbería ve su estado, los planes y su historial de pagos en **Mi plan Kaixa** (`/mi-plan`).
+- Los precios, el porcentaje y los días de gracia se cambian en `config/suscripcion.php`.
 
 ## Requisitos
 
@@ -79,3 +96,4 @@ datos de otra, que el stock no quede inconsistente y que solo el administrador e
 | `APP_TIMEZONE` | Zona horaria de las ventas y reportes | `America/Bogota` |
 | `APP_LOCALE` | Idioma de fechas y meses | `es` |
 | `DB_CONNECTION` | Base de datos (`sqlite` o `mysql`) | `sqlite` |
+| `KAIXA_WHATSAPP` | WhatsApp de soporte para que las barberías paguen (con indicativo, ej. `573001234567`) | vacío |
