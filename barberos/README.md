@@ -23,7 +23,9 @@ teléfono se puede "Agregar a la pantalla de inicio" para abrirla como una app.
 | Mensual | $130.000 al mes | Contrato mínimo de 6 meses |
 | Semestral | $700.000 | Ahorra $80.000 (10%) frente al mensual |
 | Anual | $1.200.000 | Ahorra $360.000 (23%) frente al mensual |
-| Por uso | 2,5% de cada venta | Saldo prepagado que se recarga. Contrato mínimo de 6 meses; al terminar, el saldo a favor se devuelve |
+| Por uso | 2,5% de cada venta | Saldo prepagado que se recarga: la primera recarga es de mínimo $200.000. Contrato mínimo de 6 meses; al terminar, el saldo a favor se devuelve |
+
+La instalación y entrega del sistema cuesta $65.000, en un solo pago, para cualquier plan.
 
 - El administrador registra cada pago o recarga en `/admin`. Cada uno se anota solo en los **Gastos** de la barbería (categoría "Suscripción Kaixa").
 - Cuando un plan vence hay **5 días de gracia**: al iniciar sesión sale un aviso de no pago (se puede cerrar) y arriba de la pantalla

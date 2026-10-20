@@ -19,12 +19,17 @@ return [
         'nombre'           => 'Por uso',
         'valor'            => 2.5,
         'recarga_minima'   => 20000,
+        // La primera recarga al entrar al plan debe ser de al menos este valor
+        'primera_recarga_minima' => 200000,
         'aviso_saldo_bajo' => 10000,
     ],
 
     // Los planes mensual y por uso exigen un contrato mínimo de estos meses.
     // En el plan por uso, el saldo a favor se devuelve al terminar el contrato
     'contrato_minimo_meses' => 6,
+
+    // Pago único por la instalación y entrega del sistema (aplica a todos los planes)
+    'instalacion' => 65000,
 
     // Días después del vencimiento en los que todavía se puede usar el sistema
     'dias_gracia' => 5,

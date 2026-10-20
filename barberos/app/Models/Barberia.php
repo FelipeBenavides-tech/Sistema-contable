@@ -84,8 +84,46 @@ class Barberia extends Model
     public function getPrecioPlanAttribute(): float
     {
         return (float) ($this->por_uso
-            ? config('suscripcion.porcentaje.recarga_minima')
+            ? $this->recarga_minima
             : config("suscripcion.planes.{$this->plan}.precio", 0));
+    }
+
+    // Plan por uso: la primera recarga tiene un mínimo más alto que las siguientes
+    public function getRecargaMinimaAttribute(): float
+    {
+        $yaRecargo = $this->exists && $this->pagosSuscripcion()->where('plan', 'porcentaje')->exists();
+
+        return (float) config($yaRecargo ? 'suscripcion.porcentaje.recarga_minima' : 'suscripcion.porcentaje.primera_recarga_minima');
+    }
+
+    public function getInstalacionPagadaAttribute(): bool
+    {
+        return $this->exists && $this->pagosSuscripcion()->where('plan', 'instalacion')->exists();
+    }
+
+    // Pago único por la instalación y entrega del sistema
+    public function registrarInstalacion(float $valor, string $metodoPago = 'transferencia', ?string $nota = null): PagoSuscripcion
+    {
+        return DB::transaction(function () use ($valor, $metodoPago, $nota) {
+            $gasto = Gasto::create([
+                'barberia_id' => $this->id,
+                'concepto'    => 'Instalación y entrega de Kaixa',
+                'categoria'   => 'suscripcion',
+                'valor'       => $valor,
+                'metodo_pago' => in_array($metodoPago, ['efectivo', 'transferencia', 'tarjeta']) ? $metodoPago : 'transferencia',
+                'fecha'       => now()->startOfDay(),
+                'observacion' => $nota,
+            ]);
+
+            return $this->pagosSuscripcion()->create([
+                'plan'        => 'instalacion',
+                'valor'       => $valor,
+                'fecha'       => now()->startOfDay(),
+                'metodo_pago' => $metodoPago,
+                'nota'        => $nota,
+                'gasto_id'    => $gasto->id,
+            ]);
+        });
     }
 
     // Último día en que se puede usar el sistema sin pagar (vencimiento + días de gracia)

@@ -151,8 +151,19 @@
                         <div class="sm:col-span-2">
                             <label class="label" for="valorPago">{{ $plan === 'porcentaje' ? 'Recarga inicial' : 'Primer pago recibido' }}</label>
                             <input id="valorPago" wire:model="valorPago" type="number" min="0" step="1000" inputmode="numeric" class="input">
-                            <p class="mt-1 text-xs text-muted">Se anota en los gastos de la barbería. Déjalo en 0 si aún no ha pagado: tendrá {{ config('suscripcion.dias_gracia') }} días de gracia.</p>
+                            <p class="mt-1 text-xs text-muted">
+                                @if($plan === 'porcentaje')
+                                    Mínimo {{ $dinero(config('suscripcion.porcentaje.primera_recarga_minima')) }}. Déjalo en 0 si aún no ha pagado: no podrá entrar hasta recargar.
+                                @else
+                                    Déjalo en 0 si aún no ha pagado: tendrá {{ config('suscripcion.dias_gracia') }} días de gracia.
+                                @endif
+                                Se anota en los gastos de la barbería.
+                            </p>
                         </div>
+                        <label class="flex items-center gap-2 text-sm sm:col-span-2">
+                            <input type="checkbox" wire:model="cobrarInstalacion" class="rounded border-slate-300 text-brand-700">
+                            Pagó la instalación y entrega ({{ $dinero(config('suscripcion.instalacion')) }})
+                        </label>
                         <p class="text-xs text-muted sm:col-span-2">Comparte el correo y la contraseña con el cliente para que pueda entrar.</p>
                     @endunless
                 </div>
@@ -209,6 +220,12 @@
                         <input id="pagoNota" wire:model="pagoNota" type="text" placeholder="Referencia, opcional" class="input">
                     </div>
                 </div>
+                @unless($pagoDe->instalacion_pagada)
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" wire:model="pagoInstalacion" class="rounded border-slate-300 text-brand-700">
+                        También pagó la instalación y entrega ({{ $dinero(config('suscripcion.instalacion')) }})
+                    </label>
+                @endunless
                 <p class="text-xs text-muted">
                     @if($pagoDe->por_uso)
                         El valor se suma al saldo. Cada venta descuenta el {{ str_replace('.', ',', config('suscripcion.porcentaje.valor')) }}% de su valor.

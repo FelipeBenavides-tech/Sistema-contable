@@ -160,7 +160,9 @@ class SuscripcionTest extends TestCase
         $barberia = Barberia::firstWhere('nombre', 'Barbería Nueva');
         $this->assertSame(now()->addMonths(6)->toDateString(), $barberia->contrato_hasta->toDateString());
         $this->assertSame(now()->addMonth()->toDateString(), $barberia->fecha_vencimiento->toDateString());
-        $this->assertSame(1, $barberia->pagosSuscripcion()->count());
+        $this->assertSame(1, $barberia->pagosSuscripcion()->where('plan', 'mensual')->count());
+        $this->assertTrue($barberia->instalacion_pagada);
+        $this->assertSame(195000.0, Gasto::totalMes(now()->month, now()->year, $barberia->id));
         $this->assertNotNull(User::firstWhere('email', 'nueva@example.com'));
     }
 
@@ -209,12 +211,62 @@ class SuscripcionTest extends TestCase
         $this->assertDatabaseHas('gastos', ['barberia_id' => $barberia->id, 'valor' => -30000]);
     }
 
+    public function test_la_primera_recarga_del_plan_por_uso_es_de_minimo_200000(): void
+    {
+        $barberia = $this->crearBarberia();
+        $barberia->update(['plan' => 'porcentaje', 'saldo' => 0]);
+        $admin = $this->crearAdmin();
+
+        Livewire::actingAs($admin)->test(PanelAdmin::class)
+            ->call('abrirPago', $barberia->id)
+            ->assertSet('pagoValor', 200000.0)
+            ->set('pagoValor', 50000)
+            ->call('registrarPago')
+            ->assertHasErrors('pagoValor');
+
+        Livewire::actingAs($admin)->test(PanelAdmin::class)
+            ->call('abrirPago', $barberia->id)
+            ->call('registrarPago')
+            ->assertHasNoErrors();
+
+        // Las siguientes recargas ya pueden ser más pequeñas
+        Livewire::actingAs($admin)->test(PanelAdmin::class)
+            ->call('abrirPago', $barberia->id)
+            ->set('pagoValor', 50000)
+            ->call('registrarPago')
+            ->assertHasNoErrors();
+
+        $this->assertEquals(250000, (float) $barberia->fresh()->saldo);
+    }
+
+    public function test_la_instalacion_se_registra_una_sola_vez_con_un_pago(): void
+    {
+        $barberia = $this->crearBarberia();
+        $admin = $this->crearAdmin();
+
+        Livewire::actingAs($admin)->test(PanelAdmin::class)
+            ->call('abrirPago', $barberia->id)
+            ->set('pagoInstalacion', true)
+            ->call('registrarPago')
+            ->assertHasNoErrors();
+
+        Livewire::actingAs($admin)->test(PanelAdmin::class)
+            ->call('abrirPago', $barberia->id)
+            ->set('pagoInstalacion', true)
+            ->call('registrarPago');
+
+        $this->assertSame(1, $barberia->pagosSuscripcion()->where('plan', 'instalacion')->count());
+        $this->assertDatabaseHas('gastos', ['barberia_id' => $barberia->id, 'valor' => 65000]);
+    }
+
     public function test_la_pantalla_mi_plan_carga(): void
     {
         $barberia = $this->crearBarberia();
 
         $this->actingAs($this->crearUsuario($barberia))->get('/mi-plan')->assertOk()
             ->assertSee('Planes de Kaixa')
-            ->assertSee('$1.200.000');
+            ->assertSee('$1.200.000')
+            ->assertSee('$65.000')
+            ->assertSee('$200.000');
     }
 }

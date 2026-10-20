@@ -127,13 +127,16 @@
                 <p class="text-xs text-muted">de cada servicio o artículo vendido</p>
                 <ul class="mt-4 flex flex-1 flex-col gap-1.5 text-sm text-slate-600">
                     <li>Pagas solo por lo que vendes</li>
-                    <li>Recargas desde {{ $dinero(config('suscripcion.porcentaje.recarga_minima')) }}</li>
+                    <li>Primera recarga de mínimo {{ $dinero(config('suscripcion.porcentaje.primera_recarga_minima')) }}; después, desde {{ $dinero(config('suscripcion.porcentaje.recarga_minima')) }}</li>
                     <li>Ejemplo: un corte de $20.000 descuenta {{ $dinero(20000 * config('suscripcion.porcentaje.valor') / 100) }}</li>
                     <li>Contrato mínimo de {{ config('suscripcion.contrato_minimo_meses') }} meses; al terminar, el saldo a favor se te devuelve</li>
                 </ul>
             </div>
         </div>
-        <p class="mt-3 text-xs text-muted">
+        <p class="mt-3 text-sm text-slate-600">
+            <span class="font-medium text-ink">Instalación y entrega del sistema: {{ $dinero(config('suscripcion.instalacion')) }}</span>, pago único para cualquier plan.
+        </p>
+        <p class="mt-1 text-xs text-muted">
             Si un pago vence, tienes {{ config('suscripcion.dias_gracia') }} días de gracia para pagar. Pasado ese tiempo el sistema se deshabilita hasta que se registre el pago; tus datos se conservan.
         </p>
     </section>
@@ -159,6 +162,7 @@
                     {{ match ($pago->plan) {
                         'porcentaje' => 'Recarga de saldo',
                         'devolucion' => 'Devolución de saldo a favor',
+                        'instalacion' => 'Instalación y entrega del sistema',
                         default      => 'Plan ' . (config("suscripcion.planes.{$pago->plan}.nombre") ?? $pago->plan) . " · {$pago->meses} " . ($pago->meses === 1 ? 'mes' : 'meses'),
                     } }}
                     <span class="text-xs text-muted">· {{ ucfirst($pago->metodo_pago) }}</span>

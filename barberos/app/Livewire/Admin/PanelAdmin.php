@@ -28,6 +28,7 @@ class PanelAdmin extends Component
     public string $credencialesEmail = '';
     // Primer pago (o recarga inicial) al crear la barbería
     public float  $valorPago = 0;
+    public bool   $cobrarInstalacion = true;
 
     // Registrar pago o recarga
     public bool   $mostrarPago    = false;
@@ -36,6 +37,7 @@ class PanelAdmin extends Component
     public float  $pagoValor      = 0;
     public string $pagoMetodo     = 'transferencia';
     public string $pagoNota       = '';
+    public bool   $pagoInstalacion = false;
 
     // Se ejecuta en cada petición: ningún usuario normal puede usar este panel
     public function boot(): void
@@ -46,7 +48,7 @@ class PanelAdmin extends Component
     private function precioPlan(string $plan): float
     {
         return (float) ($plan === 'porcentaje'
-            ? config('suscripcion.porcentaje.recarga_minima')
+            ? config('suscripcion.porcentaje.primera_recarga_minima')
             : config("suscripcion.planes.{$plan}.precio", 0));
     }
 
@@ -72,6 +74,7 @@ class PanelAdmin extends Component
         ]);
         $this->plan        = 'mensual';
         $this->valorPago   = $this->precioPlan('mensual');
+        $this->cobrarInstalacion = true;
         $this->mostrarForm = true;
     }
 
@@ -102,6 +105,13 @@ class PanelAdmin extends Component
         }
 
         $this->validate($rules);
+
+        // La primera recarga del plan por uso tiene un mínimo (0 = aún no ha pagado)
+        $minimo = (float) config('suscripcion.porcentaje.primera_recarga_minima');
+        if (!$this->editandoId && $this->plan === 'porcentaje' && $this->valorPago > 0 && $this->valorPago < $minimo) {
+            $this->addError('valorPago', 'La primera recarga del plan por uso es de mínimo $' . number_format($minimo, 0, ',', '.') . '.');
+            return;
+        }
 
         if ($this->editandoId) {
             $barberia = Barberia::findOrFail($this->editandoId);
@@ -165,6 +175,10 @@ class PanelAdmin extends Component
                 if ($this->valorPago > 0) {
                     $barberia->registrarPago($this->valorPago);
                 }
+
+                if ($this->cobrarInstalacion) {
+                    $barberia->registrarInstalacion((float) config('suscripcion.instalacion'));
+                }
             });
         }
 
@@ -199,6 +213,7 @@ class PanelAdmin extends Component
         $this->pagoValor      = $barberia->precio_plan;
         $this->pagoMetodo     = 'transferencia';
         $this->pagoNota       = '';
+        $this->pagoInstalacion = false;
         $this->mostrarPago    = true;
     }
 
@@ -217,12 +232,12 @@ class PanelAdmin extends Component
 
         $this->validate([
             'pagoCantidad' => 'required|integer|min:1|max:24',
-            'pagoValor'    => 'required|numeric|min:' . ($barberia->por_uso ? config('suscripcion.porcentaje.recarga_minima') : 1),
+            'pagoValor'    => 'required|numeric|min:' . ($barberia->por_uso ? $barberia->recarga_minima : 1),
             'pagoMetodo'   => 'required|in:efectivo,transferencia,tarjeta',
             'pagoNota'     => 'nullable|max:200',
         ], [
             'pagoValor.min' => $barberia->por_uso
-                ? 'La recarga mínima es de $' . number_format((float) config('suscripcion.porcentaje.recarga_minima'), 0, ',', '.') . '.'
+                ? 'La recarga mínima es de $' . number_format($barberia->recarga_minima, 0, ',', '.') . '.'
                 : 'Escribe el valor pagado.',
         ], [
             'pagoCantidad' => 'meses',
@@ -235,6 +250,10 @@ class PanelAdmin extends Component
             $this->pagoMetodo,
             trim($this->pagoNota) ?: null,
         );
+
+        if ($this->pagoInstalacion && !$barberia->instalacion_pagada) {
+            $barberia->registrarInstalacion((float) config('suscripcion.instalacion'), $this->pagoMetodo);
+        }
 
         $this->cerrarPago();
     }
