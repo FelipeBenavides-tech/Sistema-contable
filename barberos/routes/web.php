@@ -12,13 +12,13 @@ use App\Livewire\Admin\PanelAdmin;
 use App\Http\Controllers\ReporteController;
 
 // ── Panel Admin (solo para is_admin = true) ───────────────────────────────────
-Route::middleware(['auth'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/', PanelAdmin::class)->name('admin.panel');
 });
 
 // ── Panel Barbería (usuarios con barberia_id) ─────────────────────────────────
 Route::middleware(['auth', 'barberia'])->group(function () {
-    Route::get('/', PosVenta::class)->name('pos');
+    Route::redirect('/', '/pos');
     Route::get('/pos', PosVenta::class)->name('pos');
     Route::get('/ventas', HistorialVentas::class)->name('ventas');
     Route::get('/inventario', GestionInventario::class)->name('inventario');
@@ -28,8 +28,12 @@ Route::middleware(['auth', 'barberia'])->group(function () {
     Route::get('/servicios', GestionServicios::class)->name('servicios');
 
     // Exportaciones
-    Route::get('/reportes/excel/{mes}/{anio}', [ReporteController::class, 'exportarExcel'])->name('reportes.excel');
-    Route::get('/reportes/pdf/{mes}/{anio}', [ReporteController::class, 'exportarPdf'])->name('reportes.pdf');
+    Route::get('/reportes/excel/{mes}/{anio}', [ReporteController::class, 'exportarExcel'])
+        ->where(['mes' => '[1-9]|1[0-2]', 'anio' => '20[0-9]{2}'])
+        ->name('reportes.excel');
+    Route::get('/reportes/pdf/{mes}/{anio}', [ReporteController::class, 'exportarPdf'])
+        ->where(['mes' => '[1-9]|1[0-2]', 'anio' => '20[0-9]{2}'])
+        ->name('reportes.pdf');
 });
 
 require __DIR__ . '/auth.php';

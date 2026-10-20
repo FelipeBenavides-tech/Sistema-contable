@@ -56,13 +56,14 @@ class Barberia extends Model
     public function getDiasRestantesAttribute(): int
     {
         if (!$this->fecha_vencimiento) return 0;
-        return max(0, now()->diffInDays($this->fecha_vencimiento, false));
+        return max(0, (int) ceil(now()->startOfDay()->diffInDays($this->fecha_vencimiento->copy()->startOfDay(), false)));
     }
 
     // ¿Está vencida la suscripción?
     public function getVencidaAttribute(): bool
     {
         if (!$this->fecha_vencimiento) return false;
-        return now()->isAfter($this->fecha_vencimiento);
+        // Vence al terminar el día indicado
+        return now()->isAfter($this->fecha_vencimiento->copy()->endOfDay());
     }
 }

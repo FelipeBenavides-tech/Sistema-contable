@@ -24,6 +24,12 @@ class Reportes extends Component
         $this->anio = now()->year;
     }
 
+    public function updated(): void
+    {
+        $this->mes  = min(12, max(1, $this->mes));
+        $this->anio = min(now()->year + 1, max(2020, $this->anio));
+    }
+
     public function render()
     {
         $barberiaId = $this->barberiaId();
@@ -35,6 +41,7 @@ class Reportes extends Component
                 'venta',
                 fn($q) => $q
                     ->where('barberia_id', $barberiaId)
+                    ->where('fue_eliminada', false)
                     ->whereMonth('fecha', $this->mes)
                     ->whereYear('fecha', $this->anio)
             )
@@ -43,11 +50,13 @@ class Reportes extends Component
             ->limit(8)
             ->get();
 
+        // Incluye barberos inactivos: pudieron trabajar ese mes
         $comisionesBarberos = Barbero::where('barberia_id', $barberiaId)
-            ->where('activo', true)
             ->get()
             ->map(fn($b) => $b->comisionesMes($this->mes, $this->anio))
-            ->sortByDesc('total_generado');
+            ->filter(fn($b) => $b['servicios'] > 0)
+            ->sortByDesc('total_generado')
+            ->values();
 
         $gastosPorCategoria = Gasto::selectRaw('categoria, SUM(valor) as total')
             ->where('barberia_id', $barberiaId)
@@ -57,7 +66,10 @@ class Reportes extends Component
             ->orderByDesc('total')
             ->get();
 
+        $anios = range(now()->year, 2024);
+
         return view('livewire.reportes', compact(
+            'anios',
             'resumenMes',
             'topServicios',
             'comisionesBarberos',

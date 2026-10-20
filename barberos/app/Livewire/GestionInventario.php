@@ -24,6 +24,7 @@ class GestionInventario extends Component
 
     public function nuevo(): void
     {
+        $this->resetErrorBag();
         $this->reset([
             'nombre',
             'categoria',
@@ -42,6 +43,7 @@ class GestionInventario extends Component
 
     public function editar(int $id): void
     {
+        $this->resetErrorBag();
         $item = Inventario::where('barberia_id', $this->barberiaId())->findOrFail($id);
         $this->editandoId   = $id;
         $this->nombre       = $item->nombre;
@@ -57,9 +59,13 @@ class GestionInventario extends Component
     public function guardar(): void
     {
         $this->validate([
-            'nombre'       => 'required|min:2',
+            'nombre'       => 'required|min:2|max:255',
+            'categoria'    => 'required|in:insumo,venta',
             'stock_actual' => 'required|integer|min:0',
             'stock_minimo' => 'required|integer|min:0',
+            'precio_costo' => 'required|numeric|min:0|max:99999999',
+            'precio_venta' => 'required|numeric|min:0|max:99999999',
+            'unidad'       => 'required|in:unidad,caja,ml,gr',
         ]);
 
         if ($this->editandoId) {
@@ -107,6 +113,7 @@ class GestionInventario extends Component
 
     public function cancelar(): void
     {
+        $this->resetErrorBag();
         $this->reset([
             'nombre',
             'categoria',

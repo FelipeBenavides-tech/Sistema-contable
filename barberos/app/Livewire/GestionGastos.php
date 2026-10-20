@@ -27,17 +27,22 @@ class GestionGastos extends Component
 
     public function nuevo(): void
     {
+        $this->resetErrorBag();
         $this->reset(['concepto', 'categoria', 'valor', 'metodo_pago', 'observacion']);
         $this->fecha       = now()->toDateString();
         $this->mostrarForm = true;
+        $this->resetErrorBag();
     }
 
     public function guardar(): void
     {
         $this->validate([
-            'concepto' => 'required|min:2',
-            'valor'    => 'required|numeric|min:1',
-            'fecha'    => 'required|date',
+            'concepto'    => 'required|min:2|max:255',
+            'categoria'   => 'required|in:arriendo,servicios_publicos,insumos,nomina,publicidad,mantenimiento,operativo,otros',
+            'valor'       => 'required|numeric|min:1|max:99999999',
+            'metodo_pago' => 'required|in:efectivo,transferencia,tarjeta',
+            'fecha'       => 'required|date',
+            'observacion' => 'nullable|max:255',
         ]);
 
         Gasto::create([
@@ -61,6 +66,7 @@ class GestionGastos extends Component
 
     public function cancelar(): void
     {
+        $this->resetErrorBag();
         $this->reset(['concepto', 'categoria', 'valor', 'metodo_pago', 'observacion']);
         $this->mostrarForm = false;
     }

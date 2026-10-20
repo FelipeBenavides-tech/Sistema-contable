@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\Barberia;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class PanelAdmin extends Component
@@ -24,8 +25,24 @@ class PanelAdmin extends Component
     public ?int   $credencialesBarberiaId = null;
     public string $credencialesEmail = '';
 
+    // Se ejecuta en cada petición: ningún usuario normal puede usar este panel
+    public function boot(): void
+    {
+        abort_unless(auth()->user()?->isAdmin(), 403);
+    }
+
+    private function vencimientoPara(string $plan)
+    {
+        return match ($plan) {
+            'semestral' => now()->addMonths(6),
+            'anual'     => now()->addYear(),
+            default     => now()->addMonth(),
+        };
+    }
+
     public function nuevo(): void
     {
+        $this->resetErrorBag();
         $this->reset([
             'nombre',
             'propietario',
@@ -42,6 +59,7 @@ class PanelAdmin extends Component
 
     public function editar(int $id): void
     {
+        $this->resetErrorBag();
         $barberia          = Barberia::findOrFail($id);
         $this->editandoId  = $id;
         $this->nombre      = $barberia->nombre;
@@ -61,47 +79,49 @@ class PanelAdmin extends Component
 
         if (!$this->editandoId) {
             $rules['email']    = 'required|email|unique:users,email';
-            $rules['password'] = 'required|min:6';
+            $rules['password'] = 'required|min:8';
         }
 
         $this->validate($rules);
 
-        $vencimiento = match ($this->plan) {
-            'mensual'   => now()->addMonth(),
-            'semestral' => now()->addMonths(6),
-            'anual'     => now()->addYear(),
-            default     => now()->addMonth(),
-        };
-
         if ($this->editandoId) {
-            Barberia::findOrFail($this->editandoId)->update([
-                'nombre'            => $this->nombre,
-                'propietario'       => $this->propietario,
-                'telefono'          => $this->telefono,
-                'direccion'         => $this->direccion,
-                'plan'              => $this->plan,
-                'fecha_vencimiento' => $vencimiento,
-            ]);
-        } else {
-            // Crear barbería
-            $barberia = Barberia::create([
-                'nombre'            => $this->nombre,
-                'propietario'       => $this->propietario,
-                'telefono'          => $this->telefono,
-                'direccion'         => $this->direccion,
-                'activo'            => true,
-                'plan'              => $this->plan,
-                'fecha_vencimiento' => $vencimiento,
-            ]);
+            $barberia = Barberia::findOrFail($this->editandoId);
+            $datos = [
+                'nombre'      => $this->nombre,
+                'propietario' => $this->propietario,
+                'telefono'    => $this->telefono,
+                'direccion'   => $this->direccion,
+                'plan'        => $this->plan,
+            ];
 
-            // Crear usuario para esa barbería
-            User::create([
-                'name'        => $this->propietario ?: $this->nombre,
-                'email'       => $this->email,
-                'password'    => bcrypt($this->password),
-                'is_admin'    => false,
-                'barberia_id' => $barberia->id,
-            ]);
+            // Editar datos no debe regalar tiempo: la fecha solo cambia si cambia el plan
+            if ($barberia->plan !== $this->plan) {
+                $datos['fecha_vencimiento'] = $this->vencimientoPara($this->plan);
+            }
+
+            $barberia->update($datos);
+        } else {
+            DB::transaction(function () {
+                // Crear barbería
+                $barberia = Barberia::create([
+                    'nombre'            => $this->nombre,
+                    'propietario'       => $this->propietario,
+                    'telefono'          => $this->telefono,
+                    'direccion'         => $this->direccion,
+                    'activo'            => true,
+                    'plan'              => $this->plan,
+                    'fecha_vencimiento' => $this->vencimientoPara($this->plan),
+                ]);
+
+                // Crear usuario para esa barbería (la contraseña se cifra sola por el cast 'hashed')
+                User::create([
+                    'name'        => $this->propietario ?: $this->nombre,
+                    'email'       => $this->email,
+                    'password'    => $this->password,
+                    'is_admin'    => false,
+                    'barberia_id' => $barberia->id,
+                ]);
+            });
         }
 
         $this->reset([
@@ -125,14 +145,18 @@ class PanelAdmin extends Component
 
     public function renovar(int $id): void
     {
-        $barberia    = Barberia::findOrFail($id);
-        $vencimiento = match ($barberia->plan) {
-            'mensual'   => now()->addMonth(),
-            'semestral' => now()->addMonths(6),
-            'anual'     => now()->addYear(),
-            default     => now()->addMonth(),
-        };
-        $barberia->update(['fecha_vencimiento' => $vencimiento]);
+        $barberia = Barberia::findOrFail($id);
+
+        // Si aún no ha vencido, el nuevo periodo se suma al que le queda
+        $desde = $barberia->fecha_vencimiento && $barberia->fecha_vencimiento->isFuture()
+            ? $barberia->fecha_vencimiento->copy()
+            : now();
+
+        $barberia->update(['fecha_vencimiento' => match ($barberia->plan) {
+            'semestral' => $desde->addMonths(6),
+            'anual'     => $desde->addYear(),
+            default     => $desde->addMonth(),
+        }]);
     }
 
     public function eliminar(int $id): void
@@ -142,6 +166,7 @@ class PanelAdmin extends Component
 
     public function cancelar(): void
     {
+        $this->resetErrorBag();
         $this->reset([
             'nombre',
             'propietario',
@@ -169,12 +194,13 @@ class PanelAdmin extends Component
 
     public function actualizarCredenciales(): void
     {
-        $this->validate([
-            'nuevoEmail' => 'required|email',
-        ]);
-
         $barberia = Barberia::findOrFail($this->credencialesBarberiaId);
         $user     = $barberia->users()->first();
+
+        $this->validate([
+            'nuevoEmail'    => 'required|email|unique:users,email,' . ($user?->id ?? 'NULL'),
+            'nuevaPassword' => 'nullable|min:8',
+        ]);
 
         if (!$user) {
             $this->addError('nuevoEmail', 'No hay usuario asignado a esta barbería.');
@@ -183,7 +209,7 @@ class PanelAdmin extends Component
 
         $data = ['email' => $this->nuevoEmail];
         if (!empty($this->nuevaPassword)) {
-            $data['password'] = bcrypt($this->nuevaPassword);
+            $data['password'] = $this->nuevaPassword;
         }
 
         $user->update($data);

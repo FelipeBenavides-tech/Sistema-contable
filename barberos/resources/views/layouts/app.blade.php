@@ -1,258 +1,145 @@
+@php
+    $links = [
+        ['route' => 'pos',        'label' => 'Caja',       'largo' => 'Caja del día',     'icon' => 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z'],
+        ['route' => 'ventas',     'label' => 'Ventas',     'largo' => 'Historial ventas', 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'],
+        ['route' => 'inventario', 'label' => 'Inventario', 'largo' => 'Inventario',       'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
+        ['route' => 'gastos',     'label' => 'Gastos',     'largo' => 'Gastos',           'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
+        ['route' => 'reportes',   'label' => 'Reportes',   'largo' => 'Reportes',         'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'],
+        ['route' => 'barberos',   'label' => 'Barberos',   'largo' => 'Barberos',         'icon' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'],
+        ['route' => 'servicios',  'label' => 'Servicios',  'largo' => 'Servicios',        'icon' => 'M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z'],
+    ];
+    // En el teléfono, la barra de abajo muestra las 4 pantallas más usadas + "Más"
+    $barraInferior = ['pos', 'ventas', 'inventario', 'gastos'];
+    $barberia = auth()->user()->barberia;
+@endphp
 <!DOCTYPE html>
-<html lang="es" class="h-full">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BarberOS — {{ $title ?? 'Panel' }}</title>
+    @include('partials.head')
+    <title>{{ $title ?? 'Panel' }} · Kaixa</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #0047FF;
-            --accent:  #FFB800;
-            --bg:      #F0F4FF;
-            --surface: #FFFFFF;
-            --border:  #DDE3FF;
-            --text:    #0A1628;
-            --muted:   #5A6A8A;
-            --success: #16A34A;
-            --danger:  #DC2626;
-            --info:    #0047FF;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; }
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--text); }
-
-        #sidebar {
-            position: fixed;
-            top: 0; left: 0;
-            width: 240px;
-            height: 100vh;
-            background: var(--primary);
-            z-index: 50;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.25s ease;
-        }
-
-        #overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 40;
-        }
-
-        #main-content {
-            margin-left: 240px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-width: 0;
-        }
-
-        #hamburger { display: none; }
-        #close-sidebar { display: none; }
-
-        @media (max-width: 1023px) {
-            #sidebar { transform: translateX(-100%); }
-            #sidebar.open { transform: translateX(0); }
-            #overlay.open { display: block; }
-            #main-content { margin-left: 0; }
-            #hamburger { display: flex; }
-            #close-sidebar { display: flex; }
-        }
-
-        /* Scroll horizontal en tablas móvil */
-.tabla-scroll {
-    overflow-x: auto;
-    border-radius: 12px;
-    border: 1px solid var(--border);
-}
-.tabla-scroll > div {
-    min-width: 600px;
-}
-    </style>
 </head>
-<body style="display:flex;min-height:100vh">
+<body class="min-h-screen" x-data="{ menu: false }" @keydown.escape.window="menu = false">
 
-    {{-- Overlay --}}
-    <div id="overlay" onclick="closeSidebar()"></div>
+    {{-- Fondo oscuro detrás del menú en el teléfono --}}
+    <div x-cloak x-show="menu" x-transition.opacity @click="menu = false"
+         class="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-[2px] lg:hidden"></div>
 
-    {{-- Sidebar --}}
-    <aside id="sidebar">
-        <div class="px-5 py-5 border-b flex items-center justify-between"
-             style="border-color:rgba(255,255,255,0.1)">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                     style="background:var(--accent)">
-                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                              d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"/>
-                    </svg>
+    {{-- Menú lateral (fijo en computador, deslizable en teléfono) --}}
+    <aside class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] -translate-x-full flex-col border-r border-white/5 bg-ink text-white transition-transform duration-200 lg:w-64 lg:translate-x-0"
+           :class="menu && 'translate-x-0'">
+        <div class="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
+            <div class="flex min-w-0 items-center gap-3">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-900 text-accent-500 ring-1 ring-white/10">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $links[6]['icon'] }}"/></svg>
                 </div>
-                <div>
-                    <p class="font-bold text-white text-sm">Kaixa</p>
-                    <p class="text-xs" style="color:rgba(255,255,255,0.5)">
-    {{ auth()->user()->barberia?->nombre ?? 'BarberOS' }}
-</p>
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold tracking-tight">Kaixa</p>
+                    <p class="truncate text-xs text-slate-400">{{ $barberia?->nombre ?? 'Mi barbería' }}</p>
                 </div>
             </div>
-            <button id="close-sidebar"
-                    onclick="closeSidebar()"
-                    class="w-7 h-7 rounded-lg items-center justify-center"
-                    style="background:rgba(255,255,255,0.15);color:white;border:none;cursor:pointer;font-size:14px">
-                ✕
+            <button type="button" @click="menu = false" class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white lg:hidden" aria-label="Cerrar menú">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
 
-        <nav style="flex:1;padding:12px;display:flex;flex-direction:column;gap:4px">
-            @php
-            $links = [
-                ['route' => 'pos',        'label' => 'Caja del día',     'icon' => 'M3 3h18v4H3zM3 10h18v4H3zM3 17h10v4H3z'],
-                ['route' => 'ventas',     'label' => 'Historial ventas', 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
-                ['route' => 'inventario', 'label' => 'Inventario',       'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
-                ['route' => 'gastos',     'label' => 'Gastos',           'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-                ['route' => 'reportes',   'label' => 'Reportes',         'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'],
-                ['route' => 'barberos',   'label' => 'Barberos',         'icon' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0'],
-                ['route' => 'servicios',  'label' => 'Servicios',        'icon' => 'M4 6h16M4 10h16M4 14h16M4 18h16'],
-            ];
-            @endphp
-
+        <nav class="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
+            <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Menú</p>
             @foreach($links as $link)
-            @php $active = request()->routeIs($link['route']); @endphp
-            <a href="{{ route($link['route']) }}"
-               onclick="closeSidebar()"
-               style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;font-size:13px;text-decoration:none;transition:all 0.15s;
-                      {{ $active
-                          ? 'background:var(--accent);color:#1A1A1A;font-weight:600;'
-                          : 'color:rgba(255,255,255,0.65);' }}">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
-                     viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="{{ $link['icon'] }}"/>
-                </svg>
-                {{ $link['label'] }}
-            </a>
+                @php $activo = request()->routeIs($link['route']); @endphp
+                <a href="{{ route($link['route']) }}"
+                   class="relative flex min-h-[42px] items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors {{ $activo ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-white' }}">
+                    @if($activo)<span class="absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent-500"></span>@endif
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $link['icon'] }}"/></svg>
+                    {{ $link['largo'] }}
+                </a>
             @endforeach
         </nav>
 
-        <div style="padding:16px;border-top:1px solid rgba(255,255,255,0.1)">
-            <div style="display:flex;align-items:center;justify-content:space-between">
-                <div>
-                    <p style="font-size:12px;font-weight:500;color:white">{{ auth()->user()->name }}</p>
-                    <p id="reloj" style="font-size:11px;color:var(--muted)"></p>
-                </div>
-                <a href="{{ route('logout') }}"
-                   onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-                   style="font-size:11px;padding:4px 10px;border-radius:8px;color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.15);text-decoration:none">
-                    Salir
-                </a>
-                <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display:none">
-                    @csrf
-                </form>
+        @if($barberia?->fecha_vencimiento && $barberia->dias_restantes <= 7)
+            <div class="mx-3 mb-3 rounded-lg bg-white/5 p-3 text-xs text-slate-300 ring-1 ring-inset ring-white/10">
+                Tu plan vence en {{ $barberia->dias_restantes }} {{ $barberia->dias_restantes === 1 ? 'día' : 'días' }}.
             </div>
+        @endif
+
+        <div class="flex items-center justify-between gap-2 border-t border-white/10 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <div class="min-w-0">
+                <p class="truncate text-sm font-medium">{{ auth()->user()->name }}</p>
+                <p id="reloj" class="text-xs text-slate-500"></p>
+            </div>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-300 ring-1 ring-inset ring-white/15 hover:bg-white/10 hover:text-white">Salir</button>
+            </form>
         </div>
     </aside>
 
-    {{-- Main --}}
-    <main id="main-content">
-
-        {{-- Topbar --}}
-        <header style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0">
-            <div style="display:flex;align-items:center;gap:12px">
-                <button id="hamburger"
-                        onclick="openSidebar()"
-                        style="width:36px;height:36px;border-radius:10px;background:#F1F5F9;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--primary)">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
-                    </svg>
-                </button>
-                <div>
-                    <h1 style="font-size:14px;font-weight:600;color:var(--text)">{{ $title ?? 'Panel' }}</h1>
-
-                </div>
+    <div class="flex min-h-screen flex-col lg:pl-64">
+        {{-- Barra superior --}}
+        <header class="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-white/90 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur sm:px-8">
+            <button type="button" @click="menu = true" class="flex h-10 w-10 items-center justify-center rounded-lg text-slate-600 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 lg:hidden" aria-label="Abrir menú">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+            <div class="min-w-0 flex-1">
+                <h1 class="truncate text-base font-semibold text-ink sm:text-lg">{{ $title ?? 'Panel' }}</h1>
+                <p class="truncate text-xs text-muted lg:hidden">{{ $barberia?->nombre }}</p>
             </div>
+            <p class="hidden text-sm text-muted sm:block">{{ ucfirst(now()->translatedFormat('l j \d\e F')) }}</p>
         </header>
 
-        {{-- Content --}}
-        <div style="flex:1;overflow:auto;padding:20px">
+        {{-- Contenido (con espacio abajo para la barra del teléfono) --}}
+        <main class="mx-auto w-full max-w-7xl flex-1 p-4 pb-28 sm:p-6 lg:p-8">
             {{ $slot }}
-        </div>
-    </main>
+        </main>
+    </div>
+
+    {{-- Barra inferior solo en teléfono --}}
+    <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+        @foreach(collect($links)->whereIn('route', $barraInferior) as $link)
+            @php $activo = request()->routeIs($link['route']); @endphp
+            <a href="{{ route($link['route']) }}"
+               class="relative flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium {{ $activo ? 'text-brand-700' : 'text-slate-500' }}">
+                @if($activo)<span class="absolute inset-x-5 top-0 h-0.5 rounded-full bg-brand-700"></span>@endif
+                <span class="flex h-7 w-12 items-center justify-center">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $link['icon'] }}"/></svg>
+                </span>
+                {{ $link['label'] }}
+            </a>
+        @endforeach
+        <button type="button" @click="menu = true" class="flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium text-slate-500">
+            <span class="flex h-7 w-12 items-center justify-center">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" d="M5 12h.01M12 12h.01M19 12h.01"/></svg>
+            </span>
+            Más
+        </button>
+    </nav>
 
     @livewireScripts
-<script>
-    function openSidebar() {
-        document.getElementById('sidebar').classList.add('open');
-        document.getElementById('overlay').classList.add('open');
-    }
+    <script>
+        (function () {
+            const formato = new Intl.DateTimeFormat('es-CO', {
+                timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hour12: true,
+                day: '2-digit', month: '2-digit',
+            });
+            function reloj() {
+                const el = document.getElementById('reloj');
+                if (el) el.textContent = formato.format(new Date());
+            }
+            if (!window.__relojKaixa) {
+                window.__relojKaixa = setInterval(reloj, 30000);
+            }
+            document.addEventListener('livewire:navigated', reloj);
+            reloj();
 
-    function closeSidebar() {
-        if (window.innerWidth < 1024) {
-            document.getElementById('sidebar').classList.remove('open');
-            document.getElementById('overlay').classList.remove('open');
-        }
-    }
-
-    function actualizarReloj() {
-        const ahora = new Date();
-        const opciones = {
-            timeZone: 'America/Bogota',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true
-        };
-        const formato = new Intl.DateTimeFormat('es-CO', opciones).format(ahora);
-        const reloj = document.getElementById('reloj');
-        if (reloj) reloj.textContent = formato;
-    }
-
-    function initInputs() {
-    document.querySelectorAll('input[type=number]').forEach(input => {
-        if (input.dataset.init) return;
-        input.dataset.init = '1';
-        input.addEventListener('focus', function() {
-            if (this.value === '0' || this.value === '0.00') this.value = '';
-        });
-        input.addEventListener('blur', function() {
-            if (this.value === '') this.value = '0';
-        });
-        input.addEventListener('keypress', function(e) {
-            const allowed = ['0','1','2','3','4','5','6','7','8','9','.'];
-            if (!allowed.includes(e.key)) e.preventDefault();
-            if (e.key === '.' && this.value.includes('.')) e.preventDefault();
-        });
-        input.addEventListener('paste', function(e) {
-            const paste = (e.clipboardData || window.clipboardData).getData('text');
-            if (!/^\d*\.?\d*$/.test(paste)) e.preventDefault();
-        });
-    });
-}
-
-document.addEventListener('DOMContentLoaded', initInputs);
-document.addEventListener('livewire:navigated', initInputs);
-document.addEventListener('livewire:update', initInputs);
-
-// Observer para detectar nuevos inputs dinámicos
-const observer = new MutationObserver(() => initInputs());
-document.addEventListener('DOMContentLoaded', () => {
-    observer.observe(document.body, { childList: true, subtree: true });
-});
-    document.addEventListener('DOMContentLoaded', function() {
-        initInputs();
-        actualizarReloj();
-        setInterval(actualizarReloj, 1000);
-    });
-
-    document.addEventListener('livewire:navigated', initInputs);
-</script>
+            // En campos de dinero: borrar el 0 al tocarlos para escribir directo
+            document.addEventListener('focusin', (e) => {
+                const el = e.target;
+                if (el.matches && el.matches('input[type=number]') && (el.value === '0' || el.value === '0.00')) {
+                    el.value = '';
+                }
+            });
+        })();
+    </script>
 </body>
 </html>

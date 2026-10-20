@@ -10,6 +10,8 @@ class VentaItem extends Model
     protected $fillable = [
         'venta_id',
         'servicio_id',
+        'inventario_id',
+        'es_producto',
         'nombre_servicio',
         'precio',
         'cantidad',
@@ -18,7 +20,8 @@ class VentaItem extends Model
 
     protected $casts = [
         'precio'   => 'decimal:2',
-        'subtotal' => 'decimal:2',
+        'subtotal'    => 'decimal:2',
+        'es_producto' => 'boolean',
     ];
 
     public function venta(): BelongsTo
@@ -29,5 +32,10 @@ class VentaItem extends Model
     public function servicio(): BelongsTo
     {
         return $this->belongsTo(Servicio::class);
+    }
+
+    public function inventario(): BelongsTo
+    {
+        return $this->belongsTo(Inventario::class);
     }
 }
