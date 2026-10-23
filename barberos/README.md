@@ -80,6 +80,29 @@ archivo `.env` (`SEED_ADMIN_PASSWORD` y `SEED_DEMO_PASSWORD`).
 
 Para que los clientes lo usen desde cualquier lugar hay que publicarlo en un servidor (hosting) con dominio y HTTPS.
 
+> Esto es solo para probar: `php artisan serve` y `php -S` son servidores de desarrollo, sin HTTPS
+> (las contraseñas viajan sin cifrar por el WiFi). No los dejes abiertos en una red que no controlas.
+
+## Publicarlo en un hosting (producción)
+
+- Usa una versión de PHP con los últimos parches de seguridad (por ejemplo, desde octubre de 2026,
+  mínimo 8.2.35, 8.3.36, 8.4.27 o 8.5.12) y mantenla al día.
+- El dominio debe apuntar a la carpeta `public`, nunca a la raíz del proyecto (ahí está el `.env`).
+- En el `.env` del servidor:
+
+  ```
+  APP_ENV=production
+  APP_DEBUG=false
+  APP_URL=https://tu-dominio.com
+  LOG_LEVEL=warning
+  SESSION_SECURE_COOKIE=true
+  ```
+
+  Con `APP_DEBUG=true` cualquier error muestra detalles internos del servidor a quien lo provoque.
+- Ejecuta `composer install --no-dev --optimize-autoloader`, `npm run build`, `php artisan migrate --force`
+  y `php artisan optimize`.
+- Revisa de vez en cuando `composer audit` y `npm audit` para saber si alguna librería tiene fallas conocidas.
+
 ## Pruebas automáticas
 
 ```bash
