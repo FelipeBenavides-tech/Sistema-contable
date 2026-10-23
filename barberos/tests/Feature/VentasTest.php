@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use App\Livewire\HistorialVentas;
 use App\Livewire\PosVenta;
 use App\Models\Venta;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\Concerns\CreaDatosDePrueba;
@@ -74,11 +73,10 @@ class VentasTest extends TestCase
         $otra  = $this->crearBarberia('Otra');
         $ajeno = $this->crearServicio($otra);
 
-        $this->expectException(ModelNotFoundException::class);
-
         Livewire::actingAs($this->crearUsuario($mia))
             ->test(PosVenta::class)
-            ->call('agregarServicio', $ajeno->id);
+            ->call('agregarServicio', $ajeno->id)
+            ->assertNotFound();
     }
 
     public function test_no_se_puede_usar_un_barbero_de_otra_barberia(): void
@@ -88,13 +86,14 @@ class VentasTest extends TestCase
         $servicio = $this->crearServicio($mia);
         $ajeno    = $this->crearBarbero($otra);
 
-        $this->expectException(ModelNotFoundException::class);
-
         Livewire::actingAs($this->crearUsuario($mia))
             ->test(PosVenta::class)
             ->call('agregarServicio', $servicio->id)
             ->set('barberoId', $ajeno->id)
-            ->call('cobrar');
+            ->call('cobrar')
+            ->assertNotFound();
+
+        $this->assertSame(0, Venta::count());
     }
 
     public function test_si_el_stock_no_alcanza_no_se_registra_nada(): void
@@ -318,5 +317,52 @@ class VentasTest extends TestCase
         $resumen = Venta::resumenMes(now()->month, now()->year, $barberia->id);
         $this->assertEquals(10000, $resumen['ingresos']);
         $this->assertSame(1, $resumen['cantidad_ventas']);
+    }
+
+    public function test_el_pago_combinado_no_acepta_montos_negativos(): void
+    {
+        $barberia = $this->crearBarberia();
+        $producto = $this->crearProducto($barberia, precio: 10000);
+
+        Livewire::actingAs($this->crearUsuario($barberia))
+            ->test(PosVenta::class)
+            ->call('agregarProductoInventario', $producto->id)
+            ->set('metodoPago', 'combinado')
+            ->set('montoEfectivo', -5000)
+            ->set('montoNequi', 15000)
+            ->call('cobrar')
+            ->assertHasErrors('montoEfectivo');
+
+        $this->assertSame(0, Venta::count());
+    }
+
+    public function test_confirmar_la_contrasena_para_anular_tiene_limite_de_intentos(): void
+    {
+        $barberia = $this->crearBarberia();
+        $usuario  = $this->crearUsuario($barberia);
+        $producto = $this->crearProducto($barberia);
+
+        Livewire::actingAs($usuario)
+            ->test(PosVenta::class)
+            ->call('agregarProductoInventario', $producto->id)
+            ->call('cobrar');
+
+        $venta = Venta::sole();
+        $pantalla = Livewire::actingAs($usuario)
+            ->test(HistorialVentas::class)
+            ->call('confirmarAccion', $venta->id, 'eliminar')
+            ->set('motivo', 'Se registro por error');
+
+        for ($i = 0; $i < 5; $i++) {
+            $pantalla->set('passwordConfirm', 'incorrecta')->call('verificarPassword');
+        }
+
+        // Con la contraseña correcta, pero ya agotó los intentos
+        $pantalla->set('passwordConfirm', 'password')
+            ->call('verificarPassword')
+            ->assertSee('Demasiados intentos');
+
+        $this->assertNull($venta->fresh()->anulada_at ?? null);
+        $this->assertSame(1, Venta::activas()->count());
     }
 }
