@@ -79,6 +79,7 @@ archivo `.env` (`SEED_ADMIN_PASSWORD` y `SEED_DEMO_PASSWORD`).
 3. En el teléfono abre `http://192.168.1.20:8000`.
 
 Para que los clientes lo usen desde cualquier lugar hay que publicarlo en un servidor (hosting) con dominio y HTTPS.
+Los pasos están en [DESPLIEGUE.md](DESPLIEGUE.md).
 
 ## Pruebas automáticas
 
