@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Wompi no envía token CSRF: sus avisos se validan con la firma del evento
+        $middleware->validateCsrfTokens(except: ['webhooks/wompi']);
+
         $middleware->alias([
             'barberia' => VerificarBarberia::class,
             'admin'    => VerificarAdmin::class,

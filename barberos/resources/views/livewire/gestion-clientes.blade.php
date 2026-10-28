@@ -79,6 +79,9 @@
                     @if($detalle['membresia'])
                         <p><span class="text-muted">Membresía:</span> {{ $detalle['membresia']->nombre_plan }} · quedan {{ $detalle['membresia']->visitas_restantes }} visitas · vence {{ $detalle['membresia']->fecha_vencimiento->format('d/m/Y') }}</p>
                     @endif
+                    @if((float) $c->saldo_favor > 0)
+                        <p class="font-medium text-emerald-700">Saldo a favor: {{ $dinero($c->saldo_favor) }} (se usa al reservar o al cobrar en la caja)</p>
+                    @endif
                     @if($c->permite_fiado)
                         <p><span class="text-muted">Cartera:</span> {{ $c->servicios_fiados }} de {{ $c->limite_fiado }} servicios fiados{{ $c->fiado_bloqueado ? ' · debe pagar todo para volver a fiarle' : '' }}</p>
                     @endif

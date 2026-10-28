@@ -155,6 +155,12 @@
                                 <p class="mt-1 text-xs text-muted">{{ $membresia->nombre_plan }} · vence {{ $membresia->fecha_vencimiento->format('d/m/Y') }}</p>
                                 <p class="text-xs font-medium text-brand-700">Quedan {{ $membresia->visitas_restantes }} de {{ $membresia->visitas_total }} visitas</p>
                             @endif
+                            @if((float) $cliente->saldo_favor > 0)
+                                <label class="mt-1 flex items-center gap-2 text-xs font-medium text-emerald-700">
+                                    <input type="checkbox" wire:model.live="usarSaldoFavor" class="h-4 w-4 rounded border-line text-brand-700">
+                                    Usar saldo a favor ({{ $dinero($cliente->saldo_favor) }})
+                                </label>
+                            @endif
                             @if($cliente->deuda > 0)
                                 <p class="mt-1 text-xs font-medium {{ $cliente->fiado_bloqueado ? 'text-rose-600' : 'text-amber-700' }}">
                                     Debe {{ $dinero($cliente->deuda) }} · {{ $cliente->servicios_fiados }} de {{ $cliente->limite_fiado }} servicios fiados
@@ -271,14 +277,14 @@
                             <input id="montoNequi" wire:model.live.debounce.400ms="montoNequi" type="number" inputmode="numeric" min="0" step="1000" class="input">
                         </div>
                         @if($suma > 0)
-                            <p class="col-span-2 text-xs font-medium {{ abs($suma - $this->totalCarrito) <= 1 ? 'text-emerald-700' : 'text-rose-600' }}">
+                            <p class="col-span-2 text-xs font-medium {{ abs($suma - $this->porCobrar) <= 1 ? 'text-emerald-700' : 'text-rose-600' }}">
                                 Suma {{ $dinero($suma) }}
-                                @if(abs($suma - $this->totalCarrito) <= 1)
+                                @if(abs($suma - $this->porCobrar) <= 1)
                                     · cuadra con el total
-                                @elseif($suma < $this->totalCarrito)
-                                    · faltan {{ $dinero($this->totalCarrito - $suma) }}
+                                @elseif($suma < $this->porCobrar)
+                                    · faltan {{ $dinero($this->porCobrar - $suma) }}
                                 @else
-                                    · sobran {{ $dinero($suma - $this->totalCarrito) }}
+                                    · sobran {{ $dinero($suma - $this->porCobrar) }}
                                 @endif
                             </p>
                         @endif
@@ -288,9 +294,17 @@
 
             {{-- Total y botón --}}
             <div class="border-t border-line bg-slate-50 px-4 py-4 sm:px-5">
+                @php [$anticipoCita, $saldoUsado, $porCobrar] = $desglose; @endphp
+                @if($anticipoCita > 0 || $saldoUsado > 0)
+                    <div class="mb-2 flex flex-col gap-0.5 text-sm text-muted">
+                        <div class="flex justify-between"><span>Total</span><span>{{ $dinero($this->totalCarrito) }}</span></div>
+                        @if($anticipoCita > 0)<div class="flex justify-between"><span>Anticipo pagado en línea</span><span>−{{ $dinero($anticipoCita) }}</span></div>@endif
+                        @if($saldoUsado > 0)<div class="flex justify-between"><span>Saldo a favor</span><span>−{{ $dinero($saldoUsado) }}</span></div>@endif
+                    </div>
+                @endif
                 <div class="mb-3 flex items-baseline justify-between">
-                    <span class="text-sm font-medium text-muted">Total</span>
-                    <span class="text-3xl font-semibold tracking-tight text-ink">{{ $dinero($this->totalCarrito) }}</span>
+                    <span class="text-sm font-medium text-muted">{{ $anticipoCita > 0 || $saldoUsado > 0 ? 'Por cobrar' : 'Total' }}</span>
+                    <span class="text-3xl font-semibold tracking-tight text-ink">{{ $dinero($porCobrar) }}</span>
                 </div>
                 <button type="button" wire:click="cobrar" wire:loading.attr="disabled" @disabled(!$cantidadItems)
                         class="btn btn-primary w-full !min-h-[48px] text-base">

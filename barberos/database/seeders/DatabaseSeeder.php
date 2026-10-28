@@ -39,6 +39,8 @@ class DatabaseSeeder extends Seeder
             'activo'            => true,
             'plan'              => 'mensual',
             'nivel'             => 'pro',
+            'slug'              => 'demo',
+            'reservas_activas'  => true,
             'fecha_vencimiento' => now()->addMonth(),
             'contrato_hasta'    => now()->addMonths((int) config('suscripcion.contrato_minimo_meses')),
         ]);

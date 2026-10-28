@@ -19,6 +19,7 @@ class Cliente extends Model
         'permite_fiado',
         'fiado_bloqueado',
         'acepta_mensajes',
+        'saldo_favor',
     ];
 
     protected $casts = [
@@ -26,6 +27,7 @@ class Cliente extends Model
         'permite_fiado'    => 'boolean',
         'fiado_bloqueado'  => 'boolean',
         'acepta_mensajes'  => 'boolean',
+        'saldo_favor'      => 'decimal:2',
     ];
 
     public function barberia(): BelongsTo

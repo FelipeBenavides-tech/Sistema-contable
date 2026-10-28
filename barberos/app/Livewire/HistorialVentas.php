@@ -66,6 +66,10 @@ class HistorialVentas extends Component
 
         // Las ventas fiadas mueven la cartera del cliente: no se editan, y si ya
         // tienen abonos tampoco se eliminan (se descuadraría lo que pagó)
+        if ((float) $venta->monto_prepagado > 0 && $accion === 'editar') {
+            $this->avisoVenta = 'Esta venta tiene un anticipo o saldo a favor aplicado, así que no se puede editar. Si hubo un error, elimínala: lo prepagado vuelve al saldo a favor del cliente.';
+            return;
+        }
         if ($venta->es_fiada && $accion === 'editar') {
             $this->avisoVenta = 'Las ventas fiadas no se pueden editar. Si hubo un error, elimínala y regístrala de nuevo.';
             return;
@@ -170,6 +174,11 @@ class HistorialVentas extends Component
                 'metodo_pago_antes' => $venta->metodo_pago,
             ]);
 
+            // Lo que el cliente ya había pagado (anticipo o saldo a favor) vuelve a su saldo a favor
+            if ((float) $venta->monto_prepagado > 0 && $venta->cliente_id) {
+                \App\Models\Cliente::whereKey($venta->cliente_id)->increment('saldo_favor', (float) $venta->monto_prepagado);
+            }
+
             // Se marca como eliminada (no se borra) y deja de sumar en caja y reportes
             $venta->update([
                 'fue_eliminada'    => true,
@@ -180,6 +189,7 @@ class HistorialVentas extends Component
                 'monto_efectivo'   => 0,
                 'monto_nequi'      => 0,
                 'saldo_pendiente'  => 0,
+                'monto_prepagado'  => 0,
             ]);
 
             // Si era fiada, puede que el cliente ya no deba nada

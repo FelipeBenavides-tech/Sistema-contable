@@ -75,16 +75,32 @@
                                         </p>
                                         <p class="truncate text-xs text-muted">{{ $cita->servicios->pluck('nombre')->implode(', ') }} · {{ $dinero($cita->total) }}</p>
                                         @if($cita->notas)<p class="mt-0.5 truncate text-xs text-amber-800">{{ $cita->notas }}</p>@endif
+                                        @if($cita->origen === 'en_linea' || (float) $cita->anticipo > 0)
+                                            <p class="mt-0.5 flex flex-wrap gap-1">
+                                                @if($cita->origen === 'en_linea')<span class="badge badge-violet">En línea</span>@endif
+                                                @if((float) $cita->anticipo > 0)
+                                                    <span class="badge {{ in_array($cita->anticipo_estado, ['pagado', 'aplicado']) ? 'badge-green' : 'badge-gray' }}">
+                                                        {{ match ($cita->anticipo_estado) {
+                                                            'pagado' => 'Anticipo pagado ' . $dinero($cita->anticipo),
+                                                            'aplicado' => 'Anticipo aplicado',
+                                                            'saldo_favor' => 'Anticipo a saldo a favor',
+                                                            'retenido' => 'Anticipo retenido',
+                                                            default => 'Anticipo pendiente',
+                                                        } }}
+                                                    </span>
+                                                @endif
+                                            </p>
+                                        @endif
                                     </div>
                                     <span class="badge {{ $claseEstado }} shrink-0">{{ $textoEstado }}</span>
                                 </div>
                                 @if($cita->estado === 'confirmada')
                                     <div class="mt-2 grid grid-cols-3 gap-1.5">
                                         <a href="{{ route('pos', ['cita' => $cita->id]) }}" class="btn btn-sm btn-primary">Cobrar</a>
-                                        <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'no_asistio')" wire:confirm="¿Marcar que {{ $cita->cliente->nombre }} no asistió?" class="btn btn-sm btn-light">No vino</button>
-                                        <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'cancelada')" wire:confirm="¿Cancelar la cita de {{ $cita->cliente->nombre }}?" class="btn btn-sm btn-danger">Cancelar</button>
+                                        <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'no_asistio')" wire:confirm="¿Marcar que {{ $cita->cliente->nombre }} no asistió?{{ $cita->anticipo_estado === 'pagado' ? ' La barbería se queda con el anticipo.' : '' }}" class="btn btn-sm btn-light">No vino</button>
+                                        <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'cancelada')" wire:confirm="¿Cancelar la cita de {{ $cita->cliente->nombre }}?{{ $cita->anticipo_estado === 'pagado' ? ' El anticipo le queda como saldo a favor.' : '' }}" class="btn btn-sm btn-danger">Cancelar</button>
                                     </div>
-                                @elseif(in_array($cita->estado, ['cancelada', 'no_asistio']) && $dia->gte(today()))
+                                @elseif(in_array($cita->estado, ['cancelada', 'no_asistio']) && $cita->anticipo_estado === null && $dia->gte(today()))
                                     <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'confirmada')" class="mt-2 text-xs font-medium text-brand-600 hover:text-brand-800">Volver a confirmar</button>
                                 @endif
                             </div>

@@ -21,4 +21,10 @@ return [
 
     // Duración que se usa si un servicio no tiene una
     'duracion_por_defecto' => 30,
+
+    // Reservas en línea: con cuántos días de anticipación se puede reservar
+    'dias_reserva' => 30,
+
+    // Minutos que se aparta la hora mientras el cliente paga el anticipo
+    'minutos_para_pagar' => 15,
 ];

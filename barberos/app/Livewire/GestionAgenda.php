@@ -66,8 +66,30 @@ class GestionAgenda extends Component
             return;
         }
 
-        // Volver a confirmar solo si la hora sigue libre
+        $dinero = fn($v) => '$' . number_format((float) $v, 0, ',', '.');
+
+        if ($estado === 'cancelada') {
+            $resultado = $cita->cancelar(porCliente: false);
+            $this->exito = $resultado === 'saldo_favor'
+                ? "Cita cancelada. El anticipo ({$dinero($cita->anticipo)}) le quedó a {$cita->cliente->nombre} como saldo a favor."
+                : 'Cita cancelada. La hora quedó libre.';
+            return;
+        }
+
+        if ($estado === 'no_asistio') {
+            $tenia = $cita->anticipo_estado === 'pagado';
+            $cita->marcarNoAsistio();
+            $this->exito = $tenia
+                ? "Se marcó que el cliente no asistió. El anticipo ({$dinero($cita->anticipo)}) quedó como ingreso de la barbería."
+                : 'Se marcó que el cliente no asistió.';
+            return;
+        }
+
+        // Volver a confirmar solo citas sin anticipo y si la hora sigue libre
         if ($estado === 'confirmada') {
+            if ($cita->anticipo_estado !== null || !in_array($cita->estado, ['cancelada', 'no_asistio'], true)) {
+                return;
+            }
             $libres = Cita::horasDisponibles($cita->barbero, $cita->fecha->toDateString(), Cita::minutos($cita->hora_fin) - Cita::minutos($cita->hora_inicio), $cita->id);
             if (!in_array($cita->hora_inicio, $libres, true)) {
                 $this->exito = '';
@@ -76,12 +98,8 @@ class GestionAgenda extends Component
             }
         }
 
-        $cita->update(['estado' => $estado]);
-        $this->exito = match ($estado) {
-            'cancelada'  => 'Cita cancelada. La hora quedó libre.',
-            'no_asistio' => 'Se marcó que el cliente no asistió.',
-            default      => 'Cita confirmada de nuevo.',
-        };
+        $cita->update(['estado' => 'confirmada']);
+        $this->exito = 'Cita confirmada de nuevo.';
     }
 
     // ── Horarios ─────────────────────────────────────────────────────────────

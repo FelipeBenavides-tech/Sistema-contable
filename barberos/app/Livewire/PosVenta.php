@@ -31,6 +31,8 @@ class PosVenta extends Component
 
     // Cita de la agenda que se está cobrando
     public int    $citaId        = 0;
+    // Usar el saldo a favor del cliente en esta venta
+    public bool   $usarSaldoFavor = false;
 
     private function barberiaId(): int
     {
@@ -195,6 +197,7 @@ class PosVenta extends Component
     {
         $this->quitarMembresia();
         $this->clienteId = 0;
+        $this->usarSaldoFavor = false;
         if ($this->metodoPago === 'fiado') {
             $this->metodoPago = 'efectivo';
         }
@@ -267,12 +270,44 @@ class PosVenta extends Component
 
     public function vaciarCarrito(): void
     {
-        $this->reset(['carrito', 'metodoPago', 'montoEfectivo', 'montoNequi', 'ventaExitosa', 'membresiaId', 'clienteId', 'buscarCliente', 'citaId']);
+        $this->reset(['carrito', 'metodoPago', 'montoEfectivo', 'montoNequi', 'ventaExitosa', 'membresiaId', 'clienteId', 'buscarCliente', 'citaId', 'usarSaldoFavor']);
     }
 
     public function getTotalCarritoProperty(): float
     {
         return collect($this->carrito)->sum('subtotal');
+    }
+
+    // Anticipo pagado en línea de la cita que se cobra
+    private function anticipoCita(): float
+    {
+        if (!$this->citaId) {
+            return 0;
+        }
+
+        return (float) (Cita::where('barberia_id', $this->barberiaId())
+            ->where('estado', 'confirmada')
+            ->where('anticipo_estado', 'pagado')
+            ->whereKey($this->citaId)
+            ->value('anticipo') ?? 0);
+    }
+
+    /** [anticipo de la cita, saldo a favor usado, lo que falta por cobrar] para un total. */
+    private function desglose(float $total): array
+    {
+        $anticipo = min($total, $this->anticipoCita());
+        $saldo = 0.0;
+
+        if ($this->usarSaldoFavor && $cliente = $this->clienteSeleccionado()) {
+            $saldo = min((float) $cliente->saldo_favor, $total - $anticipo);
+        }
+
+        return [$anticipo, $saldo, max(0, $total - $anticipo - $saldo)];
+    }
+
+    public function getPorCobrarProperty(): float
+    {
+        return $this->desglose($this->totalCarrito)[2];
     }
 
     /**
@@ -330,7 +365,7 @@ class PosVenta extends Component
         ]);
 
         $items = $this->itemsDesdeBaseDeDatos();
-        $total = collect($items)->sum('subtotal');
+        [$anticipo, $saldoFavor, $total] = $this->desglose((float) collect($items)->sum('subtotal'));
 
         // El barbero es obligatorio solo si hay servicios
         $tieneServicios = collect($items)->contains(fn($item) => empty($item['es_producto']));
@@ -367,14 +402,16 @@ class PosVenta extends Component
         };
 
         try {
-            DB::transaction(function () use ($efectivo, $nequi, $items, $barbero) {
+            DB::transaction(function () use ($efectivo, $nequi, $items, $barbero, $anticipo, $saldoFavor) {
                 $venta = Venta::registrar(
                     [
-                        'metodo_pago'    => $this->metodoPago,
-                        'monto_efectivo' => $efectivo,
-                        'monto_nequi'    => $nequi,
-                        'membresia_id'   => $this->membresiaId ?: null,
-                        'cliente_id'     => $this->clienteId ?: null,
+                        'metodo_pago'       => $this->metodoPago,
+                        'monto_efectivo'    => $efectivo,
+                        'monto_nequi'       => $nequi,
+                        'monto_prepagado'   => $anticipo,
+                        'saldo_favor_usado' => $saldoFavor,
+                        'membresia_id'      => $this->membresiaId ?: null,
+                        'cliente_id'        => $this->clienteId ?: null,
                     ],
                     $items,
                     $barbero,
@@ -386,7 +423,11 @@ class PosVenta extends Component
                     Cita::where('barberia_id', $this->barberiaId())
                         ->where('estado', 'confirmada')
                         ->whereKey($this->citaId)
-                        ->update(['estado' => 'atendida', 'venta_id' => $venta->id]);
+                        ->update([
+                            'estado'          => 'atendida',
+                            'venta_id'        => $venta->id,
+                            'anticipo_estado' => DB::raw("CASE WHEN anticipo_estado = 'pagado' THEN 'aplicado' ELSE anticipo_estado END"),
+                        ]);
                 }
             });
         } catch (ValidationException $e) {
@@ -395,7 +436,7 @@ class PosVenta extends Component
         }
 
         $this->resumenDia = Venta::resumenDia(null, $this->barberiaId());
-        $this->reset(['carrito', 'metodoPago', 'montoEfectivo', 'montoNequi', 'membresiaId', 'clienteId', 'buscarCliente', 'citaId']);
+        $this->reset(['carrito', 'metodoPago', 'montoEfectivo', 'montoNequi', 'membresiaId', 'clienteId', 'buscarCliente', 'citaId', 'usarSaldoFavor']);
         $this->ventaExitosa = true;
     }
 
@@ -458,6 +499,7 @@ class PosVenta extends Component
             'membresia'            => $this->membresiaSeleccionada(),
             'clientesEncontrados'  => $clientesEncontrados,
             'citasPorCobrar'       => $citasPorCobrar,
+            'desglose'             => $this->desglose($this->totalCarrito),
             'servicios'           => $servicios,
             'productosInventario' => $productosInventario,
             'barberos'            => $barberos,

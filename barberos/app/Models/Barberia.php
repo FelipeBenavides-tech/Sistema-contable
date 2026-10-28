@@ -25,6 +25,20 @@ class Barberia extends Model
         'saldo',
         'contrato_hasta',
         'limite_fiado',
+        'slug',
+        'reservas_activas',
+        'anticipo_porcentaje',
+        'horas_cancelacion',
+        'wompi_llave_publica',
+        'wompi_llave_privada',
+        'wompi_secreto_eventos',
+        'wompi_secreto_integridad',
+    ];
+
+    protected $hidden = [
+        'wompi_llave_privada',
+        'wompi_secreto_eventos',
+        'wompi_secreto_integridad',
     ];
 
     protected $casts = [
@@ -33,6 +47,12 @@ class Barberia extends Model
         'contrato_hasta'    => 'date',
         'saldo'             => 'decimal:2',
         'limite_fiado'      => 'integer',
+        'reservas_activas'  => 'boolean',
+        'anticipo_porcentaje' => 'integer',
+        'horas_cancelacion' => 'integer',
+        'wompi_llave_privada'      => 'encrypted',
+        'wompi_secreto_eventos'    => 'encrypted',
+        'wompi_secreto_integridad' => 'encrypted',
     ];
 
     public const PLANES = ['mensual', 'semestral', 'anual', 'porcentaje'];
@@ -127,6 +147,42 @@ class Barberia extends Model
         return $nivel === 'pro'
             ? (float) config("suscripcion.planes.{$plan}.precio_pro", $base)
             : $base;
+    }
+
+    // ── Reservas en línea (plan Pro) ─────────────────────────────────────────
+
+    // ¿Los clientes pueden reservar desde la página pública?
+    public function getRecibeReservasAttribute(): bool
+    {
+        return $this->es_pro && $this->reservas_activas && $this->slug
+            && $this->activo && $this->estado_pago !== 'bloqueada';
+    }
+
+    public function getWompiConfiguradoAttribute(): bool
+    {
+        return (bool) ($this->wompi_llave_publica && $this->wompi_secreto_integridad && $this->wompi_secreto_eventos);
+    }
+
+    // Anticipo que se pide por una cita de este valor (redondeado a la centena)
+    public function anticipoPara(float $total): float
+    {
+        $porcentaje = max(0, min(100, (int) $this->anticipo_porcentaje));
+
+        return min($total, ceil($total * $porcentaje / 100 / 100) * 100);
+    }
+
+    // Sugerencia de dirección para la página pública a partir del nombre
+    public static function slugDisponible(string $nombre, ?int $ignorarId = null): string
+    {
+        $base = \Illuminate\Support\Str::slug($nombre) ?: 'barberia';
+        $slug = $base;
+        $n = 2;
+        while (self::where('slug', $slug)->when($ignorarId, fn($q) => $q->where('id', '!=', $ignorarId))->exists()) {
+            $slug = "{$base}-{$n}";
+            $n++;
+        }
+
+        return $slug;
     }
 
     // Porcentaje que se cobra por venta en el plan por uso

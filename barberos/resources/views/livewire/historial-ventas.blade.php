@@ -7,6 +7,7 @@
         'transferencia' => ['Transferencia', 'badge-blue'],
         'combinado'     => ['Combinado', 'badge-violet'],
         'fiado'         => ['Fiado', 'badge-amber'],
+        'anticipo'      => ['Anticipo', 'badge-violet'],
     ];
     $activas = $ventas->where('fue_eliminada', false);
 @endphp

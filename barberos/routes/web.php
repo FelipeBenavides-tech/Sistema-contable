@@ -17,6 +17,16 @@ use App\Livewire\Reportes;
 use App\Livewire\MiBarberia;
 use App\Livewire\Admin\PanelAdmin;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\WompiWebhookController;
+use App\Livewire\ReservaEnLinea;
+use App\Livewire\VerReserva;
+
+// ── Reservas en línea (públicas, plan Pro) ────────────────────────────────────
+Route::middleware('throttle:60,1')->group(function () {
+    Route::get('/reservar/{slug}', ReservaEnLinea::class)->name('reservar');
+    Route::get('/reserva/{token}', VerReserva::class)->name('reserva.ver');
+});
+Route::post('/webhooks/wompi', WompiWebhookController::class)->middleware('throttle:120,1')->name('webhooks.wompi');
 
 // ── Panel Admin (solo para is_admin = true) ───────────────────────────────────
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {

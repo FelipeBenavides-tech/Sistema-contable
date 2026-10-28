@@ -23,6 +23,7 @@ class Venta extends Model
         'metodo_pago',
         'monto_efectivo',
         'monto_nequi',
+        'monto_prepagado',
         'saldo_pendiente',
         'fecha',
         'fue_editada',
@@ -40,6 +41,7 @@ class Venta extends Model
         'monto_efectivo'   => 'decimal:2',
         'monto_nequi'      => 'decimal:2',
         'saldo_pendiente'  => 'decimal:2',
+        'monto_prepagado'  => 'decimal:2',
         'total_original'   => 'decimal:2',
         'fue_editada'           => 'boolean',
         'fue_eliminada'         => 'boolean',
@@ -139,6 +141,15 @@ class Venta extends Model
                 }
             }
 
+            // Saldo a favor del cliente que se usa en esta venta
+            $saldoFavor = round((float) ($data['saldo_favor_usado'] ?? 0), 2);
+            if ($saldoFavor > 0) {
+                if (!$cliente || (float) $cliente->saldo_favor + 0.009 < $saldoFavor) {
+                    throw ValidationException::withMessages(['carrito' => 'El cliente no tiene ese saldo a favor.']);
+                }
+                $cliente->decrement('saldo_favor', $saldoFavor);
+            }
+
             $visitas = collect($items)->where('cubierto_membresia', true)->sum('cantidad');
             $membresiaId = null;
 
@@ -182,7 +193,8 @@ class Venta extends Model
                 $producto->decrement('stock_actual', $item['cantidad']);
             }
 
-            $total    = collect($items)->sum('subtotal');
+            $total      = collect($items)->sum('subtotal');
+            $prepagado  = min((float) $total, round((float) ($data['monto_prepagado'] ?? 0) + $saldoFavor, 2));
             $comision = self::calcularComision($barbero, $items);
             $cargo    = Barberia::cobrarUso($barberiaId, (float) $total);
 
@@ -197,7 +209,8 @@ class Venta extends Model
                 'metodo_pago'      => $data['metodo_pago'],
                 'monto_efectivo'   => $fiado ? 0 : ($data['monto_efectivo'] ?? 0),
                 'monto_nequi'      => $fiado ? 0 : ($data['monto_nequi'] ?? 0),
-                'saldo_pendiente'  => $fiado ? $total : 0,
+                'monto_prepagado'  => $prepagado,
+                'saldo_pendiente'  => $fiado ? max(0, $total - $prepagado) : 0,
                 'fecha'            => now()->toDateString(),
             ]);
 

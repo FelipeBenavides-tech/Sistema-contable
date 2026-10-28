@@ -20,25 +20,35 @@ class Cita extends Model
         'hora_inicio',
         'hora_fin',
         'estado',
+        'origen',
         'total',
+        'anticipo',
+        'saldo_favor_usado',
+        'anticipo_estado',
+        'expira_en',
+        'token',
         'notas',
         'venta_id',
         'creada_por',
     ];
 
     protected $casts = [
-        'fecha' => 'date',
-        'total' => 'decimal:2',
+        'fecha'             => 'date',
+        'total'             => 'decimal:2',
+        'anticipo'          => 'decimal:2',
+        'saldo_favor_usado' => 'decimal:2',
+        'expira_en'         => 'datetime',
     ];
 
     public const ESTADOS = [
+        'pendiente_pago' => ['Pago pendiente', 'badge-amber'],
         'confirmada' => ['Confirmada', 'badge-blue'],
         'atendida'   => ['Atendida', 'badge-green'],
         'cancelada'  => ['Cancelada', 'badge-gray'],
         'no_asistio' => ['No asistió', 'badge-red'],
     ];
 
-    // Estados que ocupan la hora del barbero
+    // Estados que ocupan la hora del barbero (más las reservas que se están pagando)
     public const OCUPAN = ['confirmada', 'atendida'];
 
     public function barberia(): BelongsTo
@@ -68,7 +78,179 @@ class Cita extends Model
 
     public function scopeOcupan(Builder $query): Builder
     {
-        return $query->whereIn('estado', self::OCUPAN);
+        return $query->where(fn($q) => $q
+            ->whereIn('estado', self::OCUPAN)
+            ->orWhere(fn($q) => $q->where('estado', 'pendiente_pago')->where('expira_en', '>', now())));
+    }
+
+    public function pagos(): HasMany
+    {
+        return $this->hasMany(PagoEnLinea::class);
+    }
+
+    // Fecha y hora en que empieza la cita
+    public function getInicioAttribute(): Carbon
+    {
+        return Carbon::parse($this->fecha->toDateString() . ' ' . $this->hora_inicio);
+    }
+
+    // Anticipo ya pagado que se descuenta al cobrar en la caja
+    public function getAnticipoPagadoAttribute(): float
+    {
+        return $this->anticipo_estado === 'pagado' ? (float) $this->anticipo : 0;
+    }
+
+    // ¿El cliente todavía puede cancelar sin perder el anticipo?
+    public function getCancelaATiempoAttribute(): bool
+    {
+        $horas = (int) ($this->barberia?->horas_cancelacion ?? 4);
+
+        return now()->diffInMinutes($this->inicio, false) >= $horas * 60;
+    }
+
+    // ── Cambios de estado con anticipo ───────────────────────────────────────
+
+    /** Pago aprobado: la cita queda confirmada (o, si ya expiró y la hora se ocupó, el dinero queda como saldo a favor). */
+    public function confirmarPago(float $pagado): void
+    {
+        DB::transaction(function () use ($pagado) {
+            $cita = self::lockForUpdate()->findOrFail($this->id);
+
+            if (in_array($cita->anticipo_estado, ['pagado', 'aplicado', 'retenido', 'saldo_favor'], true)) {
+                return;
+            }
+
+            if ($cita->estado === 'pendiente_pago' || $cita->estado === 'cancelada') {
+                $duracion = self::minutos($cita->hora_fin) - self::minutos($cita->hora_inicio);
+                $libre = $cita->estado === 'pendiente_pago'
+                    || in_array($cita->hora_inicio, self::horasDisponibles($cita->barbero, $cita->fecha->toDateString(), $duracion, $cita->id), true);
+
+                if ($libre) {
+                    $cita->update(['estado' => 'confirmada', 'anticipo_estado' => 'pagado', 'expira_en' => null]);
+                    return;
+                }
+
+                // Pagó tarde y la hora ya la tomó otra persona: no pierde la plata
+                Cliente::whereKey($cita->cliente_id)->increment('saldo_favor', $pagado + (float) $cita->saldo_favor_usado);
+                $cita->update(['anticipo_estado' => 'saldo_favor', 'expira_en' => null]);
+            }
+        });
+        $this->refresh();
+    }
+
+    /** Pago rechazado o reserva vencida sin pagar: se libera la hora y se devuelve el saldo a favor usado. */
+    public function liberar(): void
+    {
+        DB::transaction(function () {
+            $cita = self::lockForUpdate()->findOrFail($this->id);
+            if ($cita->estado !== 'pendiente_pago') {
+                return;
+            }
+
+            if ((float) $cita->saldo_favor_usado > 0) {
+                Cliente::whereKey($cita->cliente_id)->increment('saldo_favor', (float) $cita->saldo_favor_usado);
+            }
+
+            $cita->update(['estado' => 'cancelada', 'anticipo_estado' => null, 'anticipo' => 0, 'saldo_favor_usado' => 0, 'expira_en' => null]);
+        });
+        $this->refresh();
+    }
+
+    /**
+     * Cancela la cita. Si tenía anticipo pagado:
+     *  - la cancela la barbería, o el cliente con tiempo → queda como saldo a favor del cliente
+     *  - el cliente cancela tarde → la barbería se queda con el anticipo
+     */
+    public function cancelar(bool $porCliente = false): string
+    {
+        if ($this->estado === 'pendiente_pago') {
+            $this->liberar();
+            return 'liberada';
+        }
+
+        return DB::transaction(function () use ($porCliente) {
+            $cita = self::lockForUpdate()->findOrFail($this->id);
+            if ($cita->estado !== 'confirmada') {
+                return 'sin_cambio';
+            }
+
+            $resultado = 'cancelada';
+            if ($cita->anticipo_estado === 'pagado') {
+                if (!$porCliente || $cita->cancela_a_tiempo) {
+                    Cliente::whereKey($cita->cliente_id)->increment('saldo_favor', (float) $cita->anticipo);
+                    $cita->anticipo_estado = 'saldo_favor';
+                    $resultado = 'saldo_favor';
+                } else {
+                    $cita->retenerAnticipo();
+                    $resultado = 'retenido';
+                }
+            }
+
+            $cita->estado = 'cancelada';
+            $cita->save();
+            $this->refresh();
+
+            return $resultado;
+        });
+    }
+
+    /** El cliente no llegó: la barbería se queda con el anticipo. */
+    public function marcarNoAsistio(): void
+    {
+        DB::transaction(function () {
+            $cita = self::lockForUpdate()->findOrFail($this->id);
+            if ($cita->estado !== 'confirmada') {
+                return;
+            }
+
+            if ($cita->anticipo_estado === 'pagado') {
+                $cita->retenerAnticipo();
+            }
+
+            $cita->estado = 'no_asistio';
+            $cita->save();
+        });
+        $this->refresh();
+    }
+
+    /**
+     * Registra el anticipo retenido como un ingreso de la barbería (sin
+     * comisión para el barbero), para que cuadre con lo que llegó por Wompi.
+     */
+    private function retenerAnticipo(): void
+    {
+        $valor = (float) $this->anticipo;
+        $this->anticipo_estado = 'retenido';
+
+        if ($valor <= 0) {
+            return;
+        }
+
+        $venta = Venta::registrar(
+            ['metodo_pago' => 'anticipo', 'cliente_id' => $this->cliente_id, 'monto_prepagado' => $valor],
+            [[
+                'servicio_id'     => null,
+                'inventario_id'   => null,
+                'es_producto'     => true,
+                'nombre_servicio' => 'Anticipo retenido · cita del ' . $this->fecha->format('d/m') . ' ' . $this->hora_inicio,
+                'precio'          => $valor,
+                'cantidad'        => 1,
+                'subtotal'        => $valor,
+            ]],
+            null,
+            $this->barberia_id
+        );
+
+        $this->venta_id = $venta->id;
+    }
+
+    /** Reservas en línea que no se pagaron a tiempo: libera sus horas. */
+    public static function liberarVencidas(): int
+    {
+        $vencidas = self::where('estado', 'pendiente_pago')->where('expira_en', '<=', now())->get();
+        $vencidas->each->liberar();
+
+        return $vencidas->count();
     }
 
     public function getPendienteAttribute(): bool
@@ -163,7 +345,10 @@ class Cita extends Model
                 ]);
             }
 
-            $cita = self::create([
+            $total = (float) $servicios->sum('precio');
+            $extra = is_callable($datos['antes_de_crear'] ?? null) ? ($datos['antes_de_crear'])($total) : [];
+
+            $cita = self::create(array_merge([
                 'barberia_id' => $barberiaId,
                 'cliente_id'  => $cliente->id,
                 'barbero_id'  => $barbero->id,
@@ -171,10 +356,10 @@ class Cita extends Model
                 'hora_inicio' => $hora,
                 'hora_fin'    => self::hora(self::minutos($hora) + $duracion),
                 'estado'      => 'confirmada',
-                'total'       => $servicios->sum('precio'),
+                'total'       => $total,
                 'notas'       => $datos['notas'] ?? null,
                 'creada_por'  => $userId,
-            ]);
+            ], $extra));
 
             foreach ($servicios as $servicio) {
                 $cita->servicios()->create([

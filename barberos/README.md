@@ -19,6 +19,11 @@ teléfono se puede "Agregar a la pantalla de inicio" para abrirla como una app.
   la totalidad. Los pagos y abonos entran a la caja del día.
 - **Agenda de citas** (solo plan Pro): citas por fecha y hora para cada barbero, con su horario de trabajo, la duración de
   cada servicio y control para que dos citas no se crucen. La cita se cobra desde la caja con un clic.
+- **Reservas en línea con pago anticipado** (solo plan Pro): cada barbería tiene su página pública `/reservar/{dirección}`
+  donde el cliente arma su carrito de servicios, escoge barbero, día y hora, y paga un anticipo (50% por defecto) con Wompi
+  (Nequi, PSE o tarjeta). La hora queda apartada 15 minutos mientras paga. Al cobrar la cita en la caja, el anticipo se descuenta.
+  Si el cliente cancela con al menos 4 horas de aviso, el anticipo le queda como **saldo a favor**; si cancela después o no llega,
+  la barbería se queda con el anticipo (entra como ingreso, sin comisión). Si la barbería cancela, el cliente conserva todo como saldo a favor.
 - **Usuarios para barberos** (solo plan Pro): cada barbero entra con su correo y solo ve su agenda y sus servicios y comisión del día.
   No ve la caja, gastos, reportes ni la base de clientes.
 - **Panel de administrador** (`/admin`) para crear barberías, sus usuarios, registrar sus pagos y recargas.
@@ -90,6 +95,23 @@ archivo `.env` (`SEED_ADMIN_PASSWORD` y `SEED_DEMO_PASSWORD`).
 3. En el teléfono abre `http://192.168.1.20:8000`.
 
 Para que los clientes lo usen desde cualquier lugar hay que publicarlo en un servidor (hosting) con dominio y HTTPS.
+
+## Activar las reservas en línea (Wompi)
+
+1. En el panel de Wompi (comercios.wompi.co) entra a **Desarrolladores** y copia las cuatro llaves: pública, privada,
+   secreto de eventos y secreto de integridad. Las de prueba empiezan con `pub_test_`, `prv_test_`, `test_events_` y `test_integrity_`.
+2. En Kaixa, entra a **Mi barbería → Reservas en línea**, escoge la dirección de la página, el porcentaje de anticipo y las horas
+   de aviso para cancelar, y pega las llaves. Las secretas se guardan cifradas y no se vuelven a mostrar.
+3. En Wompi, en **URL de eventos**, pega la dirección que muestra Kaixa: `https://tu-dominio/webhooks/wompi`.
+   Necesita que el sistema esté publicado en internet con HTTPS (no funciona en `localhost`).
+4. Programa en el servidor la tarea que libera las reservas sin pagar (cada minuto):
+
+```bash
+* * * * * cd /ruta/a/barberos && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Con llaves de prueba todo pasa por el entorno de pruebas de Wompi (sandbox) y no se cobra dinero real.
+Sin llaves de Wompi, la página igual recibe reservas pero sin anticipo.
 
 ## Pruebas automáticas
 
