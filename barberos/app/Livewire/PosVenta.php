@@ -3,10 +3,13 @@
 namespace App\Livewire;
 
 use App\Models\Barbero;
+use App\Models\Cita;
+use App\Models\Cliente;
 use App\Models\Inventario;
 use App\Models\Membresia;
 use App\Models\Servicio;
 use App\Models\Venta;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 
@@ -21,9 +24,13 @@ class PosVenta extends Component
     public string $categoria     = 'todos';
     public array  $resumenDia    = [];
 
-    // Cliente con membresía que se atiende en esta venta
+    // Cliente que se atiende (opcional; obligatorio para fiar) y su membresía
+    public int    $clienteId     = 0;
     public int    $membresiaId   = 0;
     public string $buscarCliente = '';
+
+    // Cita de la agenda que se está cobrando
+    public int    $citaId        = 0;
 
     private function barberiaId(): int
     {
@@ -33,6 +40,37 @@ class PosVenta extends Component
     public function mount(): void
     {
         $this->resumenDia = Venta::resumenDia(null, $this->barberiaId());
+
+        if ($citaId = (int) request()->query('cita')) {
+            $this->cargarCita($citaId);
+        }
+    }
+
+    /** Llena el carrito con los servicios, el barbero y el cliente de una cita. */
+    public function cargarCita(int $citaId): void
+    {
+        $cita = Cita::with('servicios')
+            ->where('barberia_id', $this->barberiaId())
+            ->where('estado', 'confirmada')
+            ->find($citaId);
+
+        if (!$cita) {
+            $this->addError('carrito', 'La cita ya no está pendiente por cobrar.');
+            return;
+        }
+
+        $this->vaciarCarrito();
+        $this->citaId    = $cita->id;
+        $this->barberoId = $cita->barbero_id;
+        $this->seleccionarCliente($cita->cliente_id);
+
+        foreach ($cita->servicios as $item) {
+            $existe = $item->servicio_id && Servicio::where('barberia_id', $this->barberiaId())
+                ->where('activo', true)->whereKey($item->servicio_id)->exists();
+            if ($existe) {
+                $this->agregarServicio($item->servicio_id);
+            }
+        }
     }
 
     public function agregarServicio(int $servicioId): void
@@ -122,6 +160,46 @@ class PosVenta extends Component
             : $this->carrito[$key]['precio'] * $this->carrito[$key]['cantidad'];
     }
 
+    private function clienteSeleccionado(): ?Cliente
+    {
+        return $this->clienteId
+            ? Cliente::where('barberia_id', $this->barberiaId())->find($this->clienteId)
+            : null;
+    }
+
+    /** Escoge el cliente que se atiende. Si tiene membresía vigente, se usa. */
+    public function seleccionarCliente(int $clienteId): void
+    {
+        $cliente = Cliente::where('barberia_id', $this->barberiaId())->findOrFail($clienteId);
+
+        $this->clienteId     = $cliente->id;
+        $this->buscarCliente = '';
+        $this->ventaExitosa  = false;
+        $this->resetErrorBag('carrito');
+
+        $membresia = Membresia::where('barberia_id', $this->barberiaId())
+            ->where('cliente_id', $cliente->id)
+            ->vigentes()
+            ->orderBy('fecha_vencimiento')
+            ->first();
+
+        if ($membresia) {
+            $this->membresiaId = $membresia->id;
+            $this->cubrirPrimerServicio();
+        } else {
+            $this->quitarMembresia();
+        }
+    }
+
+    public function quitarCliente(): void
+    {
+        $this->quitarMembresia();
+        $this->clienteId = 0;
+        if ($this->metodoPago === 'fiado') {
+            $this->metodoPago = 'efectivo';
+        }
+    }
+
     private function membresiaSeleccionada(): ?Membresia
     {
         if (!$this->membresiaId) {
@@ -140,6 +218,7 @@ class PosVenta extends Component
             ->findOrFail($membresiaId);
 
         $this->membresiaId   = $membresia->id;
+        $this->clienteId     = $membresia->cliente_id;
         $this->buscarCliente = '';
         $this->ventaExitosa  = false;
         $this->resetErrorBag('carrito');
@@ -188,7 +267,7 @@ class PosVenta extends Component
 
     public function vaciarCarrito(): void
     {
-        $this->reset(['carrito', 'metodoPago', 'montoEfectivo', 'montoNequi', 'ventaExitosa', 'membresiaId', 'buscarCliente']);
+        $this->reset(['carrito', 'metodoPago', 'montoEfectivo', 'montoNequi', 'ventaExitosa', 'membresiaId', 'clienteId', 'buscarCliente', 'citaId']);
     }
 
     public function getTotalCarritoProperty(): float
@@ -244,7 +323,7 @@ class PosVenta extends Component
     {
         $this->validate([
             'carrito'    => 'required|array|min:1',
-            'metodoPago' => 'required|in:efectivo,nequi,transferencia,combinado',
+            'metodoPago' => 'required|in:efectivo,nequi,transferencia,combinado,fiado',
         ], [
             'carrito.required' => 'Agrega al menos un servicio o producto.',
             'carrito.min'      => 'Agrega al menos un servicio o producto.',
@@ -270,6 +349,11 @@ class PosVenta extends Component
             return;
         }
 
+        if ($this->metodoPago === 'fiado' && !$this->clienteId) {
+            $this->addError('carrito', 'Para fiar, primero escoge el cliente.');
+            return;
+        }
+
         $efectivo = match ($this->metodoPago) {
             'efectivo'  => $total,
             'combinado' => $this->montoEfectivo,
@@ -283,24 +367,35 @@ class PosVenta extends Component
         };
 
         try {
-            Venta::registrar(
-                [
-                    'metodo_pago'    => $this->metodoPago,
-                    'monto_efectivo' => $efectivo,
-                    'monto_nequi'    => $nequi,
-                    'membresia_id'   => $this->membresiaId ?: null,
-                ],
-                $items,
-                $barbero,
-                $this->barberiaId()
-            );
+            DB::transaction(function () use ($efectivo, $nequi, $items, $barbero) {
+                $venta = Venta::registrar(
+                    [
+                        'metodo_pago'    => $this->metodoPago,
+                        'monto_efectivo' => $efectivo,
+                        'monto_nequi'    => $nequi,
+                        'membresia_id'   => $this->membresiaId ?: null,
+                        'cliente_id'     => $this->clienteId ?: null,
+                    ],
+                    $items,
+                    $barbero,
+                    $this->barberiaId()
+                );
+
+                // La cita de la agenda queda atendida y enlazada a su venta
+                if ($this->citaId) {
+                    Cita::where('barberia_id', $this->barberiaId())
+                        ->where('estado', 'confirmada')
+                        ->whereKey($this->citaId)
+                        ->update(['estado' => 'atendida', 'venta_id' => $venta->id]);
+                }
+            });
         } catch (ValidationException $e) {
             $this->addError('carrito', collect($e->errors())->flatten()->first());
             return;
         }
 
         $this->resumenDia = Venta::resumenDia(null, $this->barberiaId());
-        $this->reset(['carrito', 'metodoPago', 'montoEfectivo', 'montoNequi', 'membresiaId', 'buscarCliente']);
+        $this->reset(['carrito', 'metodoPago', 'montoEfectivo', 'montoNequi', 'membresiaId', 'clienteId', 'buscarCliente', 'citaId']);
         $this->ventaExitosa = true;
     }
 
@@ -339,21 +434,30 @@ class PosVenta extends Component
             ->get();
 
         $termino = trim($this->buscarCliente);
-        $clientesConMembresia = mb_strlen($termino) >= 2
-            ? Membresia::with('cliente')
-                ->where('barberia_id', $barberiaId)
-                ->vigentes()
-                ->whereHas('cliente', fn($q) => $q->where(fn($q) => $q
-                    ->where('nombre', 'like', "%{$termino}%")
-                    ->orWhere('telefono', 'like', "%{$termino}%")))
-                ->orderBy('fecha_vencimiento')
+        $clientesEncontrados = mb_strlen($termino) >= 2
+            ? Cliente::where('barberia_id', $barberiaId)
+                ->buscar($termino)
+                ->with(['membresias' => fn($q) => $q->vigentes()->orderBy('fecha_vencimiento')])
+                ->orderBy('nombre')
                 ->limit(6)
                 ->get()
             : collect();
 
+        // Plan Pro: citas de hoy que faltan por cobrar
+        $citasPorCobrar = auth()->user()->barberia?->es_pro
+            ? Cita::with(['cliente', 'barbero'])
+                ->where('barberia_id', $barberiaId)
+                ->whereDate('fecha', now()->toDateString())
+                ->where('estado', 'confirmada')
+                ->orderBy('hora_inicio')
+                ->get()
+            : collect();
+
         return view('livewire.pos-venta', [
+            'cliente'              => $this->clienteSeleccionado(),
             'membresia'            => $this->membresiaSeleccionada(),
-            'clientesConMembresia' => $clientesConMembresia,
+            'clientesEncontrados'  => $clientesEncontrados,
+            'citasPorCobrar'       => $citasPorCobrar,
             'servicios'           => $servicios,
             'productosInventario' => $productosInventario,
             'barberos'            => $barberos,

@@ -116,6 +116,25 @@
             </div>
         @endif
 
+        @if($citasPorCobrar->isNotEmpty())
+            <div class="card overflow-hidden">
+                <div class="flex items-center justify-between border-b border-line px-4 py-3 sm:px-5">
+                    <h2 class="section-title">Citas de hoy por cobrar</h2>
+                    <a href="{{ route('agenda') }}" class="text-xs font-medium text-brand-600 hover:text-brand-800">Agenda</a>
+                </div>
+                @foreach($citasPorCobrar as $c)
+                    <button type="button" wire:key="cita-{{ $c->id }}" wire:click="cargarCita({{ $c->id }})"
+                            class="flex w-full items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5 text-left text-sm last:border-b-0 hover:bg-slate-50 sm:px-5 {{ $citaId === $c->id ? 'bg-brand-50' : '' }}">
+                        <span class="min-w-0">
+                            <span class="block truncate font-medium">{{ \Carbon\Carbon::createFromFormat('H:i', $c->hora_inicio)->format('g:i a') }} · {{ $c->cliente->nombre }}</span>
+                            <span class="block truncate text-xs text-muted">{{ $c->barbero->nombre }}</span>
+                        </span>
+                        <span class="shrink-0 text-xs font-medium text-brand-700">{{ $citaId === $c->id ? 'En el carrito' : 'Cobrar' }}</span>
+                    </button>
+                @endforeach
+            </div>
+        @endif
+
         <div class="card overflow-hidden">
             <div class="flex items-center justify-between border-b border-line px-4 py-3.5 sm:px-5">
                 <h2 class="section-title">Cobro</h2>
@@ -124,37 +143,54 @@
                 @endif
             </div>
 
-            {{-- Cliente con membresía (opcional) --}}
+            {{-- Cliente (opcional; obligatorio para fiar) --}}
             <div class="border-b border-line px-4 py-4 sm:px-5">
-                <p class="card-title mb-2">Cliente con membresía</p>
-                @if($membresia)
+                <p class="card-title mb-2">Cliente</p>
+                @if($cliente)
                     <div class="flex items-start justify-between gap-3 rounded-lg bg-brand-50 p-3 ring-1 ring-inset ring-brand-600/15">
                         <div class="min-w-0">
-                            <p class="truncate text-sm font-semibold text-ink">{{ $membresia->cliente->nombre }}</p>
-                            <p class="text-xs text-muted">{{ $membresia->nombre_plan }} · vence {{ $membresia->fecha_vencimiento->format('d/m/Y') }}</p>
-                            <p class="mt-1 text-xs font-medium text-brand-700">Quedan {{ $membresia->visitas_restantes }} de {{ $membresia->visitas_total }} visitas</p>
+                            <p class="truncate text-sm font-semibold text-ink">{{ $cliente->nombre }}</p>
+                            @if($cliente->telefono)<p class="text-xs text-muted">{{ $cliente->telefono }}</p>@endif
+                            @if($membresia)
+                                <p class="mt-1 text-xs text-muted">{{ $membresia->nombre_plan }} · vence {{ $membresia->fecha_vencimiento->format('d/m/Y') }}</p>
+                                <p class="text-xs font-medium text-brand-700">Quedan {{ $membresia->visitas_restantes }} de {{ $membresia->visitas_total }} visitas</p>
+                            @endif
+                            @if($cliente->deuda > 0)
+                                <p class="mt-1 text-xs font-medium {{ $cliente->fiado_bloqueado ? 'text-rose-600' : 'text-amber-700' }}">
+                                    Debe {{ $dinero($cliente->deuda) }} · {{ $cliente->servicios_fiados }} de {{ $cliente->limite_fiado }} servicios fiados
+                                    @if($cliente->fiado_bloqueado) · debe pagar todo @endif
+                                </p>
+                            @endif
                         </div>
-                        <button type="button" wire:click="quitarMembresia" class="text-xs font-medium text-muted hover:text-rose-600">Quitar</button>
+                        <button type="button" wire:click="quitarCliente" class="text-xs font-medium text-muted hover:text-rose-600">Quitar</button>
                     </div>
                 @else
                     <input type="search" wire:model.live.debounce.300ms="buscarCliente" placeholder="Buscar por nombre o teléfono" class="input">
                     @if(mb_strlen(trim($buscarCliente)) >= 2)
                         <div class="mt-2 overflow-hidden rounded-lg ring-1 ring-inset ring-slate-200">
-                            @forelse($clientesConMembresia as $m)
-                                <button type="button" wire:key="mem-{{ $m->id }}" wire:click="seleccionarMembresia({{ $m->id }})"
+                            @forelse($clientesEncontrados as $c)
+                                @php $m = $c->membresias->first(); @endphp
+                                <button type="button" wire:key="cli-{{ $c->id }}" wire:click="seleccionarCliente({{ $c->id }})"
                                         class="flex w-full items-center justify-between gap-2 border-b border-slate-100 px-3 py-2.5 text-left text-sm last:border-b-0 hover:bg-slate-50">
                                     <span class="min-w-0">
-                                        <span class="block truncate font-medium">{{ $m->cliente->nombre }}</span>
-                                        <span class="block truncate text-xs text-muted">{{ $m->nombre_plan }}{{ $m->cliente->telefono ? ' · ' . $m->cliente->telefono : '' }}</span>
+                                        <span class="block truncate font-medium">{{ $c->nombre }}</span>
+                                        <span class="block truncate text-xs text-muted">{{ $m ? $m->nombre_plan : 'Sin membresía' }}{{ $c->telefono ? ' · ' . $c->telefono : '' }}</span>
                                     </span>
-                                    <span class="badge badge-blue shrink-0">{{ $m->visitas_restantes }} {{ $m->visitas_restantes === 1 ? 'visita' : 'visitas' }}</span>
+                                    @if($m)
+                                        <span class="badge badge-blue shrink-0">{{ $m->visitas_restantes }} {{ $m->visitas_restantes === 1 ? 'visita' : 'visitas' }}</span>
+                                    @elseif($c->permite_fiado)
+                                        <span class="badge badge-amber shrink-0">Cartera</span>
+                                    @endif
                                 </button>
                             @empty
-                                <p class="px-3 py-3 text-center text-xs text-muted">Nadie con membresía vigente con ese nombre.</p>
+                                <p class="px-3 py-3 text-center text-xs text-muted">No hay clientes con ese nombre o teléfono.</p>
                             @endforelse
                         </div>
                     @endif
-                    <a href="{{ route('membresias') }}" class="mt-2 inline-block text-xs font-medium text-brand-600 hover:text-brand-800">Vender una membresía →</a>
+                    <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                        <a href="{{ route('clientes') }}" class="text-xs font-medium text-brand-600 hover:text-brand-800">Nuevo cliente →</a>
+                        <a href="{{ route('membresias') }}" class="text-xs font-medium text-brand-600 hover:text-brand-800">Vender una membresía →</a>
+                    </div>
                 @endif
             </div>
 
@@ -205,13 +241,23 @@
             <div class="px-4 py-4 sm:px-5">
                 <p class="card-title mb-2">Método de pago</p>
                 <div class="segmentado flex w-full">
-                    @foreach(['efectivo' => 'Efectivo', 'nequi' => 'Nequi', 'combinado' => 'Combinado'] as $valor => $texto)
+                    @foreach(['efectivo' => 'Efectivo', 'nequi' => 'Nequi', 'combinado' => 'Combinado', 'fiado' => 'Fiado'] as $valor => $texto)
                         <button type="button" wire:click="$set('metodoPago', '{{ $valor }}')"
                                 class="segmento {{ $metodoPago === $valor ? 'segmento-activo' : '' }}">
                             {{ $texto }}
                         </button>
                     @endforeach
                 </div>
+
+                @if($metodoPago === 'fiado')
+                    <p class="mt-3 text-xs {{ $cliente ? 'text-muted' : 'font-medium text-rose-600' }}">
+                        @if($cliente)
+                            Queda en la cartera de {{ $cliente->nombre }}. Se le pueden fiar hasta {{ $cliente->limite_fiado }} servicios; después debe pagar todo.
+                        @else
+                            Escoge el cliente arriba para fiarle.
+                        @endif
+                    </p>
+                @endif
 
                 @if($metodoPago === 'combinado')
                     @php $suma = (float) $montoEfectivo + (float) $montoNequi; @endphp
@@ -248,7 +294,7 @@
                 </div>
                 <button type="button" wire:click="cobrar" wire:loading.attr="disabled" @disabled(!$cantidadItems)
                         class="btn btn-primary w-full !min-h-[48px] text-base">
-                    <span wire:loading.remove wire:target="cobrar">Registrar cobro</span>
+                    <span wire:loading.remove wire:target="cobrar">{{ $metodoPago === 'fiado' ? 'Registrar fiado' : 'Registrar cobro' }}</span>
                     <span wire:loading wire:target="cobrar">Guardando…</span>
                 </button>
             </div>
@@ -268,7 +314,7 @@
                     </div>
                     <div class="mt-1 flex items-center justify-between gap-2">
                         <span class="truncate text-xs text-muted">{{ $v->items->map(fn($i) => $i->nombre_servicio . ($i->cubierto_membresia ? ' (membresía)' : ''))->implode(', ') }}</span>
-                        <span class="badge {{ $v->metodo_pago === 'efectivo' ? 'badge-green' : ($v->metodo_pago === 'combinado' ? 'badge-amber' : 'badge-blue') }}">{{ ucfirst($v->metodo_pago) }}</span>
+                        <span class="badge {{ match ($v->metodo_pago) { 'efectivo' => 'badge-green', 'combinado' => 'badge-violet', 'fiado' => 'badge-amber', default => 'badge-blue' } }}">{{ ucfirst($v->metodo_pago) }}</span>
                     </div>
                 </div>
             @empty

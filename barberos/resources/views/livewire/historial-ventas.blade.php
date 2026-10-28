@@ -6,10 +6,15 @@
         'nequi'         => ['Nequi', 'badge-blue'],
         'transferencia' => ['Transferencia', 'badge-blue'],
         'combinado'     => ['Combinado', 'badge-violet'],
+        'fiado'         => ['Fiado', 'badge-amber'],
     ];
     $activas = $ventas->where('fue_eliminada', false);
 @endphp
 <div class="flex flex-col gap-4">
+
+    @if($avisoVenta)
+        <div class="alert-warning">{{ $avisoVenta }}</div>
+    @endif
 
     {{-- ─────────── Filtro por día ─────────── --}}
     <div class="card card-pad flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

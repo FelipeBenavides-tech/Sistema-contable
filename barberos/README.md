@@ -13,17 +13,27 @@ teléfono se puede "Agregar a la pantalla de inicio" para abrirla como una app.
 - **Gastos** del negocio por categoría.
 - **Barberos** con su porcentaje de comisión. La comisión se calcula **solo sobre servicios**, nunca sobre productos.
 - **Reportes** mensuales con ingresos, gastos, comisiones y ganancia, descargables en Excel y PDF.
+- **Clientes**: base de datos con celular, correo, cumpleaños, notas, historial de visitas y autorización de datos (Ley 1581).
+- **Cartera (fiados)**: a los clientes marcados "se le puede fiar" se les cobra con el método **Fiado** en la caja.
+  Se les fían hasta 4 servicios (se cambia en la pantalla Cartera); al cumplir el cuarto no se les fía más hasta que paguen
+  la totalidad. Los pagos y abonos entran a la caja del día.
+- **Agenda de citas** (solo plan Pro): citas por fecha y hora para cada barbero, con su horario de trabajo, la duración de
+  cada servicio y control para que dos citas no se crucen. La cita se cobra desde la caja con un clic.
+- **Usuarios para barberos** (solo plan Pro): cada barbero entra con su correo y solo ve su agenda y sus servicios y comisión del día.
+  No ve la caja, gastos, reportes ni la base de clientes.
 - **Panel de administrador** (`/admin`) para crear barberías, sus usuarios, registrar sus pagos y recargas.
   No hay registro público: las cuentas las crea el administrador.
 
 ## Planes de Kaixa
 
-| Plan | Precio | Notas |
-|---|---|---|
-| Mensual | $130.000 al mes | Contrato mínimo de 6 meses |
-| Semestral | $700.000 | Ahorra $80.000 (10%) frente al mensual |
-| Anual | $1.200.000 | Ahorra $360.000 (23%) frente al mensual |
-| Por uso | 2,5% de cada venta | Saldo prepagado que se recarga: la primera recarga es de mínimo $200.000. Contrato mínimo de 6 meses; al terminar, el saldo a favor se devuelve |
+Cada plan viene en dos niveles: **Base** (todo el sistema) y **Pro** (Base + agenda de citas y usuarios para barberos).
+
+| Plan | Base | Pro | Notas |
+|---|---|---|---|
+| Mensual | $130.000 al mes | $180.000 al mes | Contrato mínimo de 6 meses |
+| Semestral | $700.000 | $970.000 | Ahorra frente al mensual |
+| Anual | $1.200.000 | $1.660.000 | Ahorra frente al mensual |
+| Por uso | 2,5% de cada venta | 3,5% de cada venta | Saldo prepagado que se recarga: la primera recarga es de mínimo $200.000. Contrato mínimo de 6 meses; al terminar, el saldo a favor se devuelve |
 
 La instalación y entrega del sistema cuesta $65.000, en un solo pago, para cualquier plan.
 
@@ -31,7 +41,8 @@ La instalación y entrega del sistema cuesta $65.000, en un solo pago, para cual
 - Cuando un plan vence hay **5 días de gracia**: al iniciar sesión sale un aviso de no pago (se puede cerrar) y arriba de la pantalla
   siempre se ve la fecha de vencimiento. Pasada la gracia, o si el saldo del plan por uso llega a $0, el sistema se deshabilita hasta que se pague.
 - La barbería ve su estado, los planes y su historial de pagos en **Mi plan Kaixa** (`/mi-plan`).
-- Los precios, el porcentaje y los días de gracia se cambian en `config/suscripcion.php`.
+- Los precios (Base y Pro), los porcentajes y los días de gracia se cambian en `config/suscripcion.php`.
+- El nivel (Base o Pro) se escoge en `/admin` al crear o editar la barbería. El horario general de la agenda está en `config/agenda.php`.
 
 ## Requisitos
 

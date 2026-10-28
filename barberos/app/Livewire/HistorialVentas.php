@@ -43,6 +43,7 @@ class HistorialVentas extends Component
     public float  $editEfectivo     = 0;
     public float  $editNequi        = 0;
     public array  $editItems        = [];
+    public string $avisoVenta       = '';
 
     private function barberiaId(): int
     {
@@ -60,7 +61,19 @@ class HistorialVentas extends Component
             return;
         }
 
-        Venta::where('barberia_id', $this->barberiaId())->findOrFail($ventaId);
+        $venta = Venta::where('barberia_id', $this->barberiaId())->findOrFail($ventaId);
+        $this->avisoVenta = '';
+
+        // Las ventas fiadas mueven la cartera del cliente: no se editan, y si ya
+        // tienen abonos tampoco se eliminan (se descuadraría lo que pagó)
+        if ($venta->es_fiada && $accion === 'editar') {
+            $this->avisoVenta = 'Las ventas fiadas no se pueden editar. Si hubo un error, elimínala y regístrala de nuevo.';
+            return;
+        }
+        if ($venta->es_fiada && $accion === 'eliminar' && (float) $venta->saldo_pendiente < (float) $venta->total) {
+            $this->avisoVenta = 'Esta venta fiada ya tiene abonos del cliente, así que no se puede eliminar.';
+            return;
+        }
 
         $this->ventaId        = $ventaId;
         $this->accion         = $accion;
@@ -166,7 +179,11 @@ class HistorialVentas extends Component
                 'ganancia_local'   => 0,
                 'monto_efectivo'   => 0,
                 'monto_nequi'      => 0,
+                'saldo_pendiente'  => 0,
             ]);
+
+            // Si era fiada, puede que el cliente ya no deba nada
+            $venta->cliente?->actualizarBloqueoFiado();
         });
 
         $this->motivo  = '';

@@ -21,8 +21,10 @@ class Barberia extends Model
         'activo',
         'fecha_vencimiento',
         'plan',
+        'nivel',
         'saldo',
         'contrato_hasta',
+        'limite_fiado',
     ];
 
     protected $casts = [
@@ -30,9 +32,12 @@ class Barberia extends Model
         'fecha_vencimiento' => 'date',
         'contrato_hasta'    => 'date',
         'saldo'             => 'decimal:2',
+        'limite_fiado'      => 'integer',
     ];
 
     public const PLANES = ['mensual', 'semestral', 'anual', 'porcentaje'];
+
+    public const NIVELES = ['base', 'pro'];
 
     public function users(): HasMany
     {
@@ -69,6 +74,16 @@ class Barberia extends Model
         return $this->hasMany(PagoSuscripcion::class);
     }
 
+    public function clientes(): HasMany
+    {
+        return $this->hasMany(Cliente::class);
+    }
+
+    public function citas(): HasMany
+    {
+        return $this->hasMany(Cita::class);
+    }
+
     // ── Plan ──────────────────────────────────────────────────────────────────
 
     public function getPorUsoAttribute(): bool
@@ -76,11 +91,24 @@ class Barberia extends Model
         return $this->plan === 'porcentaje';
     }
 
+    // El nivel Pro incluye la agenda de citas y los usuarios para barberos
+    public function getEsProAttribute(): bool
+    {
+        return $this->nivel === 'pro';
+    }
+
+    public function getNombreNivelAttribute(): string
+    {
+        return config('suscripcion.niveles.' . ($this->es_pro ? 'pro' : 'base') . '.nombre');
+    }
+
     public function getNombrePlanAttribute(): string
     {
-        return $this->por_uso
+        $nombre = $this->por_uso
             ? config('suscripcion.porcentaje.nombre')
             : (config("suscripcion.planes.{$this->plan}.nombre") ?? ucfirst($this->plan));
+
+        return $this->es_pro ? "{$nombre} Pro" : $nombre;
     }
 
     // Lo que cuesta un pago del plan actual (en el plan por uso, la recarga mínima)
@@ -88,7 +116,23 @@ class Barberia extends Model
     {
         return (float) ($this->por_uso
             ? $this->recarga_minima
-            : config("suscripcion.planes.{$this->plan}.precio", 0));
+            : self::precioDe($this->plan, $this->nivel ?? 'base'));
+    }
+
+    // Precio de un plan por tiempo según el nivel (Base o Pro)
+    public static function precioDe(string $plan, string $nivel = 'base'): float
+    {
+        $base = (float) config("suscripcion.planes.{$plan}.precio", 0);
+
+        return $nivel === 'pro'
+            ? (float) config("suscripcion.planes.{$plan}.precio_pro", $base)
+            : $base;
+    }
+
+    // Porcentaje que se cobra por venta en el plan por uso
+    public function getPorcentajeUsoAttribute(): float
+    {
+        return (float) config($this->es_pro ? 'suscripcion.porcentaje.valor_pro' : 'suscripcion.porcentaje.valor');
     }
 
     // Plan por uso: la primera recarga tiene un mínimo más alto que las siguientes
@@ -289,7 +333,7 @@ class Barberia extends Model
             return 0;
         }
 
-        $cargo = round($totalVenta * (float) config('suscripcion.porcentaje.valor') / 100, 2);
+        $cargo = round($totalVenta * $barberia->porcentaje_uso / 100, 2);
 
         if ($cargo > (float) $barberia->saldo) {
             $saldo = '$' . number_format((float) $barberia->saldo, 0, ',', '.');

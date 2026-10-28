@@ -2,6 +2,8 @@
 
 use App\Http\Middleware\VerificarAdmin;
 use App\Http\Middleware\VerificarBarberia;
+use App\Http\Middleware\VerificarDueno;
+use App\Http\Middleware\VerificarPro;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -16,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'barberia' => VerificarBarberia::class,
             'admin'    => VerificarAdmin::class,
+            'dueno'    => VerificarDueno::class,
+            'pro'      => VerificarPro::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

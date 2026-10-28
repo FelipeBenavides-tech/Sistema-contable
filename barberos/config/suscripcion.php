@@ -7,10 +7,23 @@
 return [
 
     // Planes por tiempo: precio total y meses que cubre cada pago
+    // precio = plan Base; precio_pro = plan Pro (incluye la agenda de citas)
     'planes' => [
-        'mensual'   => ['nombre' => 'Mensual',   'meses' => 1,  'precio' => 130000],
-        'semestral' => ['nombre' => 'Semestral', 'meses' => 6,  'precio' => 700000],
-        'anual'     => ['nombre' => 'Anual',     'meses' => 12, 'precio' => 1200000],
+        'mensual'   => ['nombre' => 'Mensual',   'meses' => 1,  'precio' => 130000,  'precio_pro' => 180000],
+        'semestral' => ['nombre' => 'Semestral', 'meses' => 6,  'precio' => 700000,  'precio_pro' => 970000],
+        'anual'     => ['nombre' => 'Anual',     'meses' => 12, 'precio' => 1200000, 'precio_pro' => 1660000],
+    ],
+
+    // Niveles que se combinan con cualquier plan
+    'niveles' => [
+        'base' => [
+            'nombre'      => 'Base',
+            'descripcion' => 'Caja, ventas, membresías, cartera de clientes, inventario, gastos y reportes.',
+        ],
+        'pro' => [
+            'nombre'      => 'Pro',
+            'descripcion' => 'Todo lo del plan Base más la agenda de citas, horarios y usuarios para que cada barbero vea su agenda.',
+        ],
     ],
 
     // Plan por uso: se cobra este porcentaje de cada servicio o artículo vendido
@@ -18,6 +31,8 @@ return [
     'porcentaje' => [
         'nombre'           => 'Por uso',
         'valor'            => 2.5,
+        // Porcentaje del plan por uso en el nivel Pro
+        'valor_pro'        => 3.5,
         'recarga_minima'   => 20000,
         // La primera recarga al entrar al plan debe ser de al menos este valor
         'primera_recarga_minima' => 200000,

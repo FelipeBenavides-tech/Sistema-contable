@@ -38,6 +38,7 @@ class DatabaseSeeder extends Seeder
             'direccion'         => 'Calle 10 # 5-20, Cali',
             'activo'            => true,
             'plan'              => 'mensual',
+            'nivel'             => 'pro',
             'fecha_vencimiento' => now()->addMonth(),
             'contrato_hasta'    => now()->addMonths((int) config('suscripcion.contrato_minimo_meses')),
         ]);
