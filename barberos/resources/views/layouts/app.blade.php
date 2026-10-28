@@ -1,7 +1,10 @@
 @php
     $links = [
         ['route' => 'pos',        'label' => 'Caja',       'largo' => 'Caja del día',     'icon' => 'M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z'],
+        ['route' => 'agenda',     'label' => 'Agenda',     'largo' => 'Agenda de citas',  'pro' => true, 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'],
         ['route' => 'ventas',     'label' => 'Ventas',     'largo' => 'Historial ventas', 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'],
+        ['route' => 'clientes',   'label' => 'Clientes',   'largo' => 'Clientes',         'icon' => 'M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z'],
+        ['route' => 'cartera',    'label' => 'Cartera',    'largo' => 'Cartera (fiados)', 'icon' => 'M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3'],
         ['route' => 'membresias', 'label' => 'Membresías', 'largo' => 'Membresías',       'icon' => 'M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z'],
         ['route' => 'inventario', 'label' => 'Inventario', 'largo' => 'Inventario',       'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
         ['route' => 'gastos',     'label' => 'Gastos',     'largo' => 'Gastos',           'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
@@ -11,15 +14,25 @@
         ['route' => 'mi-barberia', 'label' => 'Mi barbería', 'largo' => 'Mi barbería',     'icon' => 'M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z'],
         ['route' => 'mi-plan',    'label' => 'Mi plan',    'largo' => 'Mi plan Kaixa',    'icon' => 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'],
     ];
-    // En el teléfono, la barra de abajo muestra las 4 pantallas más usadas + "Más"
-    $barraInferior = ['pos', 'ventas', 'inventario', 'gastos'];
     $barberia = auth()->user()->barberia;
+    $esBarbero = auth()->user()->esBarbero();
+    $esPro = (bool) $barberia?->es_pro;
+
+    $iconoLogo = collect($links)->firstWhere('route', 'servicios')['icon'];
+
+    // El barbero solo ve su agenda
+    if ($esBarbero) {
+        $links = [['route' => 'mi-agenda', 'label' => 'Mi agenda', 'largo' => 'Mi agenda', 'icon' => collect($links)->firstWhere('route', 'agenda')['icon']]];
+    }
+
+    // En el teléfono, la barra de abajo muestra las 4 pantallas más usadas + "Más"
+    $barraInferior = $esPro ? ['pos', 'agenda', 'ventas', 'clientes'] : ['pos', 'ventas', 'clientes', 'inventario'];
 
     // Estado del pago de Kaixa: siempre visible arriba y en el menú
     $estadoPago = $barberia?->estado_pago;
     $dineroPlan = fn($valor) => '$' . number_format((float) $valor, 0, ',', '.');
     $chipPlan = match (true) {
-        !$barberia                  => null,
+        !$barberia, $esBarbero      => null,
         $barberia->por_uso          => ['texto' => 'Saldo ' . $dineroPlan($barberia->saldo), 'corto' => $dineroPlan($barberia->saldo)],
         !$barberia->fecha_vencimiento => null,
         $estadoPago === 'en_gracia' => ['texto' => 'Vencido · se bloquea el ' . $barberia->fecha_limite->format('d/m'), 'corto' => 'Vencido ' . $barberia->fecha_vencimiento->format('d/m')],
@@ -32,7 +45,7 @@
     };
 
     // Aviso de no pago: sale una vez cada vez que se inicia sesión y se puede cerrar
-    $avisoPago = $barberia && ($estadoPago === 'en_gracia' || ($estadoPago === 'por_vencer' && $barberia->por_uso))
+    $avisoPago = $barberia && !$esBarbero && ($estadoPago === 'en_gracia' || ($estadoPago === 'por_vencer' && $barberia->por_uso))
         && !session()->has('aviso_pago_visto');
     if ($avisoPago) {
         session()->put('aviso_pago_visto', true);
@@ -58,7 +71,7 @@
         <div class="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
             <div class="flex min-w-0 items-center gap-3">
                 <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-900 text-accent-500 ring-1 ring-white/10">
-                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="{{ collect($links)->firstWhere('route', 'servicios')['icon'] }}"/></svg>
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconoLogo }}"/></svg>
                 </div>
                 <div class="min-w-0">
                     <p class="text-sm font-semibold tracking-tight">Kaixa</p>
@@ -78,12 +91,15 @@
                    class="relative flex min-h-[42px] items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors {{ $activo ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-white' }}">
                     @if($activo)<span class="absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent-500"></span>@endif
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $link['icon'] }}"/></svg>
-                    {{ $link['largo'] }}
+                    <span class="flex-1">{{ $link['largo'] }}</span>
+                    @if(!empty($link['pro']) && !$esPro)
+                        <span class="rounded bg-accent-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-accent-500">Pro</span>
+                    @endif
                 </a>
             @endforeach
         </nav>
 
-        @if($barberia)
+        @if($barberia && !$esBarbero)
             <a href="{{ route('mi-plan') }}" class="mx-3 mb-3 block rounded-lg bg-white/5 p-3 text-xs text-slate-300 ring-1 ring-inset {{ $estadoPago === 'en_gracia' ? 'ring-rose-400/40' : ($estadoPago === 'por_vencer' ? 'ring-amber-400/40' : 'ring-white/10') }} hover:bg-white/10">
                 <span class="flex items-center justify-between gap-2">
                     <span class="font-semibold text-white">Plan {{ $barberia->nombre_plan }}</span>
@@ -146,6 +162,7 @@
     </div>
 
     {{-- Barra inferior solo en teléfono --}}
+    @unless($esBarbero)
     <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
         @foreach(collect($links)->whereIn('route', $barraInferior) as $link)
             @php $activo = request()->routeIs($link['route']); @endphp
@@ -165,6 +182,7 @@
             Más
         </button>
     </nav>
+    @endunless
 
     @if($avisoPago)
         <div x-data="{ abierto: true }" x-show="abierto" x-cloak class="modal-fondo" @click.self="abierto = false" @keydown.escape.window="abierto = false">

@@ -10,7 +10,7 @@
     @endif
 
     <div class="tabla">
-        <div class="tabla-head md:grid-cols-[1fr_140px_100px_100px_260px]">
+        <div class="tabla-head md:grid-cols-[1fr_140px_100px_100px_340px]">
             <span>Nombre</span>
             <span>Teléfono</span>
             <span class="text-center">Comisión</span>
@@ -19,9 +19,12 @@
         </div>
 
         @forelse($barberos as $barbero)
-            <div wire:key="barbero-{{ $barbero->id }}" class="tabla-row md:grid-cols-[1fr_140px_100px_100px_260px]">
+            <div wire:key="barbero-{{ $barbero->id }}" class="tabla-row md:grid-cols-[1fr_140px_100px_100px_340px]">
                 <div class="flex items-center justify-between gap-2">
-                    <span class="font-semibold">{{ $barbero->nombre }}</span>
+                    <span class="min-w-0">
+                        <span class="block font-semibold">{{ $barbero->nombre }}</span>
+                        @if($esPro && $barbero->user)<span class="block truncate text-xs text-muted">Entra con {{ $barbero->user->email }}</span>@endif
+                    </span>
                     <span class="md:hidden">
                         <span class="badge {{ $barbero->activo ? 'badge-green' : 'badge-red' }}">{{ $barbero->activo ? 'Activo' : 'Inactivo' }}</span>
                     </span>
@@ -33,8 +36,11 @@
                 <span class="hidden text-center md:block">
                     <span class="badge {{ $barbero->activo ? 'badge-green' : 'badge-red' }}">{{ $barbero->activo ? 'Activo' : 'Inactivo' }}</span>
                 </span>
-                <div class="grid grid-cols-3 gap-2 md:flex md:justify-end md:gap-1">
+                <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 md:flex md:justify-end md:gap-1">
                     <button type="button" wire:click="editar({{ $barbero->id }})" class="btn btn-sm btn-soft">Editar</button>
+                    @if($esPro)
+                        <button type="button" wire:click="abrirAcceso({{ $barbero->id }})" class="btn btn-sm btn-light">{{ $barbero->user ? 'Acceso' : 'Dar acceso' }}</button>
+                    @endif
                     <button type="button" wire:click="toggleActivo({{ $barbero->id }})" class="btn btn-sm btn-light">{{ $barbero->activo ? 'Desactivar' : 'Activar' }}</button>
                     <button type="button" wire:click="eliminar({{ $barbero->id }})" wire:confirm="¿Seguro que deseas eliminar a {{ $barbero->nombre }}?" class="btn btn-sm btn-danger">Eliminar</button>
                 </div>
@@ -43,6 +49,48 @@
             <p class="tabla-vacia">Aún no hay barberos. Agrega el primero para poder registrar servicios.</p>
         @endforelse
     </div>
+
+    @if($esPro)
+        <p class="text-xs text-muted">Con "Dar acceso" cada barbero entra con su propio correo y contraseña y solo ve su agenda y sus servicios del día. No ve la caja, los gastos, los reportes ni los datos de los clientes.</p>
+    @else
+        <p class="text-xs text-muted">En el plan Pro cada barbero puede tener su propio usuario para ver su agenda. <a href="{{ route('mi-plan') }}" class="font-medium text-brand-700 hover:underline">Ver planes</a></p>
+    @endif
+
+    @if($barberoAcceso)
+        <div class="modal-fondo" wire:click.self="cerrarAcceso">
+            <form wire:submit="guardarAcceso" class="modal-panel">
+                <h3 class="modal-titulo">Acceso de {{ $barberoAcceso->nombre }}</h3>
+                <p class="text-sm text-muted">Con este usuario solo ve su agenda y sus servicios del día.</p>
+
+                @if($errors->any())
+                    <div class="alert-error">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>
+                @endif
+
+                <div class="grid gap-3">
+                    <div>
+                        <label class="label" for="accesoEmail">Correo</label>
+                        <input id="accesoEmail" wire:model="accesoEmail" type="email" inputmode="email" autocomplete="off" class="input">
+                    </div>
+                    <div>
+                        <label class="label" for="accesoPassword">{{ $barberoAcceso->user ? 'Nueva contraseña (opcional)' : 'Contraseña' }}</label>
+                        <input id="accesoPassword" wire:model="accesoPassword" type="password" autocomplete="new-password" class="input">
+                    </div>
+                </div>
+
+                <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+                    @if($barberoAcceso->user)
+                        <button type="button" wire:click="quitarAcceso({{ $barberoAcceso->id }})" wire:confirm="¿Quitarle el acceso a {{ $barberoAcceso->nombre }}?" class="btn btn-danger">Quitar acceso</button>
+                    @else
+                        <span></span>
+                    @endif
+                    <div class="grid grid-cols-2 gap-2 sm:flex">
+                        <button type="button" wire:click="cerrarAcceso" class="btn btn-light">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    @endif
 
     @if($mostrarForm)
         <div class="modal-fondo" wire:click.self="cancelar">

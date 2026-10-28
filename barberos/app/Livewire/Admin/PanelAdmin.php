@@ -17,6 +17,7 @@ class PanelAdmin extends Component
     public string $telefono = '';
     public string $direccion = '';
     public string $plan = 'mensual';
+    public string $nivel = 'base';
     public string $email = '';
     public string $password = '';
     public bool $mostrarForm = false;
@@ -45,18 +46,23 @@ class PanelAdmin extends Component
         abort_unless(auth()->user()?->isAdmin(), 403);
     }
 
-    private function precioPlan(string $plan): float
+    private function precioPlan(string $plan, string $nivel = 'base'): float
     {
         return (float) ($plan === 'porcentaje'
             ? config('suscripcion.porcentaje.primera_recarga_minima')
-            : config("suscripcion.planes.{$plan}.precio", 0));
+            : Barberia::precioDe($plan, $nivel));
     }
 
     public function updatedPlan(): void
     {
         if (!$this->editandoId) {
-            $this->valorPago = $this->precioPlan($this->plan);
+            $this->valorPago = $this->precioPlan($this->plan, $this->nivel);
         }
+    }
+
+    public function updatedNivel(): void
+    {
+        $this->updatedPlan();
     }
 
     public function nuevo(): void
@@ -68,6 +74,7 @@ class PanelAdmin extends Component
             'telefono',
             'direccion',
             'plan',
+            'nivel',
             'email',
             'password',
             'editandoId'
@@ -88,6 +95,7 @@ class PanelAdmin extends Component
         $this->telefono    = $barberia->telefono ?? '';
         $this->direccion   = $barberia->direccion ?? '';
         $this->plan        = $barberia->plan;
+        $this->nivel       = $barberia->nivel ?? 'base';
         $this->mostrarForm = true;
     }
 
@@ -96,6 +104,7 @@ class PanelAdmin extends Component
         $rules = [
             'nombre' => 'required|min:2',
             'plan'   => 'required|in:' . implode(',', Barberia::PLANES),
+            'nivel'  => 'required|in:' . implode(',', Barberia::NIVELES),
         ];
 
         if (!$this->editandoId) {
@@ -120,6 +129,8 @@ class PanelAdmin extends Component
                 'propietario' => $this->propietario,
                 'telefono'    => $this->telefono,
                 'direccion'   => $this->direccion,
+                // El nuevo nivel se cobra desde el siguiente pago
+                'nivel'       => $this->nivel,
             ]);
 
             // Cambiar de plan no regala tiempo: el nuevo plan se cobra en el siguiente pago
@@ -155,6 +166,7 @@ class PanelAdmin extends Component
                     'direccion'         => $this->direccion,
                     'activo'            => true,
                     'plan'              => $this->plan,
+                    'nivel'             => $this->nivel,
                     'fecha_vencimiento' => $this->plan === 'porcentaje' ? null : now()->startOfDay(),
                 ]);
                 if (in_array($this->plan, Barberia::PLANES_CON_CONTRATO)) {
@@ -188,6 +200,7 @@ class PanelAdmin extends Component
             'telefono',
             'direccion',
             'plan',
+            'nivel',
             'email',
             'password',
             'editandoId'
@@ -292,6 +305,7 @@ class PanelAdmin extends Component
             'telefono',
             'direccion',
             'plan',
+            'nivel',
             'email',
             'password',
             'editandoId'
@@ -302,7 +316,7 @@ class PanelAdmin extends Component
     public function verCredenciales(int $id): void
     {
         $barberia = Barberia::findOrFail($id);
-        $user     = $barberia->users()->first();
+        $user     = $barberia->users()->where('rol', 'dueno')->first();
 
         $this->credencialesBarberiaId = $id;
         $this->credencialesEmail      = $user?->email ?? 'Sin usuario';
@@ -314,7 +328,7 @@ class PanelAdmin extends Component
     public function actualizarCredenciales(): void
     {
         $barberia = Barberia::findOrFail($this->credencialesBarberiaId);
-        $user     = $barberia->users()->first();
+        $user     = $barberia->users()->where('rol', 'dueno')->first();
 
         $this->validate([
             'nuevoEmail'    => 'required|email|unique:users,email,' . ($user?->id ?? 'NULL'),
@@ -364,7 +378,7 @@ class PanelAdmin extends Component
         return view('livewire.admin.panel-admin', [
             'barberias' => $barberias,
             'stats'     => $stats,
-            'opciones'  => PlanesKaixa::opciones(),
+            'opciones'  => PlanesKaixa::opciones($this->nivel),
             'pagoDe'    => $this->pagoBarberiaId ? $barberias->firstWhere('id', $this->pagoBarberiaId) : null,
         ])->layout('layouts.admin', ['title' => 'Panel de Administración']);
     }

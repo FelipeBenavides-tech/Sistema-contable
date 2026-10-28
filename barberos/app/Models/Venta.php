@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -14,6 +15,7 @@ class Venta extends Model
     protected $fillable = [
         'barberia_id',
         'barbero_id',
+        'cliente_id',
         'total',
         'comision_barbero',
         'ganancia_local',
@@ -21,6 +23,8 @@ class Venta extends Model
         'metodo_pago',
         'monto_efectivo',
         'monto_nequi',
+        'monto_prepagado',
+        'saldo_pendiente',
         'fecha',
         'fue_editada',
         'fue_eliminada',
@@ -36,6 +40,8 @@ class Venta extends Model
         'cargo_plataforma' => 'decimal:2',
         'monto_efectivo'   => 'decimal:2',
         'monto_nequi'      => 'decimal:2',
+        'saldo_pendiente'  => 'decimal:2',
+        'monto_prepagado'  => 'decimal:2',
         'total_original'   => 'decimal:2',
         'fue_editada'           => 'boolean',
         'fue_eliminada'         => 'boolean',
@@ -50,6 +56,22 @@ class Venta extends Model
     public function barbero(): BelongsTo
     {
         return $this->belongsTo(Barbero::class);
+    }
+
+    public function cliente(): BelongsTo
+    {
+        return $this->belongsTo(Cliente::class);
+    }
+
+    public function cita(): HasOne
+    {
+        return $this->hasOne(Cita::class);
+    }
+
+    // Venta que el cliente se llevó fiada (queda en su cartera)
+    public function getEsFiadaAttribute(): bool
+    {
+        return $this->metodo_pago === 'fiado';
     }
 
     public function items(): HasMany
@@ -97,6 +119,37 @@ class Venta extends Model
     public static function registrar(array $data, array $items, ?Barbero $barbero, int $barberiaId): self
     {
         return DB::transaction(function () use ($data, $items, $barbero, $barberiaId) {
+            $clienteId = $data['cliente_id'] ?? null;
+            $cliente = $clienteId
+                ? Cliente::where('barberia_id', $barberiaId)->lockForUpdate()->find($clienteId)
+                : null;
+            $fiado = ($data['metodo_pago'] ?? '') === 'fiado';
+
+            // Fiado: solo a clientes con cartera habilitada y sin pasar el límite de servicios
+            if ($fiado) {
+                if (!$cliente) {
+                    throw ValidationException::withMessages(['carrito' => 'Para fiar, selecciona el cliente.']);
+                }
+                if (collect($items)->sum('subtotal') <= 0) {
+                    throw ValidationException::withMessages(['carrito' => 'No hay nada por cobrar para fiar.']);
+                }
+                $serviciosNuevos = collect($items)
+                    ->reject(fn($i) => !empty($i['es_producto']) || !empty($i['es_membresia']) || !empty($i['cubierto_membresia']))
+                    ->sum('cantidad');
+                if ($motivo = $cliente->motivoSinFiado((int) $serviciosNuevos)) {
+                    throw ValidationException::withMessages(['carrito' => $motivo]);
+                }
+            }
+
+            // Saldo a favor del cliente que se usa en esta venta
+            $saldoFavor = round((float) ($data['saldo_favor_usado'] ?? 0), 2);
+            if ($saldoFavor > 0) {
+                if (!$cliente || (float) $cliente->saldo_favor + 0.009 < $saldoFavor) {
+                    throw ValidationException::withMessages(['carrito' => 'El cliente no tiene ese saldo a favor.']);
+                }
+                $cliente->decrement('saldo_favor', $saldoFavor);
+            }
+
             $visitas = collect($items)->where('cubierto_membresia', true)->sum('cantidad');
             $membresiaId = null;
 
@@ -140,7 +193,8 @@ class Venta extends Model
                 $producto->decrement('stock_actual', $item['cantidad']);
             }
 
-            $total    = collect($items)->sum('subtotal');
+            $total      = collect($items)->sum('subtotal');
+            $prepagado  = min((float) $total, round((float) ($data['monto_prepagado'] ?? 0) + $saldoFavor, 2));
             $comision = self::calcularComision($barbero, $items);
             $cargo    = Barberia::cobrarUso($barberiaId, (float) $total);
 
@@ -151,9 +205,12 @@ class Venta extends Model
                 'comision_barbero' => $comision,
                 'ganancia_local'   => $total - $comision,
                 'cargo_plataforma' => $cargo,
+                'cliente_id'       => $cliente?->id,
                 'metodo_pago'      => $data['metodo_pago'],
-                'monto_efectivo'   => $data['monto_efectivo'] ?? 0,
-                'monto_nequi'      => $data['monto_nequi'] ?? 0,
+                'monto_efectivo'   => $fiado ? 0 : ($data['monto_efectivo'] ?? 0),
+                'monto_nequi'      => $fiado ? 0 : ($data['monto_nequi'] ?? 0),
+                'monto_prepagado'  => $prepagado,
+                'saldo_pendiente'  => $fiado ? max(0, $total - $prepagado) : 0,
                 'fecha'            => now()->toDateString(),
             ]);
 
@@ -172,6 +229,10 @@ class Venta extends Model
                 ]);
             }
 
+            if ($fiado) {
+                $cliente->actualizarBloqueoFiado();
+            }
+
             return $venta;
         });
     }
@@ -185,10 +246,15 @@ class Venta extends Model
             ->whereDate('fecha', $fecha)
             ->get();
 
+        // Lo que los clientes pagaron hoy de su cartera también entra a la caja
+        $cobros = PagoCartera::where('barberia_id', $barberiaId)->whereDate('fecha', $fecha)->get();
+
         return [
             'total'           => $ventas->sum('total'),
-            'total_efectivo'  => $ventas->sum('monto_efectivo'),
-            'total_nequi'     => $ventas->sum('monto_nequi'),
+            'total_efectivo'  => $ventas->sum('monto_efectivo') + $cobros->sum('monto_efectivo'),
+            'total_nequi'     => $ventas->sum('monto_nequi') + $cobros->sum('monto_nequi'),
+            'total_fiado'     => $ventas->where('metodo_pago', 'fiado')->sum('total'),
+            'cobros_cartera'  => $cobros->sum('valor'),
             'cantidad_ventas' => $ventas->count(),
             'por_barbero'     => $ventas->groupBy('barbero_id')->map(function ($v) {
                 return [

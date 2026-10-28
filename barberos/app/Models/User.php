@@ -16,7 +16,9 @@ class User extends Authenticatable
         'email',
         'password',
         'barberia_id',
+        'barbero_id',
         'is_admin',
+        'rol',
     ];
 
     protected $hidden = [
@@ -33,6 +35,17 @@ class User extends Authenticatable
     public function barberia(): BelongsTo
     {
         return $this->belongsTo(Barberia::class);
+    }
+
+    public function barbero(): BelongsTo
+    {
+        return $this->belongsTo(Barbero::class);
+    }
+
+    // ¿Es un barbero que solo ve su agenda?
+    public function esBarbero(): bool
+    {
+        return $this->rol === 'barbero';
     }
 
     // ¿Es administrador del SaaS?

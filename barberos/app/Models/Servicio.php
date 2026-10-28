@@ -12,13 +12,15 @@ class Servicio extends Model
         'barberia_id',
         'nombre',
         'precio',
+        'duracion_minutos',
         'categoria',
         'activo',
     ];
 
     protected $casts = [
-        'precio' => 'decimal:2',
-        'activo' => 'boolean',
+        'precio'           => 'decimal:2',
+        'duracion_minutos' => 'integer',
+        'activo'           => 'boolean',
     ];
 
     public function barberia(): BelongsTo

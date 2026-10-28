@@ -21,8 +21,24 @@ class Barberia extends Model
         'activo',
         'fecha_vencimiento',
         'plan',
+        'nivel',
         'saldo',
         'contrato_hasta',
+        'limite_fiado',
+        'slug',
+        'reservas_activas',
+        'anticipo_porcentaje',
+        'horas_cancelacion',
+        'wompi_llave_publica',
+        'wompi_llave_privada',
+        'wompi_secreto_eventos',
+        'wompi_secreto_integridad',
+    ];
+
+    protected $hidden = [
+        'wompi_llave_privada',
+        'wompi_secreto_eventos',
+        'wompi_secreto_integridad',
     ];
 
     protected $casts = [
@@ -30,9 +46,18 @@ class Barberia extends Model
         'fecha_vencimiento' => 'date',
         'contrato_hasta'    => 'date',
         'saldo'             => 'decimal:2',
+        'limite_fiado'      => 'integer',
+        'reservas_activas'  => 'boolean',
+        'anticipo_porcentaje' => 'integer',
+        'horas_cancelacion' => 'integer',
+        'wompi_llave_privada'      => 'encrypted',
+        'wompi_secreto_eventos'    => 'encrypted',
+        'wompi_secreto_integridad' => 'encrypted',
     ];
 
     public const PLANES = ['mensual', 'semestral', 'anual', 'porcentaje'];
+
+    public const NIVELES = ['base', 'pro'];
 
     public function users(): HasMany
     {
@@ -69,6 +94,16 @@ class Barberia extends Model
         return $this->hasMany(PagoSuscripcion::class);
     }
 
+    public function clientes(): HasMany
+    {
+        return $this->hasMany(Cliente::class);
+    }
+
+    public function citas(): HasMany
+    {
+        return $this->hasMany(Cita::class);
+    }
+
     // ── Plan ──────────────────────────────────────────────────────────────────
 
     public function getPorUsoAttribute(): bool
@@ -76,11 +111,24 @@ class Barberia extends Model
         return $this->plan === 'porcentaje';
     }
 
+    // El nivel Pro incluye la agenda de citas y los usuarios para barberos
+    public function getEsProAttribute(): bool
+    {
+        return $this->nivel === 'pro';
+    }
+
+    public function getNombreNivelAttribute(): string
+    {
+        return config('suscripcion.niveles.' . ($this->es_pro ? 'pro' : 'base') . '.nombre');
+    }
+
     public function getNombrePlanAttribute(): string
     {
-        return $this->por_uso
+        $nombre = $this->por_uso
             ? config('suscripcion.porcentaje.nombre')
             : (config("suscripcion.planes.{$this->plan}.nombre") ?? ucfirst($this->plan));
+
+        return $this->es_pro ? "{$nombre} Pro" : $nombre;
     }
 
     // Lo que cuesta un pago del plan actual (en el plan por uso, la recarga mínima)
@@ -88,7 +136,59 @@ class Barberia extends Model
     {
         return (float) ($this->por_uso
             ? $this->recarga_minima
-            : config("suscripcion.planes.{$this->plan}.precio", 0));
+            : self::precioDe($this->plan, $this->nivel ?? 'base'));
+    }
+
+    // Precio de un plan por tiempo según el nivel (Base o Pro)
+    public static function precioDe(string $plan, string $nivel = 'base'): float
+    {
+        $base = (float) config("suscripcion.planes.{$plan}.precio", 0);
+
+        return $nivel === 'pro'
+            ? (float) config("suscripcion.planes.{$plan}.precio_pro", $base)
+            : $base;
+    }
+
+    // ── Reservas en línea (plan Pro) ─────────────────────────────────────────
+
+    // ¿Los clientes pueden reservar desde la página pública?
+    public function getRecibeReservasAttribute(): bool
+    {
+        return $this->es_pro && $this->reservas_activas && $this->slug
+            && $this->activo && $this->estado_pago !== 'bloqueada';
+    }
+
+    public function getWompiConfiguradoAttribute(): bool
+    {
+        return (bool) ($this->wompi_llave_publica && $this->wompi_secreto_integridad && $this->wompi_secreto_eventos);
+    }
+
+    // Anticipo que se pide por una cita de este valor (redondeado a la centena)
+    public function anticipoPara(float $total): float
+    {
+        $porcentaje = max(0, min(100, (int) $this->anticipo_porcentaje));
+
+        return min($total, ceil($total * $porcentaje / 100 / 100) * 100);
+    }
+
+    // Sugerencia de dirección para la página pública a partir del nombre
+    public static function slugDisponible(string $nombre, ?int $ignorarId = null): string
+    {
+        $base = \Illuminate\Support\Str::slug($nombre) ?: 'barberia';
+        $slug = $base;
+        $n = 2;
+        while (self::where('slug', $slug)->when($ignorarId, fn($q) => $q->where('id', '!=', $ignorarId))->exists()) {
+            $slug = "{$base}-{$n}";
+            $n++;
+        }
+
+        return $slug;
+    }
+
+    // Porcentaje que se cobra por venta en el plan por uso
+    public function getPorcentajeUsoAttribute(): float
+    {
+        return (float) config($this->es_pro ? 'suscripcion.porcentaje.valor_pro' : 'suscripcion.porcentaje.valor');
     }
 
     // Plan por uso: la primera recarga tiene un mínimo más alto que las siguientes
@@ -289,7 +389,7 @@ class Barberia extends Model
             return 0;
         }
 
-        $cargo = round($totalVenta * (float) config('suscripcion.porcentaje.valor') / 100, 2);
+        $cargo = round($totalVenta * $barberia->porcentaje_uso / 100, 2);
 
         if ($cargo > (float) $barberia->saldo) {
             $saldo = '$' . number_format((float) $barberia->saldo, 0, ',', '.');

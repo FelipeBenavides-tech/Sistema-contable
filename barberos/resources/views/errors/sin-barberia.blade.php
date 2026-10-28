@@ -10,7 +10,7 @@
         'sin_saldo' => [
             'etiqueta' => 'Sin saldo',
             'titulo'   => 'Se acabó tu saldo de Kaixa',
-            'detalle'  => 'En el plan por uso, cada venta descuenta el ' . str_replace('.', ',', config('suscripcion.porcentaje.valor')) . '% de su valor. Recarga para seguir vendiendo; tus datos están guardados.',
+            'detalle'  => 'En el plan por uso, cada venta descuenta el ' . str_replace('.', ',', (isset($barberia) ? $barberia->porcentaje_uso : config('suscripcion.porcentaje.valor'))) . '% de su valor. Recarga para seguir vendiendo; tus datos están guardados.',
             'ayuda'    => 'Para recargar, contacta a soporte de Kaixa.',
             'badge'    => 'badge-red',
         ],

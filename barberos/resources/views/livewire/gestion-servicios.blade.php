@@ -21,7 +21,10 @@
         @forelse($servicios as $servicio)
             <div wire:key="servicio-{{ $servicio->id }}" class="tabla-row md:grid-cols-[1fr_110px_120px_100px_260px]">
                 <div class="flex items-center justify-between gap-2">
-                    <span class="font-semibold">{{ $servicio->nombre }}</span>
+                    <span class="min-w-0">
+                        <span class="block font-semibold">{{ $servicio->nombre }}</span>
+                        @if($servicio->categoria === 'servicio')<span class="block text-xs text-muted">{{ $servicio->duracion_minutos }} min</span>@endif
+                    </span>
                     <span class="text-base font-semibold text-ink md:hidden">${{ number_format($servicio->precio, 0, ',', '.') }}</span>
                 </div>
                 <div class="flex items-center gap-2 md:contents">
@@ -60,11 +63,18 @@
                     </div>
                     <div>
                         <label class="label" for="categoria">Tipo</label>
-                        <select id="categoria" wire:model="categoria" class="input">
+                        <select id="categoria" wire:model.live="categoria" class="input">
                             <option value="servicio">Servicio (genera comisión)</option>
                             <option value="producto">Producto (sin comisión)</option>
                         </select>
                     </div>
+                    @if($categoria === 'servicio')
+                        <div>
+                            <label class="label" for="duracion">Duración (minutos)</label>
+                            <input id="duracion" wire:model="duracion_minutos" type="number" inputmode="numeric" min="5" max="600" step="5" class="input">
+                            <p class="mt-1 text-xs text-muted">Se usa para separar el tiempo en la agenda.</p>
+                        </div>
+                    @endif
                 </div>
 
                 <div class="grid grid-cols-2 gap-2 sm:flex sm:justify-end">
