@@ -9,6 +9,7 @@ use App\Models\Membresia;
 use App\Models\Venta;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -85,10 +86,20 @@ class HistorialVentas extends Component
             'motivo.regex'    => 'El motivo solo puede contener letras y espacios, sin números ni símbolos.',
         ]);
 
+        // Máximo 5 intentos por minuto, igual que en el inicio de sesión
+        $llave = 'confirmar-venta:' . auth()->id();
+        if (RateLimiter::tooManyAttempts($llave, 5)) {
+            $this->errorPassword = 'Demasiados intentos. Espera ' . RateLimiter::availableIn($llave) . ' segundos.';
+            return;
+        }
+
         if (!Hash::check($this->passwordConfirm, auth()->user()->password)) {
+            RateLimiter::hit($llave);
             $this->errorPassword = 'Contraseña incorrecta.';
             return;
         }
+
+        RateLimiter::clear($llave);
 
         $this->mostrarModal  = false;
         $this->errorPassword = '';
@@ -310,6 +321,12 @@ class HistorialVentas extends Component
 
                 $total    = collect($itemsFinales)->sum('subtotal');
                 $comision = Venta::calcularComision($barbero, $itemsFinales);
+
+                if ($this->editMetodoPago === 'combinado' && ($this->editEfectivo < 0 || $this->editNequi < 0)) {
+                    throw ValidationException::withMessages([
+                        'editEfectivo' => 'Los montos del pago combinado no pueden ser negativos.',
+                    ]);
+                }
 
                 if ($this->editMetodoPago === 'combinado'
                     && abs(($this->editEfectivo + $this->editNequi) - $total) > 1) {
