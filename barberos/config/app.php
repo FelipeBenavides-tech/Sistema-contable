@@ -55,6 +55,14 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     /*
+    | Proxies de confianza (balanceador o CDN del hosting). Si el hosting pone
+    | un proxy delante de la app, escribe aquí su IP, o "*" si el proveedor lo
+    | indica. Vacío = no se confía en ninguno.
+    */
+
+    'trusted_proxies' => env('TRUSTED_PROXIES'),
+
+    /*
     |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------

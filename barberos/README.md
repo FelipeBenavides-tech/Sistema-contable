@@ -85,23 +85,62 @@ Para que los clientes lo usen desde cualquier lugar hay que publicarlo en un ser
 
 ## Publicarlo en un hosting (producción)
 
-- Usa una versión de PHP con los últimos parches de seguridad (por ejemplo, desde octubre de 2026,
-  mínimo 8.2.35, 8.3.36, 8.4.27 o 8.5.12) y mantenla al día.
-- El dominio debe apuntar a la carpeta `public`, nunca a la raíz del proyecto (ahí está el `.env`).
-- En el `.env` del servidor:
+**Qué debe tener el hosting:** PHP con los últimos parches de seguridad (desde octubre de 2026, mínimo
+8.2.35, 8.3.36, 8.4.27 o 8.5.12) con las extensiones `sqlite3` (o `pdo_mysql`), `mbstring`, `gd` y `zip`;
+acceso por terminal (SSH) para correr `composer` y `php artisan`; HTTPS (certificado SSL, casi todos
+lo dan gratis) y la opción de programar tareas (cron).
 
-  ```
-  APP_ENV=production
-  APP_DEBUG=false
-  APP_URL=https://tu-dominio.com
-  LOG_LEVEL=warning
-  SESSION_SECURE_COOKIE=true
-  ```
+**Pasos:**
 
-  Con `APP_DEBUG=true` cualquier error muestra detalles internos del servidor a quien lo provoque.
-- Ejecuta `composer install --no-dev --optimize-autoloader`, `npm run build`, `php artisan migrate --force`
-  y `php artisan optimize`.
-- Revisa de vez en cuando `composer audit` y `npm audit` para saber si alguna librería tiene fallas conocidas.
+1. Sube el proyecto (la carpeta `barberos`) y haz que el dominio apunte a la carpeta `public`, nunca a la
+   raíz del proyecto (ahí está el `.env`).
+2. Crea el `.env` a partir de `.env.example` y cambia:
+
+   ```
+   APP_ENV=production
+   APP_DEBUG=false
+   APP_URL=https://tu-dominio.com
+   LOG_LEVEL=warning
+   SESSION_SECURE_COOKIE=true
+   SEED_ADMIN_EMAIL=tu-correo@dominio.com
+   SEED_ADMIN_PASSWORD=una-contraseña-larga
+   ```
+
+   Con `APP_DEBUG=true` cualquier error muestra detalles internos del servidor a quien lo provoque.
+   Si el hosting pone un proxy o CDN delante (por ejemplo Cloudflare), agrega `TRUSTED_PROXIES` con la IP
+   que indique el proveedor (o `*` si ellos lo recomiendan).
+3. Para que funcione "¿Olvidaste tu contraseña?", configura un correo real (`MAIL_MAILER=smtp`,
+   `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` y `MAIL_FROM_ADDRESS`; el hosting te da
+   esos datos). Sin eso, el administrador puede cambiar la contraseña de cualquier barbería desde `/admin`.
+4. En la terminal del servidor:
+
+   ```bash
+   composer install --no-dev --optimize-autoloader
+   php artisan key:generate
+   php artisan migrate --force
+   php artisan db:seed --force     # crea solo el administrador (en producción no crea la barbería demo)
+   php artisan optimize
+   ```
+
+   Compila los estilos con `npm run build` (en el servidor, o en tu computador y sube la carpeta `public/build`).
+5. Programa la tarea de Laravel para que corra cada minuto (en cPanel: **Cron Jobs**):
+
+   ```
+   * * * * * cd /ruta/a/barberos && php artisan schedule:run >> /dev/null 2>&1
+   ```
+
+   Con eso se hace solo un **respaldo diario** de la base de datos a las 3 a. m. en `storage/app/respaldos`
+   (guarda los últimos 30 días). También puedes hacer uno a mano con `php artisan kaixa:respaldo`.
+   Descarga una copia a tu computador de vez en cuando: si el servidor falla, los respaldos que solo
+   están ahí se pierden con él.
+6. Las carpetas `storage` y `bootstrap/cache` deben tener permiso de escritura para el servidor web.
+
+**Cada vez que actualices el sistema:** `php artisan down`, trae los cambios, `composer install --no-dev
+--optimize-autoloader`, `php artisan migrate --force`, `php artisan optimize`, sube el `public/build`
+nuevo y `php artisan up`. Mientras tanto, los usuarios ven una página de mantenimiento.
+
+**Mantenimiento:** mantén PHP al día y revisa de vez en cuando `composer audit` y `npm audit` para saber si
+alguna librería tiene fallas conocidas.
 
 ## Pruebas automáticas
 
