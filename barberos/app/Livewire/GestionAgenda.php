@@ -55,7 +55,8 @@ class GestionAgenda extends Component
 
     public function cambiarEstado(int $id, string $estado): void
     {
-        if (!in_array($estado, ['cancelada', 'no_asistio', 'confirmada'], true)) {
+        // cancelada = la cancela la barbería (el barbero no puede atender); cancelada_cliente = avisó el cliente
+        if (!in_array($estado, ['cancelada', 'cancelada_cliente', 'no_asistio', 'confirmada'], true)) {
             return;
         }
 
@@ -69,10 +70,21 @@ class GestionAgenda extends Component
         $dinero = fn($v) => '$' . number_format((float) $v, 0, ',', '.');
 
         if ($estado === 'cancelada') {
+            $saldoAntes = (float) $cita->cliente->saldo_favor;
             $resultado = $cita->cancelar(porCliente: false);
-            $this->exito = $resultado === 'saldo_favor'
-                ? "Cita cancelada. El anticipo ({$dinero($cita->anticipo)}) le quedó a {$cita->cliente->nombre} como saldo a favor."
+            $abono = (float) $cita->cliente->fresh()->saldo_favor - $saldoAntes;
+            $this->exito = $resultado === 'compensada'
+                ? "Cita cancelada por la barbería. {$cita->cliente->nombre} quedó con {$dinero($abono)} de saldo a favor (anticipo más el {$cita->barberia->descuento_cancelacion}% de descuento) para su próxima cita."
                 : 'Cita cancelada. La hora quedó libre.';
+            return;
+        }
+
+        if ($estado === 'cancelada_cliente') {
+            $this->exito = match ($cita->cancelar(porCliente: true)) {
+                'saldo_favor' => "Cita cancelada a tiempo. El anticipo ({$dinero($cita->anticipo)}) le quedó a {$cita->cliente->nombre} como saldo a favor.",
+                'retenido'    => "Cita cancelada fuera de tiempo. La barbería se queda con el anticipo ({$dinero($cita->anticipo)}).",
+                default       => 'Cita cancelada. La hora quedó libre.',
+            };
             return;
         }
 
@@ -162,7 +174,7 @@ class GestionAgenda extends Component
             ->orderBy('nombre')
             ->get();
 
-        $citas = Cita::with(['cliente', 'barbero', 'servicios'])
+        $citas = Cita::with(['cliente', 'barbero', 'servicios', 'barberia'])
             ->where('barberia_id', $barberiaId)
             ->whereDate('fecha', $dia->toDateString())
             ->when($this->barberoFiltro, fn($q) => $q->where('barbero_id', $this->barberoFiltro))

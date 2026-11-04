@@ -95,10 +95,15 @@
                                     <span class="badge {{ $claseEstado }} shrink-0">{{ $textoEstado }}</span>
                                 </div>
                                 @if($cita->estado === 'confirmada')
-                                    <div class="mt-2 grid grid-cols-3 gap-1.5">
+                                    @php
+                                        $avisoCliente = $cita->anticipo_estado !== 'pagado' ? ''
+                                            : ($cita->cancela_a_tiempo ? ' Avisó a tiempo: el anticipo le queda como saldo a favor.' : ' Avisó tarde: la barbería se queda con el anticipo.');
+                                    @endphp
+                                    <div class="mt-2 grid grid-cols-2 gap-1.5">
                                         <a href="{{ route('pos', ['cita' => $cita->id]) }}" class="btn btn-sm btn-primary">Cobrar</a>
                                         <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'no_asistio')" wire:confirm="¿Marcar que {{ $cita->cliente->nombre }} no asistió?{{ $cita->anticipo_estado === 'pagado' ? ' La barbería se queda con el anticipo.' : '' }}" class="btn btn-sm btn-light">No vino</button>
-                                        <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'cancelada')" wire:confirm="¿Cancelar la cita de {{ $cita->cliente->nombre }}?{{ $cita->anticipo_estado === 'pagado' ? ' El anticipo le queda como saldo a favor.' : '' }}" class="btn btn-sm btn-danger">Cancelar</button>
+                                        <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'cancelada_cliente')" wire:confirm="¿{{ $cita->cliente->nombre }} canceló su cita?{{ $avisoCliente }}" class="btn btn-sm btn-light">Canceló cliente</button>
+                                        <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'cancelada')" wire:confirm="¿La barbería cancela la cita de {{ $cita->cliente->nombre }}? Recibe el {{ $cita->barberia->descuento_cancelacion }}% del servicio como descuento{{ $cita->anticipo_estado === 'pagado' ? ' y conserva su anticipo' : '' }}, como saldo a favor." class="btn btn-sm btn-danger">Canceló barbero</button>
                                     </div>
                                 @elseif(in_array($cita->estado, ['cancelada', 'no_asistio']) && $cita->anticipo_estado === null && $dia->gte(today()))
                                     <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'confirmada')" class="mt-2 text-xs font-medium text-brand-600 hover:text-brand-800">Volver a confirmar</button>

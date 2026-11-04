@@ -29,6 +29,7 @@ class Barberia extends Model
         'reservas_activas',
         'anticipo_porcentaje',
         'horas_cancelacion',
+        'descuento_cancelacion',
         'wompi_llave_publica',
         'wompi_llave_privada',
         'wompi_secreto_eventos',
@@ -50,6 +51,7 @@ class Barberia extends Model
         'reservas_activas'  => 'boolean',
         'anticipo_porcentaje' => 'integer',
         'horas_cancelacion' => 'integer',
+        'descuento_cancelacion' => 'integer',
         'wompi_llave_privada'      => 'encrypted',
         'wompi_secreto_eventos'    => 'encrypted',
         'wompi_secreto_integridad' => 'encrypted',
@@ -167,6 +169,14 @@ class Barberia extends Model
     public function anticipoPara(float $total): float
     {
         $porcentaje = max(0, min(100, (int) $this->anticipo_porcentaje));
+
+        return min($total, ceil($total * $porcentaje / 100 / 100) * 100);
+    }
+
+    // Descuento que recibe el cliente cuando la barbería le cancela una cita de este valor
+    public function compensacionPara(float $total): float
+    {
+        $porcentaje = max(0, min(100, (int) $this->descuento_cancelacion));
 
         return min($total, ceil($total * $porcentaje / 100 / 100) * 100);
     }

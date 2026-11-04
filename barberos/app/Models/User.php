@@ -48,6 +48,12 @@ class User extends Authenticatable
         return $this->rol === 'barbero';
     }
 
+    // El dueño desactivó al barbero (o lo borró): ya no puede entrar
+    public function accesoDesactivado(): bool
+    {
+        return $this->esBarbero() && !$this->barbero?->activo;
+    }
+
     // ¿Es administrador del SaaS?
     public function isAdmin(): bool
     {

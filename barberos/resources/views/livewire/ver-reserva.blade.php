@@ -68,7 +68,7 @@
 
         @if((float) $cita->anticipo > 0 && $puedeCancelar)
             <p class="text-xs text-muted">
-                Si cancelas con al menos {{ $barberia->horas_cancelacion }} horas de anticipación, el anticipo te queda como saldo a favor. Si cancelas después o no llegas, la barbería se queda con el anticipo.
+                Puedes cancelar hasta {{ $barberia->horas_cancelacion }} horas antes y el anticipo te queda como saldo a favor. Si cancelas después o no llegas, se cobra el anticipo y no tiene devolución. Si la barbería cancela, conservas el anticipo y recibes un descuento del {{ $barberia->descuento_cancelacion }}% del servicio.
             </p>
         @endif
     </section>

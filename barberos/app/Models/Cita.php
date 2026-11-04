@@ -103,7 +103,7 @@ class Cita extends Model
     // ¿El cliente todavía puede cancelar sin perder el anticipo?
     public function getCancelaATiempoAttribute(): bool
     {
-        $horas = (int) ($this->barberia?->horas_cancelacion ?? 4);
+        $horas = (int) ($this->barberia?->horas_cancelacion ?? 2);
 
         return now()->diffInMinutes($this->inicio, false) >= $horas * 60;
     }
@@ -158,8 +158,10 @@ class Cita extends Model
 
     /**
      * Cancela la cita. Si tenía anticipo pagado:
-     *  - la cancela la barbería, o el cliente con tiempo → queda como saldo a favor del cliente
+     *  - el cliente cancela con tiempo → el anticipo queda como saldo a favor
      *  - el cliente cancela tarde → la barbería se queda con el anticipo
+     *  - la cancela la barbería → el cliente conserva el anticipo y además recibe
+     *    el descuento por cancelación (10% del servicio) como saldo a favor
      */
     public function cancelar(bool $porCliente = false): string
     {
@@ -175,8 +177,19 @@ class Cita extends Model
             }
 
             $resultado = 'cancelada';
-            if ($cita->anticipo_estado === 'pagado') {
-                if (!$porCliente || $cita->cancela_a_tiempo) {
+
+            if (!$porCliente) {
+                $abono = $cita->barberia->compensacionPara((float) $cita->total);
+                if ($cita->anticipo_estado === 'pagado') {
+                    $abono += (float) $cita->anticipo;
+                    $cita->anticipo_estado = 'saldo_favor';
+                }
+                if ($abono > 0) {
+                    Cliente::whereKey($cita->cliente_id)->increment('saldo_favor', $abono);
+                    $resultado = 'compensada';
+                }
+            } elseif ($cita->anticipo_estado === 'pagado') {
+                if ($cita->cancela_a_tiempo) {
                     Cliente::whereKey($cita->cliente_id)->increment('saldo_favor', (float) $cita->anticipo);
                     $cita->anticipo_estado = 'saldo_favor';
                     $resultado = 'saldo_favor';

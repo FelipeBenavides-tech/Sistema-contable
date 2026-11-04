@@ -93,4 +93,29 @@ class PlanProTest extends TestCase
             $this->actingAs($usuario)->get($ruta)->assertOk();
         }
     }
+
+    public function test_un_barbero_desactivado_no_puede_entrar(): void
+    {
+        $barberia = $this->crearBarberia('Uno', 'pro');
+        $barbero = $this->crearBarbero($barberia);
+        $usuario = $this->crearUsuarioBarbero($barberia, $barbero);
+
+        $this->actingAs($usuario)->get('/mi-agenda')->assertOk();
+
+        // El dueño lo desactiva: se le cierra la sesión
+        \Livewire\Livewire::actingAs($this->crearUsuario($barberia))
+            ->test(\App\Livewire\GestionBarberos::class)
+            ->call('toggleActivo', $barbero->id);
+        $this->actingAs($usuario->fresh())->get('/mi-agenda')->assertRedirect(route('login'));
+        $this->assertGuest();
+
+        // Y tampoco puede volver a iniciar sesión
+        $this->post('/login', ['email' => $usuario->email, 'password' => 'password'])->assertSessionHasErrors('email');
+        $this->assertGuest();
+
+        // Al activarlo de nuevo, entra
+        $barbero->fresh()->update(['activo' => true]);
+        $this->post('/login', ['email' => $usuario->email, 'password' => 'password']);
+        $this->assertAuthenticatedAs($usuario);
+    }
 }

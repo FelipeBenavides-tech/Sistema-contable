@@ -20,11 +20,13 @@ teléfono se puede "Agregar a la pantalla de inicio" para abrirla como una app.
 - **Agenda de citas** (solo plan Pro): citas por fecha y hora para cada barbero, con su horario de trabajo, la duración de
   cada servicio y control para que dos citas no se crucen. La cita se cobra desde la caja con un clic.
 - **Reservas en línea con pago anticipado** (solo plan Pro): cada barbería tiene su página pública `/reservar/{dirección}`
-  donde el cliente arma su carrito de servicios, escoge barbero, día y hora, y paga un anticipo (50% por defecto) con Wompi
+  donde el cliente arma su carrito de servicios, escoge barbero, día y hora, y paga un anticipo (30% por defecto) con Wompi
   (Nequi, PSE o tarjeta). La hora queda apartada 15 minutos mientras paga. Al cobrar la cita en la caja, el anticipo se descuenta.
-  Si el cliente cancela con al menos 4 horas de aviso, el anticipo le queda como **saldo a favor**; si cancela después o no llega,
-  la barbería se queda con el anticipo (entra como ingreso, sin comisión). Si la barbería cancela, el cliente conserva todo como saldo a favor.
-- **Usuarios para barberos** (solo plan Pro): cada barbero entra con su correo y solo ve su agenda y sus servicios y comisión del día.
+  El cliente puede cancelar hasta 2 horas antes y el anticipo le queda como **saldo a favor**; si cancela después o no llega,
+  se cobra el anticipo y no tiene devolución (entra como ingreso, sin comisión). Si el barbero cancela, el cliente conserva el anticipo
+  y recibe un descuento del 10% del servicio como saldo a favor. Los tres valores se cambian en Mi barbería.
+- **Usuarios para barberos** (solo plan Pro): cada barbero entra con su correo desde el teléfono y solo ve su agenda y sus servicios y comisión del día.
+  Si el dueño lo desactiva en Barberos, se le cierra la sesión y no puede volver a entrar hasta que lo active.
   No ve la caja, gastos, reportes ni la base de clientes.
 - **Panel de administrador** (`/admin`) para crear barberías, sus usuarios, registrar sus pagos y recargas.
   No hay registro público: las cuentas las crea el administrador.

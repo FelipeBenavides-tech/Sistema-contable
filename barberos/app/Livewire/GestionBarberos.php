@@ -99,6 +99,9 @@ class GestionBarberos extends Component
     {
         $barbero = Barbero::where('barberia_id', $this->barberiaId())->findOrFail($id);
         $barbero->update(['activo' => !$barbero->activo]);
+        $this->aviso = $barbero->user
+            ? ($barbero->activo ? "{$barbero->nombre} puede volver a entrar a su agenda." : "{$barbero->nombre} quedó desactivado y ya no puede entrar a su agenda.")
+            : '';
     }
 
     // ── Acceso del barbero a su agenda (plan Pro) ────────────────────────────

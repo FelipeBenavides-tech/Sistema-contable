@@ -13,9 +13,11 @@ return new class extends Migration
             $table->string('slug', 80)->nullable()->unique()->after('nombre');
             $table->boolean('reservas_activas')->default(false)->after('limite_fiado');
             // Porcentaje del valor de la cita que se paga al reservar (0 = sin anticipo)
-            $table->unsignedTinyInteger('anticipo_porcentaje')->default(50)->after('reservas_activas');
+            $table->unsignedTinyInteger('anticipo_porcentaje')->default(30)->after('reservas_activas');
             // Con al menos estas horas de aviso, el anticipo queda como saldo a favor
-            $table->unsignedSmallInteger('horas_cancelacion')->default(4)->after('anticipo_porcentaje');
+            $table->unsignedSmallInteger('horas_cancelacion')->default(2)->after('anticipo_porcentaje');
+            // Si la barbería cancela, el cliente recibe este % del servicio como descuento (saldo a favor)
+            $table->unsignedTinyInteger('descuento_cancelacion')->default(10)->after('horas_cancelacion');
             // Llaves de la cuenta Wompi de la barbería (las secretas se guardan cifradas)
             $table->string('wompi_llave_publica')->nullable()->after('horas_cancelacion');
             $table->text('wompi_llave_privada')->nullable()->after('wompi_llave_publica');
@@ -84,7 +86,7 @@ return new class extends Migration
         Schema::table('barberias', function (Blueprint $table) {
             $table->dropUnique(['slug']);
             $table->dropColumn([
-                'slug', 'reservas_activas', 'anticipo_porcentaje', 'horas_cancelacion',
+                'slug', 'reservas_activas', 'anticipo_porcentaje', 'horas_cancelacion', 'descuento_cancelacion',
                 'wompi_llave_publica', 'wompi_llave_privada', 'wompi_secreto_eventos', 'wompi_secreto_integridad',
             ]);
         });

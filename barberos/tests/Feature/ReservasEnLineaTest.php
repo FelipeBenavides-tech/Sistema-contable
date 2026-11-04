@@ -295,8 +295,49 @@ class ReservasEnLineaTest extends TestCase
         Livewire::actingAs($this->crearUsuario($barberia))->test(GestionAgenda::class)
             ->call('cambiarEstado', Cita::sole()->id, 'cancelada');
 
-        $this->assertEquals(10000, Cliente::sole()->saldo_favor);
+        // Conserva el anticipo (10.000) y recibe el 10% del servicio (2.000) de descuento
+        $this->assertEquals(12000, Cliente::sole()->saldo_favor);
         $this->assertSame(0, Venta::count());
+    }
+
+    public function test_si_el_barbero_cancela_una_cita_sin_anticipo_el_cliente_recibe_el_descuento(): void
+    {
+        $barberia = $this->crearBarberia('Uno', 'pro');
+        $cliente = $this->crearCliente($barberia);
+        $cita = Cita::agendar($barberia->id, $cliente, $this->crearBarbero($barberia), [$this->crearServicio($barberia, 25000)->id], ['fecha' => '2026-11-04', 'hora_inicio' => '10:00']);
+
+        Livewire::actingAs($this->crearUsuario($barberia))->test(GestionAgenda::class)
+            ->call('cambiarEstado', $cita->id, 'cancelada');
+
+        $this->assertEquals(2500, $cliente->fresh()->saldo_favor);
+    }
+
+    public function test_si_el_cliente_avisa_a_la_barberia_se_aplica_la_politica_del_cliente(): void
+    {
+        $barberia = $this->barberiaConReservas();
+        $barberia->update(['horas_cancelacion' => 2]);
+        $this->crearBarbero($barberia);
+        $this->reservar($barberia, $this->crearServicio($barberia, 20000)->id);
+        $this->postJson('/webhooks/wompi', $this->eventoWompi(PagoEnLinea::sole(), 'APPROVED'));
+        $usuario = $this->crearUsuario($barberia);
+
+        // A la 1 hora de la cita (10:00) ya no hay devolución
+        Carbon::setTestNow(Carbon::parse('2026-11-04 09:00:00'));
+        Livewire::actingAs($usuario)->test(GestionAgenda::class)
+            ->call('cambiarEstado', Cita::sole()->id, 'cancelada_cliente');
+
+        $this->assertSame('retenido', Cita::sole()->anticipo_estado);
+        $this->assertEquals(0, Cliente::sole()->saldo_favor);
+    }
+
+    public function test_los_valores_por_defecto_son_30_por_ciento_y_2_horas(): void
+    {
+        $barberia = $this->crearBarberia('Nueva', 'pro')->fresh();
+
+        $this->assertSame(30, $barberia->anticipo_porcentaje);
+        $this->assertSame(2, $barberia->horas_cancelacion);
+        $this->assertSame(10, $barberia->descuento_cancelacion);
+        $this->assertEquals(6000, $barberia->anticipoPara(20000));
     }
 
     public function test_al_cobrar_la_cita_se_descuenta_el_anticipo(): void

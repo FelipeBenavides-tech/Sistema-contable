@@ -24,8 +24,9 @@ class MiBarberia extends Component
     // Reservas en línea (plan Pro)
     public string $slug = '';
     public bool   $reservas_activas = false;
-    public int    $anticipo_porcentaje = 50;
-    public int    $horas_cancelacion = 4;
+    public int    $anticipo_porcentaje = 30;
+    public int    $horas_cancelacion = 2;
+    public int    $descuento_cancelacion = 10;
     public string $wompi_llave_publica = '';
     // Las secretas no se muestran: si se dejan vacías se conservan las guardadas
     public string $wompi_llave_privada = '';
@@ -52,6 +53,7 @@ class MiBarberia extends Component
         $this->reservas_activas    = (bool) $barberia->reservas_activas;
         $this->anticipo_porcentaje = (int) $barberia->anticipo_porcentaje;
         $this->horas_cancelacion   = (int) $barberia->horas_cancelacion;
+        $this->descuento_cancelacion = (int) $barberia->descuento_cancelacion;
         $this->wompi_llave_publica = $barberia->wompi_llave_publica ?? '';
     }
 
@@ -65,6 +67,7 @@ class MiBarberia extends Component
             'slug'                => ['required', 'min:3', 'max:80', Rule::unique('barberias', 'slug')->ignore($barberia->id)],
             'anticipo_porcentaje' => 'required|integer|min:0|max:100',
             'horas_cancelacion'   => 'required|integer|min:0|max:168',
+            'descuento_cancelacion' => 'required|integer|min:0|max:100',
             'wompi_llave_publica' => ['nullable', 'regex:/^pub_(test|prod)_\w+$/'],
             'wompi_llave_privada' => ['nullable', 'regex:/^prv_(test|prod)_\w+$/'],
             'wompi_secreto_eventos'    => ['nullable', 'regex:/^(test|prod)_events_\w+$/'],
@@ -82,6 +85,7 @@ class MiBarberia extends Component
             'reservas_activas'    => $this->reservas_activas,
             'anticipo_porcentaje' => $this->anticipo_porcentaje,
             'horas_cancelacion'   => $this->horas_cancelacion,
+            'descuento_cancelacion' => $this->descuento_cancelacion,
             'wompi_llave_publica' => trim($this->wompi_llave_publica) ?: null,
         ];
         foreach (['wompi_llave_privada', 'wompi_secreto_eventos', 'wompi_secreto_integridad'] as $campo) {

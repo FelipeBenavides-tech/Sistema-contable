@@ -78,7 +78,7 @@
             @if($mensajeReservas)
                 <div class="alert-success">{{ $mensajeReservas }}</div>
             @endif
-            @if($errors->hasAny(['slug', 'anticipo_porcentaje', 'horas_cancelacion', 'wompi_llave_publica', 'wompi_llave_privada', 'wompi_secreto_eventos', 'wompi_secreto_integridad']))
+            @if($errors->hasAny(['slug', 'anticipo_porcentaje', 'horas_cancelacion', 'descuento_cancelacion', 'wompi_llave_publica', 'wompi_llave_privada', 'wompi_secreto_eventos', 'wompi_secreto_integridad']))
                 <div class="alert-error">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>
             @endif
 
@@ -106,6 +106,11 @@
                 <div>
                     <label class="label" for="horasCancelacion">Horas mínimas para cancelar sin perder el anticipo</label>
                     <input id="horasCancelacion" wire:model="horas_cancelacion" type="number" min="0" max="168" class="input">
+                </div>
+                <div>
+                    <label class="label" for="descuentoCancelacion">Descuento si la barbería cancela (%)</label>
+                    <input id="descuentoCancelacion" wire:model="descuento_cancelacion" type="number" min="0" max="100" class="input">
+                    <p class="mt-1 text-xs text-muted">Porcentaje del servicio que le queda al cliente como saldo a favor.</p>
                 </div>
             </div>
 
