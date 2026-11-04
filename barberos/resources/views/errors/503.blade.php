@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('codigo', '503')
+@section('titulo', 'Estamos en mantenimiento')
+@section('detalle', 'Kaixa se está actualizando. Vuelve en unos minutos.')
+@section('boton', 'Intentar de nuevo')

@@ -264,6 +264,11 @@ class PosVenta extends Component
             ? Barbero::where('barberia_id', $this->barberiaId())->findOrFail($this->barberoId)
             : null;
 
+        if ($this->metodoPago === 'combinado' && ($this->montoEfectivo < 0 || $this->montoNequi < 0)) {
+            $this->addError('montoEfectivo', 'Los montos del pago combinado no pueden ser negativos.');
+            return;
+        }
+
         if ($this->metodoPago === 'combinado'
             && abs(($this->montoEfectivo + $this->montoNequi) - $total) > 1) {
             $this->addError('montoEfectivo', 'En pago combinado, efectivo + Nequi debe ser igual al total.');

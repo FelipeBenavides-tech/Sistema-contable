@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CabecerasSeguridad;
 use App\Http\Middleware\VerificarAdmin;
 use App\Http\Middleware\VerificarBarberia;
 use Illuminate\Foundation\Application;
@@ -13,6 +14,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->append(CabecerasSeguridad::class);
+
         $middleware->alias([
             'barberia' => VerificarBarberia::class,
             'admin'    => VerificarAdmin::class,
