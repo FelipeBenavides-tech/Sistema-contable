@@ -2,28 +2,49 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Livewire\PosVenta;
+use App\Livewire\GestionAgenda;
 use App\Livewire\GestionBarberos;
+use App\Livewire\GestionCartera;
+use App\Livewire\GestionClientes;
 use App\Livewire\GestionServicios;
 use App\Livewire\GestionInventario;
 use App\Livewire\GestionGastos;
 use App\Livewire\GestionMembresias;
 use App\Livewire\HistorialVentas;
+use App\Livewire\MiAgenda;
 use App\Livewire\MiPlan;
 use App\Livewire\Reportes;
 use App\Livewire\MiBarberia;
 use App\Livewire\Admin\PanelAdmin;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\WompiWebhookController;
+use App\Livewire\ReservaEnLinea;
+use App\Livewire\VerReserva;
+
+// ── Reservas en línea (públicas, plan Pro) ────────────────────────────────────
+Route::middleware('throttle:60,1')->group(function () {
+    Route::get('/reservar/{slug}', ReservaEnLinea::class)->name('reservar');
+    Route::get('/reserva/{token}', VerReserva::class)->name('reserva.ver');
+});
+Route::post('/webhooks/wompi', WompiWebhookController::class)->middleware('throttle:120,1')->name('webhooks.wompi');
 
 // ── Panel Admin (solo para is_admin = true) ───────────────────────────────────
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/', PanelAdmin::class)->name('admin.panel');
 });
 
-// ── Panel Barbería (usuarios con barberia_id) ─────────────────────────────────
-Route::middleware(['auth', 'barberia'])->group(function () {
+// ── Barbero: solo su agenda (plan Pro) ────────────────────────────────────────
+Route::middleware(['auth', 'barberia', 'pro'])->group(function () {
+    Route::get('/mi-agenda', MiAgenda::class)->name('mi-agenda');
+});
+
+// ── Panel Barbería (dueño de la barbería) ─────────────────────────────────────
+Route::middleware(['auth', 'barberia', 'dueno'])->group(function () {
     Route::redirect('/', '/pos');
     Route::get('/pos', PosVenta::class)->name('pos');
     Route::get('/ventas', HistorialVentas::class)->name('ventas');
+    Route::get('/clientes', GestionClientes::class)->name('clientes');
+    Route::get('/cartera', GestionCartera::class)->name('cartera');
     Route::get('/membresias', GestionMembresias::class)->name('membresias');
     Route::get('/inventario', GestionInventario::class)->name('inventario');
     Route::get('/gastos', GestionGastos::class)->name('gastos');
@@ -32,6 +53,9 @@ Route::middleware(['auth', 'barberia'])->group(function () {
     Route::get('/servicios', GestionServicios::class)->name('servicios');
     Route::get('/mi-barberia', MiBarberia::class)->name('mi-barberia');
     Route::get('/mi-plan', MiPlan::class)->name('mi-plan');
+
+    // Agenda de citas (plan Pro)
+    Route::get('/agenda', GestionAgenda::class)->middleware('pro')->name('agenda');
 
     // Exportaciones
     Route::get('/reportes/excel/{mes}/{anio}', [ReporteController::class, 'exportarExcel'])

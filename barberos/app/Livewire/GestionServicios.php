@@ -9,6 +9,7 @@ class GestionServicios extends Component
 {
     public string $nombre = '';
     public float $precio = 0;
+    public int $duracion_minutos = 30;
     public string $categoria = 'servicio';
     public ?int $editandoId = null;
     public bool $mostrarForm = false;
@@ -22,7 +23,7 @@ class GestionServicios extends Component
     {
         $this->resetErrorBag();
         $this->aviso = '';
-        $this->reset(['nombre', 'precio', 'categoria', 'editandoId']);
+        $this->reset(['nombre', 'precio', 'categoria', 'duracion_minutos', 'editandoId']);
         $this->categoria = 'servicio';
         $this->mostrarForm = true;
     }
@@ -36,6 +37,7 @@ class GestionServicios extends Component
         $this->nombre      = $servicio->nombre;
         $this->precio      = $servicio->precio;
         $this->categoria   = $servicio->categoria;
+        $this->duracion_minutos = (int) ($servicio->duracion_minutos ?: 30);
         $this->mostrarForm = true;
     }
 
@@ -45,7 +47,8 @@ class GestionServicios extends Component
             'nombre'    => 'required|min:2',
             'precio'    => 'required|numeric|min:0|max:99999999',
             'categoria' => 'required|in:servicio,producto',
-        ]);
+            'duracion_minutos' => 'required|integer|min:5|max:600',
+        ], [], ['duracion_minutos' => 'duración']);
 
         if ($this->editandoId) {
             Servicio::where('barberia_id', $this->barberiaId())
@@ -54,6 +57,7 @@ class GestionServicios extends Component
                     'nombre'    => $this->nombre,
                     'precio'    => $this->precio,
                     'categoria' => $this->categoria,
+                    'duracion_minutos' => $this->duracion_minutos,
                 ]);
         } else {
             Servicio::create([
@@ -61,11 +65,12 @@ class GestionServicios extends Component
                 'nombre'      => $this->nombre,
                 'precio'      => $this->precio,
                 'categoria'   => $this->categoria,
+                'duracion_minutos' => $this->duracion_minutos,
                 'activo'      => true,
             ]);
         }
 
-        $this->reset(['nombre', 'precio', 'categoria', 'editandoId']);
+        $this->reset(['nombre', 'precio', 'categoria', 'duracion_minutos', 'editandoId']);
         $this->mostrarForm = false;
     }
 
