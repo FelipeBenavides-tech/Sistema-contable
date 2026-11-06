@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Crea el administrador y una barbería de prueba.
+     * Crea el administrador y, fuera de producción, una barbería de prueba.
      *
      * Las contraseñas se leen del archivo .env (SEED_ADMIN_PASSWORD y
      * SEED_DEMO_PASSWORD). Si no existen, se generan al azar y se muestran
@@ -31,6 +31,16 @@ class DatabaseSeeder extends Seeder
             'barberia_id' => null,
         ]);
 
+        // En producción solo se crea el administrador: las barberías reales
+        // se crean desde /admin
+        if (app()->isProduction()) {
+            $this->command?->info('Administrador listo:');
+            $this->command?->table(['Correo', 'Contraseña'], [
+                [$adminEmail, env('SEED_ADMIN_PASSWORD') ? '(la de tu .env)' : $adminPassword],
+            ]);
+            return;
+        }
+
         // ── Barbería de prueba ───────────────────────────────────────────────
         $barberia = Barberia::firstOrCreate(['nombre' => 'Barbería El Estilo'], [
             'propietario'       => 'Carlos Mendoza',
@@ -38,6 +48,9 @@ class DatabaseSeeder extends Seeder
             'direccion'         => 'Calle 10 # 5-20, Cali',
             'activo'            => true,
             'plan'              => 'mensual',
+            'nivel'             => 'pro',
+            'slug'              => 'demo',
+            'reservas_activas'  => true,
             'fecha_vencimiento' => now()->addMonth(),
             'contrato_hasta'    => now()->addMonths((int) config('suscripcion.contrato_minimo_meses')),
         ]);

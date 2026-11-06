@@ -13,17 +13,34 @@ teléfono se puede "Agregar a la pantalla de inicio" para abrirla como una app.
 - **Gastos** del negocio por categoría.
 - **Barberos** con su porcentaje de comisión. La comisión se calcula **solo sobre servicios**, nunca sobre productos.
 - **Reportes** mensuales con ingresos, gastos, comisiones y ganancia, descargables en Excel y PDF.
+- **Clientes**: base de datos con celular, correo, cumpleaños, notas, historial de visitas y autorización de datos (Ley 1581).
+- **Cartera (fiados)**: a los clientes marcados "se le puede fiar" se les cobra con el método **Fiado** en la caja.
+  Se les fían hasta 4 servicios (se cambia en la pantalla Cartera); al cumplir el cuarto no se les fía más hasta que paguen
+  la totalidad. Los pagos y abonos entran a la caja del día.
+- **Agenda de citas** (solo plan Pro): citas por fecha y hora para cada barbero, con su horario de trabajo, la duración de
+  cada servicio y control para que dos citas no se crucen. La cita se cobra desde la caja con un clic.
+- **Reservas en línea con pago anticipado** (solo plan Pro): cada barbería tiene su página pública `/reservar/{dirección}`
+  donde el cliente arma su carrito de servicios, escoge barbero, día y hora, y paga un anticipo (30% por defecto) con Wompi
+  (Nequi, PSE o tarjeta). La hora queda apartada 15 minutos mientras paga. Al cobrar la cita en la caja, el anticipo se descuenta.
+  El cliente puede cancelar hasta 2 horas antes y el anticipo le queda como **saldo a favor**; si cancela después o no llega,
+  se cobra el anticipo y no tiene devolución (entra como ingreso, sin comisión). Si el barbero cancela, el cliente conserva el anticipo
+  y recibe un descuento del 10% del servicio como saldo a favor. Los tres valores se cambian en Mi barbería.
+- **Usuarios para barberos** (solo plan Pro): cada barbero entra con su correo desde el teléfono y solo ve su agenda y sus servicios y comisión del día.
+  Si el dueño lo desactiva en Barberos, se le cierra la sesión y no puede volver a entrar hasta que lo active.
+  No ve la caja, gastos, reportes ni la base de clientes.
 - **Panel de administrador** (`/admin`) para crear barberías, sus usuarios, registrar sus pagos y recargas.
   No hay registro público: las cuentas las crea el administrador.
 
 ## Planes de Kaixa
 
-| Plan | Precio | Notas |
-|---|---|---|
-| Mensual | $130.000 al mes | Contrato mínimo de 6 meses |
-| Semestral | $700.000 | Ahorra $80.000 (10%) frente al mensual |
-| Anual | $1.200.000 | Ahorra $360.000 (23%) frente al mensual |
-| Por uso | 2,5% de cada venta | Saldo prepagado que se recarga: la primera recarga es de mínimo $200.000. Contrato mínimo de 6 meses; al terminar, el saldo a favor se devuelve |
+Cada plan viene en dos niveles: **Base** (todo el sistema) y **Pro** (Base + agenda de citas y usuarios para barberos).
+
+| Plan | Base | Pro | Notas |
+|---|---|---|---|
+| Mensual | $130.000 al mes | $180.000 al mes | Contrato mínimo de 6 meses |
+| Semestral | $700.000 | $970.000 | Ahorra frente al mensual |
+| Anual | $1.200.000 | $1.660.000 | Ahorra frente al mensual |
+| Por uso | 2,5% de cada venta | 3,5% de cada venta | Saldo prepagado que se recarga: la primera recarga es de mínimo $200.000. Contrato mínimo de 6 meses; al terminar, el saldo a favor se devuelve |
 
 La instalación y entrega del sistema cuesta $65.000, en un solo pago, para cualquier plan.
 
@@ -31,7 +48,8 @@ La instalación y entrega del sistema cuesta $65.000, en un solo pago, para cual
 - Cuando un plan vence hay **5 días de gracia**: al iniciar sesión sale un aviso de no pago (se puede cerrar) y arriba de la pantalla
   siempre se ve la fecha de vencimiento. Pasada la gracia, o si el saldo del plan por uso llega a $0, el sistema se deshabilita hasta que se pague.
 - La barbería ve su estado, los planes y su historial de pagos en **Mi plan Kaixa** (`/mi-plan`).
-- Los precios, el porcentaje y los días de gracia se cambian en `config/suscripcion.php`.
+- Los precios (Base y Pro), los porcentajes y los días de gracia se cambian en `config/suscripcion.php`.
+- El nivel (Base o Pro) se escoge en `/admin` al crear o editar la barbería. El horario general de la agenda está en `config/agenda.php`.
 
 ## Requisitos
 
@@ -79,6 +97,85 @@ archivo `.env` (`SEED_ADMIN_PASSWORD` y `SEED_DEMO_PASSWORD`).
 3. En el teléfono abre `http://192.168.1.20:8000`.
 
 Para que los clientes lo usen desde cualquier lugar hay que publicarlo en un servidor (hosting) con dominio y HTTPS.
+
+## Activar las reservas en línea (Wompi)
+
+1. En el panel de Wompi (comercios.wompi.co) entra a **Desarrolladores** y copia las cuatro llaves: pública, privada,
+   secreto de eventos y secreto de integridad. Las de prueba empiezan con `pub_test_`, `prv_test_`, `test_events_` y `test_integrity_`.
+2. En Kaixa, entra a **Mi barbería → Reservas en línea**, escoge la dirección de la página, el porcentaje de anticipo y las horas
+   de aviso para cancelar, y pega las llaves. Las secretas se guardan cifradas y no se vuelven a mostrar.
+3. En Wompi, en **URL de eventos**, pega la dirección que muestra Kaixa: `https://tu-dominio/webhooks/wompi`.
+   Necesita que el sistema esté publicado en internet con HTTPS (no funciona en `localhost`).
+4. Programa en el servidor la tarea que libera las reservas sin pagar (cada minuto):
+
+```bash
+* * * * * cd /ruta/a/barberos && php artisan schedule:run >> /dev/null 2>&1
+```
+
+Con llaves de prueba todo pasa por el entorno de pruebas de Wompi (sandbox) y no se cobra dinero real.
+Sin llaves de Wompi, la página igual recibe reservas pero sin anticipo.
+
+> Esto es solo para probar: `php artisan serve` y `php -S` son servidores de desarrollo, sin HTTPS
+> (las contraseñas viajan sin cifrar por el WiFi). No los dejes abiertos en una red que no controlas.
+
+## Publicarlo en un hosting (producción)
+
+**Qué debe tener el hosting:** PHP con los últimos parches de seguridad (desde octubre de 2026, mínimo
+8.2.35, 8.3.36, 8.4.27 o 8.5.12) con las extensiones `sqlite3` (o `pdo_mysql`), `mbstring`, `gd` y `zip`;
+acceso por terminal (SSH) para correr `composer` y `php artisan`; HTTPS (certificado SSL, casi todos
+lo dan gratis) y la opción de programar tareas (cron).
+
+**Pasos:**
+
+1. Sube el proyecto (la carpeta `barberos`) y haz que el dominio apunte a la carpeta `public`, nunca a la
+   raíz del proyecto (ahí está el `.env`).
+2. Crea el `.env` a partir de `.env.example` y cambia:
+
+   ```
+   APP_ENV=production
+   APP_DEBUG=false
+   APP_URL=https://tu-dominio.com
+   LOG_LEVEL=warning
+   SESSION_SECURE_COOKIE=true
+   SEED_ADMIN_EMAIL=tu-correo@dominio.com
+   SEED_ADMIN_PASSWORD=una-contraseña-larga
+   ```
+
+   Con `APP_DEBUG=true` cualquier error muestra detalles internos del servidor a quien lo provoque.
+   Si el hosting pone un proxy o CDN delante (por ejemplo Cloudflare), agrega `TRUSTED_PROXIES` con la IP
+   que indique el proveedor (o `*` si ellos lo recomiendan).
+3. Para que funcione "¿Olvidaste tu contraseña?", configura un correo real (`MAIL_MAILER=smtp`,
+   `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` y `MAIL_FROM_ADDRESS`; el hosting te da
+   esos datos). Sin eso, el administrador puede cambiar la contraseña de cualquier barbería desde `/admin`.
+4. En la terminal del servidor:
+
+   ```bash
+   composer install --no-dev --optimize-autoloader
+   php artisan key:generate
+   php artisan migrate --force
+   php artisan db:seed --force     # crea solo el administrador (en producción no crea la barbería demo)
+   php artisan optimize
+   ```
+
+   Compila los estilos con `npm run build` (en el servidor, o en tu computador y sube la carpeta `public/build`).
+5. Programa la tarea de Laravel para que corra cada minuto (en cPanel: **Cron Jobs**):
+
+   ```
+   * * * * * cd /ruta/a/barberos && php artisan schedule:run >> /dev/null 2>&1
+   ```
+
+   Con eso se hace solo un **respaldo diario** de la base de datos a las 3 a. m. en `storage/app/respaldos`
+   (guarda los últimos 30 días). También puedes hacer uno a mano con `php artisan kaixa:respaldo`.
+   Descarga una copia a tu computador de vez en cuando: si el servidor falla, los respaldos que solo
+   están ahí se pierden con él.
+6. Las carpetas `storage` y `bootstrap/cache` deben tener permiso de escritura para el servidor web.
+
+**Cada vez que actualices el sistema:** `php artisan down`, trae los cambios, `composer install --no-dev
+--optimize-autoloader`, `php artisan migrate --force`, `php artisan optimize`, sube el `public/build`
+nuevo y `php artisan up`. Mientras tanto, los usuarios ven una página de mantenimiento.
+
+**Mantenimiento:** mantén PHP al día y revisa de vez en cuando `composer audit` y `npm audit` para saber si
+alguna librería tiene fallas conocidas.
 
 ## Pruebas automáticas
 

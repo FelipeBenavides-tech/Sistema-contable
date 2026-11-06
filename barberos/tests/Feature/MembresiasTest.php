@@ -8,7 +8,6 @@ use App\Livewire\PosVenta;
 use App\Models\Barberia;
 use App\Models\Membresia;
 use App\Models\Venta;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\Concerns\CreaDatosDePrueba;
@@ -135,8 +134,10 @@ class MembresiasTest extends TestCase
 
         $this->assertSame('agotada', $membresia->fresh()->estado);
 
-        $this->expectException(ModelNotFoundException::class);
-        $this->atenderConMembresia($usuario, $membresia, $corte->id, $barbero->id);
+        // Una membresía agotada ya no se puede elegir en la caja
+        Livewire::actingAs($usuario)->test(PosVenta::class)
+            ->call('seleccionarMembresia', $membresia->id)
+            ->assertNotFound();
     }
 
     public function test_no_se_pueden_usar_mas_visitas_de_las_que_quedan(): void
@@ -169,8 +170,9 @@ class MembresiasTest extends TestCase
 
         $this->assertSame('vencida', $membresia->fresh()->estado);
 
-        $this->expectException(ModelNotFoundException::class);
-        Livewire::actingAs($usuario)->test(PosVenta::class)->call('seleccionarMembresia', $membresia->id);
+        Livewire::actingAs($usuario)->test(PosVenta::class)
+            ->call('seleccionarMembresia', $membresia->id)
+            ->assertNotFound();
     }
 
     public function test_no_se_puede_usar_la_membresia_de_otra_barberia(): void
@@ -179,8 +181,9 @@ class MembresiasTest extends TestCase
         $ajena    = $this->venderMembresia($otra, $this->crearUsuario($otra), $this->crearPlan($otra)->id);
         $mia      = $this->crearBarberia('Mía');
 
-        $this->expectException(ModelNotFoundException::class);
-        Livewire::actingAs($this->crearUsuario($mia))->test(PosVenta::class)->call('seleccionarMembresia', $ajena->id);
+        Livewire::actingAs($this->crearUsuario($mia))->test(PosVenta::class)
+            ->call('seleccionarMembresia', $ajena->id)
+            ->assertNotFound();
     }
 
     public function test_el_buscador_de_la_caja_solo_muestra_clientes_de_la_barberia(): void
@@ -281,8 +284,9 @@ class MembresiasTest extends TestCase
             ->assertSee('Mensual 4 cortes')
             ->assertDontSee($planAjeno->nombre);
 
-        $this->expectException(ModelNotFoundException::class);
-        Livewire::actingAs($this->crearUsuario($mia))->test(GestionMembresias::class)->call('editarPlan', $planAjeno->id);
+        Livewire::actingAs($this->crearUsuario($mia))->test(GestionMembresias::class)
+            ->call('editarPlan', $planAjeno->id)
+            ->assertNotFound();
     }
 
     public function test_cambiar_el_precio_de_un_plan_no_altera_las_membresias_vendidas(): void

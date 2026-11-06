@@ -9,6 +9,7 @@ use App\Models\Membresia;
 use App\Models\Venta;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
@@ -43,6 +44,7 @@ class HistorialVentas extends Component
     public float  $editEfectivo     = 0;
     public float  $editNequi        = 0;
     public array  $editItems        = [];
+    public string $avisoVenta       = '';
 
     private function barberiaId(): int
     {
@@ -60,7 +62,23 @@ class HistorialVentas extends Component
             return;
         }
 
-        Venta::where('barberia_id', $this->barberiaId())->findOrFail($ventaId);
+        $venta = Venta::where('barberia_id', $this->barberiaId())->findOrFail($ventaId);
+        $this->avisoVenta = '';
+
+        // Las ventas fiadas mueven la cartera del cliente: no se editan, y si ya
+        // tienen abonos tampoco se eliminan (se descuadraría lo que pagó)
+        if ((float) $venta->monto_prepagado > 0 && $accion === 'editar') {
+            $this->avisoVenta = 'Esta venta tiene un anticipo o saldo a favor aplicado, así que no se puede editar. Si hubo un error, elimínala: lo prepagado vuelve al saldo a favor del cliente.';
+            return;
+        }
+        if ($venta->es_fiada && $accion === 'editar') {
+            $this->avisoVenta = 'Las ventas fiadas no se pueden editar. Si hubo un error, elimínala y regístrala de nuevo.';
+            return;
+        }
+        if ($venta->es_fiada && $accion === 'eliminar' && (float) $venta->saldo_pendiente < (float) $venta->total) {
+            $this->avisoVenta = 'Esta venta fiada ya tiene abonos del cliente, así que no se puede eliminar.';
+            return;
+        }
 
         $this->ventaId        = $ventaId;
         $this->accion         = $accion;
@@ -85,10 +103,20 @@ class HistorialVentas extends Component
             'motivo.regex'    => 'El motivo solo puede contener letras y espacios, sin números ni símbolos.',
         ]);
 
+        // Máximo 5 intentos por minuto, igual que en el inicio de sesión
+        $llave = 'confirmar-venta:' . auth()->id();
+        if (RateLimiter::tooManyAttempts($llave, 5)) {
+            $this->errorPassword = 'Demasiados intentos. Espera ' . RateLimiter::availableIn($llave) . ' segundos.';
+            return;
+        }
+
         if (!Hash::check($this->passwordConfirm, auth()->user()->password)) {
+            RateLimiter::hit($llave);
             $this->errorPassword = 'Contraseña incorrecta.';
             return;
         }
+
+        RateLimiter::clear($llave);
 
         $this->mostrarModal  = false;
         $this->errorPassword = '';
@@ -157,6 +185,11 @@ class HistorialVentas extends Component
                 'metodo_pago_antes' => $venta->metodo_pago,
             ]);
 
+            // Lo que el cliente ya había pagado (anticipo o saldo a favor) vuelve a su saldo a favor
+            if ((float) $venta->monto_prepagado > 0 && $venta->cliente_id) {
+                \App\Models\Cliente::whereKey($venta->cliente_id)->increment('saldo_favor', (float) $venta->monto_prepagado);
+            }
+
             // Se marca como eliminada (no se borra) y deja de sumar en caja y reportes
             $venta->update([
                 'fue_eliminada'    => true,
@@ -166,7 +199,12 @@ class HistorialVentas extends Component
                 'ganancia_local'   => 0,
                 'monto_efectivo'   => 0,
                 'monto_nequi'      => 0,
+                'saldo_pendiente'  => 0,
+                'monto_prepagado'  => 0,
             ]);
+
+            // Si era fiada, puede que el cliente ya no deba nada
+            $venta->cliente?->actualizarBloqueoFiado();
         });
 
         $this->motivo  = '';
@@ -310,6 +348,12 @@ class HistorialVentas extends Component
 
                 $total    = collect($itemsFinales)->sum('subtotal');
                 $comision = Venta::calcularComision($barbero, $itemsFinales);
+
+                if ($this->editMetodoPago === 'combinado' && ($this->editEfectivo < 0 || $this->editNequi < 0)) {
+                    throw ValidationException::withMessages([
+                        'editEfectivo' => 'Los montos del pago combinado no pueden ser negativos.',
+                    ]);
+                }
 
                 if ($this->editMetodoPago === 'combinado'
                     && abs(($this->editEfectivo + $this->editNequi) - $total) > 1) {

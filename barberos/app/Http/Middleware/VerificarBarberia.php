@@ -17,6 +17,15 @@ class VerificarBarberia
             return redirect()->route('admin.panel');
         }
 
+        // Barbero desactivado por el dueño: se le cierra la sesión
+        if ($user && $user->accesoDesactivado()) {
+            auth()->guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login')->withErrors(['email' => 'Tu acceso está desactivado. Pídele al dueño de la barbería que lo active.']);
+        }
+
         if ($user && !$user->tieneBarberia()) {
             return response()->view('errors.sin-barberia', [
                 'tipo'    => 'sin_asignar',

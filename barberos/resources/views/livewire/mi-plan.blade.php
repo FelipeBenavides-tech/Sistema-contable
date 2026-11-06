@@ -1,7 +1,7 @@
 @php
     $dinero = fn($valor) => '$' . number_format((float) $valor, 0, ',', '.');
     $estado = $barberia->estado_pago;
-    $porcentaje = str_replace('.', ',', config('suscripcion.porcentaje.valor'));
+    $porcentaje = str_replace('.', ',', $barberia->porcentaje_uso);
     $etiquetas = [
         'al_dia'     => ['Al día', 'badge-green'],
         'por_vencer' => [$barberia->por_uso ? 'Saldo bajo' : 'Por vencer', 'badge-amber'],
@@ -31,7 +31,7 @@
             <div class="alert-warning mt-4">
                 @if($barberia->por_uso)
                     Tu saldo está bajo. Cuando llegue a $0 no podrás registrar ventas hasta recargar.
-                    Te alcanza para vender {{ $dinero((float) $barberia->saldo * 100 / (float) config('suscripcion.porcentaje.valor')) }} más.
+                    Te alcanza para vender {{ $dinero((float) $barberia->saldo * 100 / $barberia->porcentaje_uso) }} más.
                 @else
                     Tu plan vence en {{ $barberia->dias_restantes }} {{ $barberia->dias_restantes === 1 ? 'día' : 'días' }}. Paga a tiempo para no tener interrupciones.
                 @endif
@@ -84,12 +84,38 @@
         </div>
     </section>
 
+    {{-- Base o Pro --}}
+    <section>
+        <h2 class="section-title mb-3">Nivel del plan</h2>
+        <div class="grid gap-3 sm:grid-cols-2">
+            @foreach(config('suscripcion.niveles') as $clave => $nivel)
+                @php $actual = ($barberia->nivel ?? 'base') === $clave; @endphp
+                <div class="card card-pad {{ $actual ? 'ring-2 ring-brand-600' : '' }}">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="font-semibold text-ink">Plan {{ $nivel['nombre'] }}</p>
+                        @if($actual)<span class="badge badge-blue">Tu nivel</span>@endif
+                    </div>
+                    <p class="mt-2 text-sm text-slate-600">{{ $nivel['descripcion'] }}</p>
+                </div>
+            @endforeach
+        </div>
+        @unless($barberia->es_pro)
+            <p class="mt-2 text-sm text-muted">¿Quieres la agenda de citas? Pide el cambio a Pro a soporte de Kaixa.</p>
+        @endunless
+    </section>
+
     {{-- Planes disponibles --}}
     <section>
         <h2 class="section-title mb-3">Planes de Kaixa</h2>
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             @foreach($planes as $clave => $plan)
-                @php $actual = $barberia->plan === $clave; @endphp
+                @php
+                    $actual = $barberia->plan === $clave;
+                    $pro = $barberia->es_pro;
+                    $precio = $pro ? $plan['precio_pro'] : $plan['precio'];
+                    $precioMes = $pro ? $plan['precio_mes_pro'] : $plan['precio_mes'];
+                    $ahorro = $pro ? $plan['ahorro_pro'] : $plan['ahorro'];
+                @endphp
                 <div class="card card-pad relative flex flex-col {{ $actual ? 'ring-2 ring-brand-600' : '' }}">
                     <div class="flex items-center justify-between gap-2">
                         <p class="font-semibold text-ink">{{ $plan['nombre'] }}</p>
@@ -99,14 +125,15 @@
                             <span class="badge badge-green">Ahorra {{ $plan['ahorro_porcentaje'] }}%</span>
                         @endif
                     </div>
-                    <p class="mt-3 text-2xl font-semibold tracking-tight text-ink">{{ $dinero($plan['precio']) }}</p>
+                    <p class="mt-3 text-2xl font-semibold tracking-tight text-ink">{{ $dinero($precio) }}</p>
                     <p class="text-xs text-muted">
-                        {{ $plan['meses'] === 1 ? 'cada mes' : "por {$plan['meses']} meses · " . $dinero($plan['precio_mes']) . ' al mes' }}
+                        {{ $plan['meses'] === 1 ? 'cada mes' : "por {$plan['meses']} meses · " . $dinero($precioMes) . ' al mes' }}
                     </p>
+                    <p class="mt-1 text-xs text-muted">{{ $pro ? 'Base' : 'Pro' }}: {{ $dinero($pro ? $plan['precio'] : $plan['precio_pro']) }}</p>
                     <ul class="mt-4 flex flex-1 flex-col gap-1.5 text-sm text-slate-600">
                         <li>Ventas y servicios ilimitados</li>
-                        @if($plan['ahorro'] > 0)
-                            <li class="font-medium text-emerald-700">Ahorras {{ $dinero($plan['ahorro']) }} frente al mensual</li>
+                        @if($ahorro > 0)
+                            <li class="font-medium text-emerald-700">Ahorras {{ $dinero($ahorro) }} frente al mensual</li>
                         @endif
                         @if($plan['meses'] === 1)
                             <li>Contrato mínimo de {{ config('suscripcion.contrato_minimo_meses') }} meses</li>
@@ -125,10 +152,11 @@
                 </div>
                 <p class="mt-3 text-2xl font-semibold tracking-tight text-ink">{{ $porcentaje }}%</p>
                 <p class="text-xs text-muted">de cada servicio o artículo vendido</p>
+                <p class="mt-1 text-xs text-muted">{{ $barberia->es_pro ? 'Base' : 'Pro' }}: {{ str_replace('.', ',', config($barberia->es_pro ? 'suscripcion.porcentaje.valor' : 'suscripcion.porcentaje.valor_pro')) }}%</p>
                 <ul class="mt-4 flex flex-1 flex-col gap-1.5 text-sm text-slate-600">
                     <li>Pagas solo por lo que vendes</li>
                     <li>Primera recarga de mínimo {{ $dinero(config('suscripcion.porcentaje.primera_recarga_minima')) }}; después, desde {{ $dinero(config('suscripcion.porcentaje.recarga_minima')) }}</li>
-                    <li>Ejemplo: un corte de $20.000 descuenta {{ $dinero(20000 * config('suscripcion.porcentaje.valor') / 100) }}</li>
+                    <li>Ejemplo: un corte de $20.000 descuenta {{ $dinero(20000 * $barberia->porcentaje_uso / 100) }}</li>
                     <li>Contrato mínimo de {{ config('suscripcion.contrato_minimo_meses') }} meses; al terminar, el saldo a favor se te devuelve</li>
                 </ul>
             </div>
