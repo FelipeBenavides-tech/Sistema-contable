@@ -18,6 +18,11 @@ Route::middleware('guest')->group(function () {
 
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 
+    // Cliente: recibe por correo el enlace de "Mis citas" (no tiene contraseña)
+    Route::post('login/cliente', [AuthenticatedSessionController::class, 'enlaceCliente'])
+        ->middleware('throttle:10,1')
+        ->name('login.cliente');
+
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
