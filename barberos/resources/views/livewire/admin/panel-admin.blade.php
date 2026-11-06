@@ -129,6 +129,15 @@
                         <input id="direccion" wire:model="direccion" type="text" class="input">
                     </div>
                     <div class="sm:col-span-2">
+                        <label class="label">Nivel *</label>
+                        <div class="segmentado flex w-full">
+                            @foreach(config('suscripcion.niveles') as $clave => $datosNivel)
+                                <button type="button" wire:click="$set('nivel', '{{ $clave }}')" class="segmento {{ $nivel === $clave ? 'segmento-activo' : '' }}">{{ $datosNivel['nombre'] }}</button>
+                            @endforeach
+                        </div>
+                        <p class="mt-1 text-xs text-muted">{{ config("suscripcion.niveles.{$nivel}.descripcion") }}</p>
+                    </div>
+                    <div class="sm:col-span-2">
                         <label class="label" for="plan">Plan *</label>
                         <select id="plan" wire:model.live="plan" class="input">
                             @foreach($opciones as $clave => $texto)
@@ -228,7 +237,7 @@
                 @endunless
                 <p class="text-xs text-muted">
                     @if($pagoDe->por_uso)
-                        El valor se suma al saldo. Cada venta descuenta el {{ str_replace('.', ',', config('suscripcion.porcentaje.valor')) }}% de su valor.
+                        El valor se suma al saldo. Cada venta descuenta el {{ str_replace('.', ',', $pagoDe->porcentaje_uso) }}% de su valor.
                     @else
                         Si paga dentro de los días de gracia, el periodo sigue desde su vencimiento; si ya estaba bloqueada, desde hoy.
                     @endif
