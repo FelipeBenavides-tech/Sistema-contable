@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Livewire\Concerns\FormularioCita;
+use App\Livewire\Concerns\ReagendarCita;
 use App\Models\Barbero;
 use App\Models\Cita;
 use App\Models\HorarioBarbero;
@@ -16,7 +17,7 @@ use Livewire\Component;
  */
 class GestionAgenda extends Component
 {
-    use FormularioCita;
+    use FormularioCita, ReagendarCita;
 
     public string $tab = 'agenda';
     public string $fecha = '';
@@ -35,6 +36,17 @@ class GestionAgenda extends Component
     public function mount(): void
     {
         $this->fecha = now()->toDateString();
+    }
+
+    protected function citaParaReagendar(int $id): Cita
+    {
+        return Cita::where('barberia_id', $this->barberiaId())
+            ->findOrFail($id);
+    }
+
+    protected function reagendaQuien(): string
+    {
+        return 'barberia';
     }
 
     public function irA(string $cuando): void
@@ -203,6 +215,6 @@ class GestionAgenda extends Component
                 'valor'      => $activas->sum('total'),
             ],
             'barberoHorario' => $this->horarioBarberoId ? $barberos->firstWhere('id', $this->horarioBarberoId) : null,
-        ] + $this->datosFormularioCita())->layout('layouts.app', ['title' => 'Agenda de citas']);
+        ] + $this->datosFormularioCita() + $this->datosReagendar())->layout('layouts.app', ['title' => 'Agenda de citas']);
     }
 }

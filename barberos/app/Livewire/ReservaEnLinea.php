@@ -10,6 +10,8 @@ use App\Models\PagoEnLinea;
 use App\Models\Servicio;
 use App\Support\Wompi;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -32,11 +34,69 @@ class ReservaEnLinea extends Component
     public string $email = '';
     public bool   $acepta = false;
 
+    // Cliente que llega desde su panel "Mis citas" (ya no tiene que escribir sus datos)
+    public string $clienteToken = '';
+
+    // Recuperar el enlace de "Mis citas"
+    public bool   $mostrarRecuperar = false;
+    public string $recuperarTelefono = '';
+    public string $recuperarMensaje = '';
+
     public function mount(string $slug): void
     {
         $this->slug = $slug;
-        $this->barberia();
+        $barberia = $this->barberia();
         $this->fecha = now()->toDateString();
+
+        $token = (string) request()->query('c', '');
+        if ($token !== '' && ($cliente = $this->clienteDelPanel($barberia, $token))) {
+            $this->clienteToken = $token;
+            $this->nombre   = $cliente->nombre;
+            $this->telefono = (string) $cliente->telefono;
+            $this->email    = (string) $cliente->email;
+        }
+    }
+
+    private function clienteDelPanel(Barberia $barberia, ?string $token = null): ?Cliente
+    {
+        $token ??= $this->clienteToken;
+
+        return $token !== '' ? Cliente::where('barberia_id', $barberia->id)->where('token', $token)->first() : null;
+    }
+
+    /** Manda al correo del cliente el enlace de "Mis citas". Siempre responde lo mismo, para no revelar quién es cliente. */
+    public function enviarEnlace(): void
+    {
+        $barberia = $this->barberia();
+        $clave = 'recuperar-panel:' . request()->ip();
+        $this->recuperarTelefono = Cliente::normalizarTelefono($this->recuperarTelefono);
+
+        $this->validate(['recuperarTelefono' => 'required|digits_between:7,15'], [
+            'recuperarTelefono.required' => 'Escribe tu celular.',
+            'recuperarTelefono.digits_between' => 'Escribe un celular válido.',
+        ]);
+
+        if (RateLimiter::tooManyAttempts($clave, 5)) {
+            $this->addError('recuperarTelefono', 'Hiciste demasiados intentos. Espera un momento.');
+            return;
+        }
+        RateLimiter::hit($clave, 3600);
+
+        $cliente = Cliente::where('barberia_id', $barberia->id)->where('telefono', $this->recuperarTelefono)->first();
+        if ($cliente?->email) {
+            try {
+                Mail::raw(
+                    "Hola {$cliente->nombre}, este es tu enlace para ver y manejar tus citas en {$barberia->nombre}: " . $cliente->urlPanel(),
+                    fn($m) => $m->to($cliente->email)->subject("Tus citas en {$barberia->nombre}")
+                );
+            } catch (\Throwable $e) {
+                Log::warning('No se pudo enviar el enlace de Mis citas', ['cliente' => $cliente->id, 'error' => $e->getMessage()]);
+            }
+        }
+
+        $this->mostrarRecuperar = true;
+        $this->recuperarMensaje = 'Si tu celular tiene un correo registrado, te enviamos allí el enlace de tus citas. Si no te llega, escríbele a la barbería.';
+        $this->recuperarTelefono = '';
     }
 
     private function barberia(): Barberia
@@ -115,6 +175,12 @@ class ReservaEnLinea extends Component
         }
         RateLimiter::hit($clave, 3600);
 
+        $delPanel = $this->clienteDelPanel($barberia);
+        if ($delPanel) {
+            $this->nombre   = $delPanel->nombre;
+            $this->telefono = (string) $delPanel->telefono;
+        }
+
         $this->telefono = Cliente::normalizarTelefono($this->telefono);
         $this->validate([
             'servicios' => 'required|array|min:1',
@@ -152,7 +218,7 @@ class ReservaEnLinea extends Component
             return null;
         }
 
-        $cliente = Cliente::buscarOCrear($barberia->id, $this->nombre, $this->telefono);
+        $cliente = $delPanel ?? Cliente::buscarOCrear($barberia->id, $this->nombre, $this->telefono);
         $cliente->update(array_filter([
             'email'           => $cliente->email ?: (trim($this->email) ?: null),
             'acepta_mensajes' => true,
@@ -229,6 +295,7 @@ class ReservaEnLinea extends Component
             'anticipo' => (new Wompi($barberia))->configurado() ? $barberia->anticipoPara($total) : 0,
             'barberos' => $this->barberos($barberia),
             'horas'    => $this->horasLibres($barberia, $duracion),
+            'clientePanel' => $this->clienteDelPanel($barberia),
         ])->layout('layouts.publico', ['barberia' => $barberia, 'title' => 'Reservar cita']);
     }
 }

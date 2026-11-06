@@ -20,7 +20,10 @@ class Cliente extends Model
         'fiado_bloqueado',
         'acepta_mensajes',
         'saldo_favor',
+        'token',
     ];
+
+    protected $hidden = ['token'];
 
     protected $casts = [
         'fecha_nacimiento' => 'date',
@@ -53,6 +56,35 @@ class Cliente extends Model
     public function pagosCartera(): HasMany
     {
         return $this->hasMany(PagoCartera::class);
+    }
+
+    /** Enlace privado del panel "Mis citas". Se crea la primera vez que se necesita. */
+    public function tokenPanel(): string
+    {
+        if (!$this->token) {
+            $this->forceFill(['token' => \Illuminate\Support\Str::random(40)])->save();
+        }
+
+        return $this->token;
+    }
+
+    public function urlPanel(): string
+    {
+        return route('cliente.panel', $this->tokenPanel());
+    }
+
+    /** Enlace de WhatsApp para escribirle al cliente (los celulares de 10 dígitos se toman de Colombia). */
+    public function whatsappUrl(string $texto): ?string
+    {
+        $numero = self::normalizarTelefono($this->telefono);
+        if (strlen($numero) < 7) {
+            return null;
+        }
+        if (strlen($numero) === 10 && str_starts_with($numero, '3')) {
+            $numero = '57' . $numero;
+        }
+
+        return 'https://wa.me/' . $numero . '?text=' . rawurlencode($texto);
     }
 
     public function scopeBuscar(Builder $query, string $termino): Builder

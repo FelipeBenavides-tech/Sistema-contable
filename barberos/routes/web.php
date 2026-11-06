@@ -20,11 +20,13 @@ use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\WompiWebhookController;
 use App\Livewire\ReservaEnLinea;
 use App\Livewire\VerReserva;
+use App\Livewire\PanelCliente;
 
 // ── Reservas en línea (públicas, plan Pro) ────────────────────────────────────
 Route::middleware('throttle:60,1')->group(function () {
     Route::get('/reservar/{slug}', ReservaEnLinea::class)->name('reservar');
     Route::get('/reserva/{token}', VerReserva::class)->name('reserva.ver');
+    Route::get('/mis-citas/{token}', PanelCliente::class)->name('cliente.panel');
 });
 Route::post('/webhooks/wompi', WompiWebhookController::class)->middleware('throttle:120,1')->name('webhooks.wompi');
 

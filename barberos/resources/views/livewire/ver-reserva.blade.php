@@ -21,7 +21,17 @@
             <span class="badge {{ $claseEstado }} shrink-0">{{ $vencida ? 'Sin pagar' : $textoEstado }}</span>
         </div>
 
-        @if($cita->estado === 'confirmada')
+        @if($cita->espera_respuesta)
+            @php $desde = $cita->reagendada_desde ?? []; @endphp
+            <div class="alert-warning flex flex-col gap-1">
+                <p class="font-semibold">La barbería no puede atenderte a la hora que habías reservado y te pasó la cita a esta nueva hora.</p>
+                @if(isset($desde['fecha'], $desde['hora_inicio']))
+                    <p>Antes: {{ \Carbon\Carbon::parse($desde['fecha'] . ' ' . $desde['hora_inicio'])->translatedFormat('l j \d\e F \a \l\a\s g:i a') }}.</p>
+                @endif
+                @if($cita->reagendo_motivo)<p>Motivo: {{ $cita->reagendo_motivo }}</p>@endif
+                <p class="text-xs">¿No te sirve? Escoge otra hora en <a href="{{ $panel }}" class="font-semibold underline">Mis citas</a> o cancela sin perder el anticipo.</p>
+            </div>
+        @elseif($cita->estado === 'confirmada')
             <div class="alert-success">¡Listo, {{ $cita->cliente->nombre }}! Tu cita está confirmada. Guarda este enlace para verla o cancelarla.</div>
         @elseif($cita->estado === 'pendiente_pago' && !$vencida)
             <div class="alert-warning">
@@ -53,12 +63,16 @@
         @endif
 
         <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <a href="{{ $panel }}" class="btn btn-soft">Ver todas mis citas</a>
+            @if($cita->espera_respuesta)
+                <button type="button" wire:click="aceptar" class="btn btn-primary">Me sirve la nueva hora</button>
+            @endif
             @if($cita->estado === 'pendiente_pago' && !$vencida)
                 <button type="button" wire:click="pagar" class="btn btn-primary">Ir a pagar</button>
             @endif
             @if($puedeCancelar)
                 <button type="button" wire:click="cancelar"
-                        wire:confirm="{{ $cita->anticipo_estado === 'pagado' && !$cita->cancela_a_tiempo ? 'Faltan menos de ' . $barberia->horas_cancelacion . ' horas: si cancelas, pierdes el anticipo. ¿Cancelar de todos modos?' : '¿Seguro que quieres cancelar tu cita?' }}"
+                        wire:confirm="{{ $cita->anticipo_estado === 'pagado' && !$cita->cancela_a_tiempo && !$cita->espera_respuesta ? 'Faltan menos de ' . $barberia->horas_cancelacion . ' horas: si cancelas, pierdes el anticipo. ¿Cancelar de todos modos?' : '¿Seguro que quieres cancelar tu cita?' }}"
                         class="btn btn-light">Cancelar cita</button>
             @endif
             @if(in_array($cita->estado, ['cancelada', 'no_asistio']) || $vencida)

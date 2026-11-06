@@ -10,7 +10,12 @@
     </div>
 
     @if($exito)
-        <div class="alert-success">{{ $exito }}</div>
+        <div class="alert-success flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <span>{{ $exito }}</span>
+            @if($avisoWhatsapp)
+                <a href="{{ $avisoWhatsapp }}" target="_blank" rel="noopener" class="btn btn-sm btn-primary shrink-0">Avisar por WhatsApp</a>
+            @endif
+        </div>
     @endif
     @error('agenda')
         <div class="alert-error">{{ $message }}</div>
@@ -75,6 +80,7 @@
                                         </p>
                                         <p class="truncate text-xs text-muted">{{ $cita->servicios->pluck('nombre')->implode(', ') }} · {{ $dinero($cita->total) }}</p>
                                         @if($cita->notas)<p class="mt-0.5 truncate text-xs text-amber-800">{{ $cita->notas }}</p>@endif
+                                        @include('livewire.partials.badge-reagendada', ['cita' => $cita])
                                         @if($cita->origen === 'en_linea' || (float) $cita->anticipo > 0)
                                             <p class="mt-0.5 flex flex-wrap gap-1">
                                                 @if($cita->origen === 'en_linea')<span class="badge badge-violet">En línea</span>@endif
@@ -103,6 +109,7 @@
                                         <a href="{{ route('pos', ['cita' => $cita->id]) }}" class="btn btn-sm btn-primary">Cobrar</a>
                                         <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'no_asistio')" wire:confirm="¿Marcar que {{ $cita->cliente->nombre }} no asistió?{{ $cita->anticipo_estado === 'pagado' ? ' La barbería se queda con el anticipo.' : '' }}" class="btn btn-sm btn-light">No vino</button>
                                         <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'cancelada_cliente')" wire:confirm="¿{{ $cita->cliente->nombre }} canceló su cita?{{ $avisoCliente }}" class="btn btn-sm btn-light">Canceló cliente</button>
+                                        <button type="button" wire:click="abrirReagendar({{ $cita->id }})" class="btn btn-sm btn-soft col-span-2">Reagendar</button>
                                         <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'cancelada')" wire:confirm="¿La barbería cancela la cita de {{ $cita->cliente->nombre }}? Recibe el {{ $cita->barberia->descuento_cancelacion }}% del servicio como descuento{{ $cita->anticipo_estado === 'pagado' ? ' y conserva su anticipo' : '' }}, como saldo a favor." class="btn btn-sm btn-danger">Canceló barbero</button>
                                     </div>
                                 @elseif(in_array($cita->estado, ['cancelada', 'no_asistio']) && $cita->anticipo_estado === null && $dia->gte(today()))
@@ -177,5 +184,8 @@
 
     @if($mostrarCita)
         @include('livewire.partials.form-cita', ['barberos' => $barberos])
+    @endif
+    @if($citaReagendar)
+        @include('livewire.partials.form-reagendar')
     @endif
 </div>

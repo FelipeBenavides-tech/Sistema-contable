@@ -37,17 +37,18 @@ class VerReserva extends Component
 
     public function pagar()
     {
+        $url = $this->cita()->urlPagoPendiente();
+
+        return $url ? redirect()->away($url) : null;
+    }
+
+    public function aceptar(): void
+    {
         $cita = $this->cita();
-        $pago = $cita->pagos()->where('estado', 'PENDING')->latest('id')->first();
-
-        if ($cita->estado !== 'pendiente_pago' || !$pago || $cita->expira_en?->isPast()) {
-            return null;
+        if ($cita->espera_respuesta) {
+            $cita->aceptarReagendo();
+            $this->mensaje = '¡Gracias! Quedó confirmada tu nueva hora.';
         }
-
-        return redirect()->away((new Wompi($cita->barberia))->urlCheckout(
-            $pago->referencia, $pago->monto_centavos, route('reserva.ver', $cita->token), $cita->expira_en,
-            ['email' => $cita->cliente->email, 'nombre' => $cita->cliente->nombre, 'telefono' => $cita->cliente->telefono],
-        ));
     }
 
     public function cancelar(): void
@@ -58,7 +59,8 @@ class VerReserva extends Component
         }
 
         $dinero = '$' . number_format((float) $cita->anticipo, 0, ',', '.');
-        $this->mensaje = match ($cita->cancelar(porCliente: true)) {
+        $this->mensaje = match ($cita->cancelarPorCliente()) {
+            'compensada'  => 'Tu cita quedó cancelada. No pierdes el anticipo y te dejamos un descuento como saldo a favor para tu próxima reserva.',
             'saldo_favor' => "Tu cita quedó cancelada. Los {$dinero} del anticipo te quedan como saldo a favor para tu próxima reserva.",
             'retenido'    => 'Tu cita quedó cancelada. Como faltaban menos de ' . $cita->barberia->horas_cancelacion . ' horas, la barbería se queda con el anticipo.',
             default       => 'Tu cita quedó cancelada.',
@@ -73,6 +75,7 @@ class VerReserva extends Component
             'cita'     => $cita,
             'barberia' => $cita->barberia,
             'pago'     => $cita->pagos()->latest('id')->first(),
+            'panel'    => $cita->cliente->urlPanel(),
         ])->layout('layouts.publico', ['barberia' => $cita->barberia, 'title' => 'Tu reserva']);
     }
 }

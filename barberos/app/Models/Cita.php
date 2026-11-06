@@ -27,6 +27,11 @@ class Cita extends Model
         'anticipo_estado',
         'expira_en',
         'token',
+        'reagendada_desde',
+        'reagendada_por',
+        'reagendada_en',
+        'reagendo_motivo',
+        'reagendo_respuesta',
         'notas',
         'venta_id',
         'creada_por',
@@ -38,6 +43,8 @@ class Cita extends Model
         'anticipo'          => 'decimal:2',
         'saldo_favor_usado' => 'decimal:2',
         'expira_en'         => 'datetime',
+        'reagendada_desde'  => 'array',
+        'reagendada_en'     => 'datetime',
     ];
 
     public const ESTADOS = [
@@ -264,6 +271,115 @@ class Cita extends Model
         $vencidas->each->liberar();
 
         return $vencidas->count();
+    }
+
+    /** Dirección de Wompi para terminar de pagar el anticipo, o null si ya no se puede. */
+    public function urlPagoPendiente(): ?string
+    {
+        $pago = $this->pagos()->where('estado', 'PENDING')->latest('id')->first();
+
+        if ($this->estado !== 'pendiente_pago' || !$pago || !$this->expira_en || $this->expira_en->isPast()) {
+            return null;
+        }
+
+        $cliente = $this->cliente;
+
+        return (new \App\Support\Wompi($this->barberia))->urlCheckout(
+            $pago->referencia, $pago->monto_centavos, route('reserva.ver', $this->token), $this->expira_en,
+            ['email' => $cliente->email, 'nombre' => $cliente->nombre, 'telefono' => $cliente->telefono],
+        );
+    }
+
+    // ── Reagendar ────────────────────────────────────────────────────────────
+
+    /** La barbería movió la cita y el cliente todavía no dice si le sirve. */
+    public function getEsperaRespuestaAttribute(): bool
+    {
+        return $this->estado === 'confirmada' && $this->reagendo_respuesta === 'pendiente';
+    }
+
+    /** ¿El cliente puede escoger otra hora? Con tiempo, o cuando la barbería le movió la cita. */
+    public function getClientePuedeReagendarAttribute(): bool
+    {
+        return $this->estado === 'confirmada' && !$this->inicio->isPast()
+            && ($this->espera_respuesta || $this->cancela_a_tiempo);
+    }
+
+    // Duración en minutos (se conserva al moverla)
+    public function getDuracionAttribute(): int
+    {
+        return self::minutos($this->hora_fin) - self::minutos($this->hora_inicio);
+    }
+
+    /**
+     * Mueve la cita a otro día, hora o barbero. Conserva los servicios, el
+     * total y el anticipo pagado. Revisa la disponibilidad dentro de la
+     * transacción para no cruzarla con otra cita.
+     *
+     * @param string $por barberia | cliente
+     * @throws ValidationException
+     */
+    public function reagendar(Barbero $barbero, string $fecha, string $hora, string $por, ?string $motivo = null): void
+    {
+        DB::transaction(function () use ($barbero, $fecha, $hora, $por, $motivo) {
+            $cita = self::lockForUpdate()->findOrFail($this->id);
+
+            if ($cita->estado !== 'confirmada') {
+                throw ValidationException::withMessages(['reagendar' => 'Solo se pueden reagendar citas confirmadas.']);
+            }
+            if ($barbero->barberia_id !== $cita->barberia_id || !$barbero->activo) {
+                throw ValidationException::withMessages(['reagendar' => 'Ese barbero no está disponible.']);
+            }
+
+            $fecha = Carbon::parse($fecha)->toDateString();
+            if ($fecha === $cita->fecha->toDateString() && $hora === $cita->hora_inicio && $barbero->id === $cita->barbero_id) {
+                throw ValidationException::withMessages(['reagendar' => 'Escoge un día u hora distinta a la actual.']);
+            }
+
+            Barbero::whereKey($barbero->id)->lockForUpdate()->first();
+
+            if (!in_array($hora, self::horasDisponibles($barbero, $fecha, $cita->duracion, $cita->id), true)) {
+                throw ValidationException::withMessages([
+                    'reagendar' => "{$barbero->nombre} no tiene libre esa hora. Escoge otra.",
+                ]);
+            }
+
+            $cita->update([
+                // Se guarda la primera hora que tenía, aunque se mueva varias veces
+                'reagendada_desde'   => $cita->reagendada_desde ?? [
+                    'fecha'       => $cita->fecha->toDateString(),
+                    'hora_inicio' => $cita->hora_inicio,
+                    'barbero_id'  => $cita->barbero_id,
+                ],
+                'barbero_id'         => $barbero->id,
+                'fecha'              => $fecha,
+                'hora_inicio'        => $hora,
+                'hora_fin'           => self::hora(self::minutos($hora) + $cita->duracion),
+                'reagendada_por'     => $por,
+                'reagendada_en'      => now(),
+                'reagendo_motivo'    => $motivo ? mb_substr(trim($motivo), 0, 250) : null,
+                // Si la mueve la barbería, el cliente debe decir si le sirve
+                'reagendo_respuesta' => $por === 'barberia' ? 'pendiente' : null,
+            ]);
+        });
+        $this->refresh();
+    }
+
+    /** El cliente acepta la nueva hora que le propuso la barbería. */
+    public function aceptarReagendo(): void
+    {
+        if ($this->espera_respuesta) {
+            $this->update(['reagendo_respuesta' => 'aceptada']);
+        }
+    }
+
+    /**
+     * El cliente cancela. Si la barbería le había movido la cita y no le sirve,
+     * cuenta como cancelación de la barbería (no pierde el anticipo y recibe el descuento).
+     */
+    public function cancelarPorCliente(): string
+    {
+        return $this->cancelar(porCliente: !$this->espera_respuesta);
     }
 
     public function getPendienteAttribute(): bool

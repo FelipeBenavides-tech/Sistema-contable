@@ -8,7 +8,12 @@
         <div class="alert-warning">Tu usuario no está enlazado a un barbero. Pídele al dueño que lo revise en Barberos.</div>
     @else
         @if($exito)
-            <div class="alert-success">{{ $exito }}</div>
+            <div class="alert-success flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <span>{{ $exito }}</span>
+                @if($avisoWhatsapp)
+                    <a href="{{ $avisoWhatsapp }}" target="_blank" rel="noopener" class="btn btn-sm btn-primary shrink-0">Avisar por WhatsApp</a>
+                @endif
+            </div>
         @endif
 
         <div class="card card-pad flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -56,8 +61,14 @@
                             <p class="truncate text-sm">{{ $cita->cliente->nombre }}</p>
                             <p class="truncate text-xs text-muted">{{ $cita->servicios->pluck('nombre')->implode(', ') }}</p>
                             @if($cita->notas)<p class="mt-0.5 truncate text-xs text-amber-800">{{ $cita->notas }}</p>@endif
+                            @include('livewire.partials.badge-reagendada', ['cita' => $cita])
                         </div>
-                        <span class="badge {{ $claseEstado }} shrink-0">{{ $textoEstado }}</span>
+                        <div class="flex shrink-0 flex-col items-end gap-1.5">
+                            <span class="badge {{ $claseEstado }}">{{ $textoEstado }}</span>
+                            @if($cita->estado === 'confirmada')
+                                <button type="button" wire:click="abrirReagendar({{ $cita->id }})" class="btn btn-sm btn-soft">No puedo · Reagendar</button>
+                            @endif
+                        </div>
                     </div>
                 @empty
                     <p class="px-4 py-10 text-center text-sm text-muted">No tienes citas este día.</p>
@@ -82,6 +93,10 @@
             </section>
         </div>
     @endunless
+
+    @if($citaReagendar)
+        @include('livewire.partials.form-reagendar')
+    @endif
 
     @if($mostrarCita)
         @include('livewire.partials.form-cita', ['puedeBuscar' => false, 'barberoFijo' => $barbero?->id])

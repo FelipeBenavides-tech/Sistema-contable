@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Livewire\Concerns\FormularioCita;
+use App\Livewire\Concerns\ReagendarCita;
 use App\Models\Cita;
 use App\Models\Venta;
 use Carbon\Carbon;
@@ -14,7 +15,7 @@ use Livewire\Component;
  */
 class MiAgenda extends Component
 {
-    use FormularioCita;
+    use FormularioCita, ReagendarCita;
 
     public string $fecha = '';
     public string $exito = '';
@@ -43,6 +44,23 @@ class MiAgenda extends Component
         }
 
         $this->fecha = now()->toDateString();
+    }
+
+    protected function citaParaReagendar(int $id): Cita
+    {
+        return Cita::where('barberia_id', $this->barberiaId())
+            ->where('barbero_id', auth()->user()->barbero_id ?? 0)
+            ->findOrFail($id);
+    }
+
+    protected function reagendaQuien(): string
+    {
+        return 'barberia';
+    }
+
+    protected function reagendarBarberoFijo(): ?int
+    {
+        return auth()->user()->barbero_id;
     }
 
     public function irA(string $cuando): void
@@ -98,6 +116,6 @@ class MiAgenda extends Component
             'semana'   => $semana,
             'horario'  => $barbero?->horarioDelDia($dia->dayOfWeek),
             'barberos' => collect(),
-        ] + $this->datosFormularioCita())->layout('layouts.app', ['title' => 'Mi agenda']);
+        ] + $this->datosFormularioCita() + $this->datosReagendar())->layout('layouts.app', ['title' => 'Mi agenda']);
     }
 }

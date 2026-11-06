@@ -4,7 +4,28 @@
 @endphp
 <div class="flex flex-col gap-4">
 
-    <h1 class="text-xl font-semibold text-ink">Reserva tu cita</h1>
+    <div class="flex flex-wrap items-center justify-between gap-2">
+        <h1 class="text-xl font-semibold text-ink">Reserva tu cita</h1>
+        @if($clientePanel)
+            <a href="{{ route('cliente.panel', $clienteToken) }}" class="btn btn-sm btn-soft">← Mis citas</a>
+        @else
+            <button type="button" wire:click="$toggle('mostrarRecuperar')" class="text-sm font-medium text-brand-700 hover:text-brand-900">¿Ya reservaste? Ver mis citas</button>
+        @endif
+    </div>
+
+    @if(!$clientePanel && $mostrarRecuperar)
+        <form wire:submit="enviarEnlace" class="card card-pad flex flex-col gap-3">
+            <p class="text-sm text-muted">Tu enlace de "Mis citas" aparece después de cada reserva. Si lo perdiste, escribe tu celular y te lo enviamos al correo que registraste.</p>
+            @if($recuperarMensaje)
+                <div class="alert-success">{{ $recuperarMensaje }}</div>
+            @endif
+            <div class="flex flex-col gap-2 sm:flex-row">
+                <input type="tel" inputmode="tel" wire:model="recuperarTelefono" placeholder="Tu celular" class="input" aria-label="Tu celular">
+                <button type="submit" class="btn btn-primary shrink-0">Enviar enlace</button>
+            </div>
+            @error('recuperarTelefono')<p class="text-sm text-rose-600">{{ $message }}</p>@enderror
+        </form>
+    @endif
 
     @if($errors->any())
         <div class="alert-error">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>
@@ -73,7 +94,16 @@
     @if($elegidos->isNotEmpty() && $hora)
         {{-- 3. Datos y pago --}}
         <form wire:submit="confirmar" class="card card-pad flex flex-col gap-4">
-            <h2 class="section-title"><span class="text-muted">3.</span> Tus datos</h2>
+            <h2 class="section-title"><span class="text-muted">3.</span> {{ $clientePanel ? 'Confirma y paga' : 'Tus datos' }}</h2>
+            @if($clientePanel)
+                <div class="rounded-lg bg-brand-50 p-3 text-sm ring-1 ring-inset ring-brand-600/15">
+                    <p class="font-semibold text-ink">{{ $clientePanel->nombre }}</p>
+                    <p class="text-xs text-muted">{{ $clientePanel->telefono }}{{ $clientePanel->email ? ' · ' . $clientePanel->email : '' }}</p>
+                    @if((float) $clientePanel->saldo_favor > 0 && $anticipo > 0)
+                        <p class="mt-1 text-xs font-medium text-emerald-700">Tienes {{ $dinero($clientePanel->saldo_favor) }} de saldo a favor: se descuenta del anticipo.</p>
+                    @endif
+                </div>
+            @else
             <div class="grid gap-3 sm:grid-cols-2">
                 <div class="sm:col-span-2">
                     <label class="label" for="nombre">Nombre</label>
@@ -88,6 +118,7 @@
                     <input id="email" wire:model="email" type="email" inputmode="email" autocomplete="email" class="input">
                 </div>
             </div>
+            @endif
 
             {{-- Resumen --}}
             <div class="rounded-xl bg-slate-50 p-4 text-sm">
