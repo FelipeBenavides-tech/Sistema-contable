@@ -1,0 +1,5 @@
+@extends('errors.layout')
+@section('codigo', '419')
+@section('titulo', 'Tu sesión expiró')
+@section('detalle', 'Por seguridad, la sesión se cierra después de un tiempo sin uso. Vuelve a entrar para seguir; lo que ya guardaste no se perdió.')
+@section('boton', 'Volver a entrar')

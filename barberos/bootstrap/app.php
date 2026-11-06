@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\CabecerasSeguridad;
 use App\Http\Middleware\VerificarAdmin;
 use App\Http\Middleware\VerificarBarberia;
 use App\Http\Middleware\VerificarDueno;
@@ -17,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // Wompi no envía token CSRF: sus avisos se validan con la firma del evento
         $middleware->validateCsrfTokens(except: ['webhooks/wompi']);
+        $middleware->append(CabecerasSeguridad::class);
 
         $middleware->alias([
             'barberia' => VerificarBarberia::class,

@@ -106,7 +106,7 @@ class MiBarberia extends Component
     public function updatedLogo(): void
     {
         $this->mensaje = '';
-        $this->validateOnly('logo', ['logo' => 'nullable|image|mimes:png,jpg,jpeg|max:1024']);
+        $this->validateOnly('logo', ['logo' => 'nullable|image|mimes:png,jpg,jpeg|max:1024|dimensions:max_width=2000,max_height=2000']);
     }
 
     public function guardar(): void
@@ -117,7 +117,7 @@ class MiBarberia extends Component
             'propietario' => 'nullable|max:80',
             'telefono'    => 'nullable|max:30',
             'direccion'   => 'nullable|max:120',
-            'logo'        => 'nullable|image|mimes:png,jpg,jpeg|max:1024',
+            'logo'        => 'nullable|image|mimes:png,jpg,jpeg|max:1024|dimensions:max_width=2000,max_height=2000',
         ]);
 
         $barberia = $this->barberia();

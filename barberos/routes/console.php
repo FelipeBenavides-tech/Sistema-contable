@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -14,3 +15,5 @@ Artisan::command('citas:liberar', function () {
 })->purpose('Libera las reservas en línea sin pagar');
 
 \Illuminate\Support\Facades\Schedule::command('citas:liberar')->everyFiveMinutes();
+// Respaldo diario de la base de datos (requiere el cron de Laravel en el hosting)
+Schedule::command('kaixa:respaldo')->dailyAt('03:00');
