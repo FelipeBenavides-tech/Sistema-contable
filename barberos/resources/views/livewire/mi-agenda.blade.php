@@ -5,7 +5,7 @@
 <div class="flex flex-col gap-4">
 
     @unless($barbero)
-        <div class="alert-warning">Tu usuario no está enlazado a un barbero. Pídele al dueño que lo revise en Barberos.</div>
+        <div class="alert-warning">Tu usuario no está enlazado a {{ voc('un_profesional') }}. Pídele al dueño que lo revise en {{ voc('Profesionales') }}.</div>
     @else
         @if($exito)
             <div class="alert-success flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -75,7 +75,8 @@
                 @endforelse
             </section>
 
-            {{-- Lo que lleva del día --}}
+            {{-- Lo que lleva del día (no aplica en solo agendamiento: no hay ventas) --}}
+            @unless(auth()->user()->barberia?->solo_agenda)
             <section class="card overflow-hidden">
                 <div class="border-b border-line px-4 py-3">
                     <h2 class="section-title">Mis servicios del día</h2>
@@ -91,6 +92,7 @@
                     </div>
                 @endforeach
             </section>
+            @endunless
         </div>
     @endunless
 

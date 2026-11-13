@@ -20,7 +20,7 @@
         <div class="kpi"><p class="kpi-label"><span class="kpi-dot bg-emerald-500"></span>Saldo a favor</p><p class="kpi-value {{ (float) $cliente->saldo_favor > 0 ? 'text-emerald-700' : '' }}">{{ $dinero($cliente->saldo_favor) }}</p></div>
     </div>
     @if((float) $cliente->saldo_favor > 0)
-        <p class="-mt-2 text-xs text-muted">Tu saldo a favor se descuenta solo del anticipo de tu próxima reserva y también lo puedes usar al pagar en la barbería.</p>
+        <p class="-mt-2 text-xs text-muted">Tu saldo a favor se descuenta solo del anticipo de tu próxima reserva y también lo puedes usar al pagar {{ voc('en_el_negocio') }}.</p>
     @endif
 
     @if($exito)
@@ -49,7 +49,7 @@
 
                 @if($cita->espera_respuesta)
                     <div class="alert-warning flex flex-col gap-1">
-                        <p class="font-semibold">La barbería no puede atenderte a la hora que habías reservado.</p>
+                        <p class="font-semibold">{{ voc('El_negocio') }} no puede atenderte a la hora que habías reservado.</p>
                         @if($antes)<p>Tenías la cita el {{ $antes->translatedFormat('l j \d\e F') }} a las {{ $antes->format('g:i a') }}. Te la pasamos a la hora de arriba.</p>@endif
                         @if($cita->reagendo_motivo)<p>Motivo: {{ $cita->reagendo_motivo }}</p>@endif
                         <p class="text-xs">Si no te sirve, escoge otra hora o cancela: no pierdes el anticipo y recibes un descuento del {{ $barberia->descuento_cancelacion }}% como saldo a favor.</p>
@@ -84,7 +84,7 @@
                     @endif
                 </div>
                 @if($cita->estado === 'confirmada' && !$cita->cliente_puede_reagendar && !$cita->inicio->isPast())
-                    <p class="text-xs text-muted">Faltan menos de {{ $barberia->horas_cancelacion }} horas: ya no puedes cambiar la hora desde aquí. Escríbele a la barbería si necesitas algo.</p>
+                    <p class="text-xs text-muted">Faltan menos de {{ $barberia->horas_cancelacion }} horas: ya no puedes cambiar la hora desde aquí. Escríbele {{ voc('al_negocio') }} si necesitas algo.</p>
                 @endif
             </article>
         @empty

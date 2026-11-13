@@ -43,29 +43,39 @@ Route::middleware(['auth', 'barberia', 'pro'])->group(function () {
 // ── Panel Barbería (dueño de la barbería) ─────────────────────────────────────
 Route::middleware(['auth', 'barberia', 'dueno'])->group(function () {
     Route::redirect('/', '/pos');
-    Route::get('/pos', PosVenta::class)->name('pos');
-    Route::get('/ventas', HistorialVentas::class)->name('ventas');
+
+    // Caja y contabilidad: no aplican a los negocios de "solo agendamiento"
+    Route::middleware('caja')->group(function () {
+        Route::get('/pos', PosVenta::class)->name('pos');
+        Route::get('/ventas', HistorialVentas::class)->name('ventas');
+        Route::get('/cartera', GestionCartera::class)->name('cartera');
+        Route::get('/membresias', GestionMembresias::class)->name('membresias');
+        Route::get('/inventario', GestionInventario::class)->name('inventario');
+        Route::get('/gastos', GestionGastos::class)->name('gastos');
+        Route::get('/reportes', Reportes::class)->name('reportes');
+
+        // Exportaciones
+        Route::get('/reportes/excel/{mes}/{anio}', [ReporteController::class, 'exportarExcel'])
+            ->where(['mes' => '[1-9]|1[0-2]', 'anio' => '20[0-9]{2}'])
+            ->name('reportes.excel');
+        Route::get('/reportes/pdf/{mes}/{anio}', [ReporteController::class, 'exportarPdf'])
+            ->where(['mes' => '[1-9]|1[0-2]', 'anio' => '20[0-9]{2}'])
+            ->name('reportes.pdf');
+    });
+
     Route::get('/clientes', GestionClientes::class)->name('clientes');
-    Route::get('/cartera', GestionCartera::class)->name('cartera');
-    Route::get('/membresias', GestionMembresias::class)->name('membresias');
-    Route::get('/inventario', GestionInventario::class)->name('inventario');
-    Route::get('/gastos', GestionGastos::class)->name('gastos');
-    Route::get('/reportes', Reportes::class)->name('reportes');
-    Route::get('/barberos', GestionBarberos::class)->name('barberos');
     Route::get('/servicios', GestionServicios::class)->name('servicios');
-    Route::get('/mi-barberia', MiBarberia::class)->name('mi-barberia');
     Route::get('/mi-plan', MiPlan::class)->name('mi-plan');
+
+    // Barbería: "Barberos" y "Mi barbería". Salón y solo agenda: "Profesionales" y "Mi negocio".
+    // Son las mismas pantallas; cambian las palabras y los colores según el tipo de negocio.
+    Route::get('/barberos', GestionBarberos::class)->name('barberos');
+    Route::get('/profesionales', GestionBarberos::class)->name('profesionales');
+    Route::get('/mi-barberia', MiBarberia::class)->name('mi-barberia');
+    Route::get('/mi-negocio', MiBarberia::class)->name('mi-negocio');
 
     // Agenda de citas (plan Pro)
     Route::get('/agenda', GestionAgenda::class)->middleware('pro')->name('agenda');
-
-    // Exportaciones
-    Route::get('/reportes/excel/{mes}/{anio}', [ReporteController::class, 'exportarExcel'])
-        ->where(['mes' => '[1-9]|1[0-2]', 'anio' => '20[0-9]{2}'])
-        ->name('reportes.excel');
-    Route::get('/reportes/pdf/{mes}/{anio}', [ReporteController::class, 'exportarPdf'])
-        ->where(['mes' => '[1-9]|1[0-2]', 'anio' => '20[0-9]{2}'])
-        ->name('reportes.pdf');
 });
 
 require __DIR__ . '/auth.php';

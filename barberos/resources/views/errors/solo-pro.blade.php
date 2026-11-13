@@ -25,7 +25,7 @@
             </p>
 
             @if($esBarbero)
-                <p class="mt-4 text-sm text-slate-600">Pídele al dueño de la barbería que active el plan Pro.</p>
+                <p class="mt-4 text-sm text-slate-600">Pídele al dueño {{ voc('del_negocio') }} que active el plan Pro.</p>
             @else
                 @if($whatsapp)
                     <a href="https://wa.me/{{ $whatsapp }}?text={{ rawurlencode('Hola, quiero pasar a Kaixa Pro para ' . $barberia->nombre) }}"

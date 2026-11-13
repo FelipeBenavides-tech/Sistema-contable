@@ -54,7 +54,7 @@ class LoginRequest extends FormRequest
             Auth::guard('web')->logout();
 
             throw ValidationException::withMessages([
-                'email' => 'Tu acceso está desactivado. Pídele al dueño de la barbería que lo active.',
+                'email' => 'Tu acceso está desactivado. Pídele al dueño del negocio que lo active.',
             ]);
         }
 

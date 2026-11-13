@@ -24,7 +24,7 @@
         @if($cita->espera_respuesta)
             @php $desde = $cita->reagendada_desde ?? []; @endphp
             <div class="alert-warning flex flex-col gap-1">
-                <p class="font-semibold">La barbería no puede atenderte a la hora que habías reservado y te pasó la cita a esta nueva hora.</p>
+                <p class="font-semibold">{{ voc('El_negocio') }} no puede atenderte a la hora que habías reservado y te pasó la cita a esta nueva hora.</p>
                 @if(isset($desde['fecha'], $desde['hora_inicio']))
                     <p>Antes: {{ \Carbon\Carbon::parse($desde['fecha'] . ' ' . $desde['hora_inicio'])->translatedFormat('l j \d\e F \a \l\a\s g:i a') }}.</p>
                 @endif
@@ -53,7 +53,7 @@
                     <span>{{ $dinero($cita->anticipo) }}</span>
                 </div>
                 @if($cita->anticipo_estado === 'pagado')
-                    <div class="flex justify-between gap-2 font-semibold text-brand-700"><span>Pagas en la barbería</span><span>{{ $dinero((float) $cita->total - (float) $cita->anticipo) }}</span></div>
+                    <div class="flex justify-between gap-2 font-semibold text-brand-700"><span>Pagas {{ voc('en_el_negocio') }}</span><span>{{ $dinero((float) $cita->total - (float) $cita->anticipo) }}</span></div>
                 @endif
             @endif
         </div>
@@ -82,7 +82,7 @@
 
         @if((float) $cita->anticipo > 0 && $puedeCancelar)
             <p class="text-xs text-muted">
-                Puedes cancelar hasta {{ $barberia->horas_cancelacion }} horas antes y el anticipo te queda como saldo a favor. Si cancelas después o no llegas, se cobra el anticipo y no tiene devolución. Si la barbería cancela, conservas el anticipo y recibes un descuento del {{ $barberia->descuento_cancelacion }}% del servicio.
+                Puedes cancelar hasta {{ $barberia->horas_cancelacion }} horas antes y el anticipo te queda como saldo a favor. Si cancelas después o no llegas, se cobra el anticipo y no tiene devolución. Si {{ voc('el_negocio') }} cancela, conservas el anticipo y recibes un descuento del {{ $barberia->descuento_cancelacion }}% del servicio.
             </p>
         @endif
     </section>

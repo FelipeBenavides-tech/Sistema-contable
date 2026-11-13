@@ -4,12 +4,16 @@ namespace App\Livewire;
 
 use App\Models\Barbero;
 use App\Models\User;
+use App\Support\Negocio;
 use Illuminate\Validation\Rule;
 use Livewire\Component;
 
 class GestionBarberos extends Component
 {
     public string $nombre = '';
+    // Salón y solo agenda: estilista, manicurista u otra (texto libre)
+    public string $especialidad = '';
+    public string $especialidadOtra = '';
     public string $telefono = '';
     public float $comision_porcentaje = 50;
     public bool $activo = true;
@@ -30,7 +34,7 @@ class GestionBarberos extends Component
     {
         $this->resetErrorBag();
         $this->aviso = '';
-        $this->reset(['nombre', 'telefono', 'comision_porcentaje', 'activo', 'editandoId']);
+        $this->reset(['nombre', 'especialidad', 'especialidadOtra', 'telefono', 'comision_porcentaje', 'activo', 'editandoId']);
         $this->mostrarForm = true;
     }
 
@@ -41,6 +45,9 @@ class GestionBarberos extends Component
         $barbero = Barbero::where('barberia_id', $this->barberiaId())->findOrFail($id);
         $this->editandoId          = $id;
         $this->nombre              = $barbero->nombre;
+        $this->especialidad        = $barbero->especialidad === null ? ''
+            : (in_array($barbero->especialidad, Negocio::ESPECIALIDADES) ? $barbero->especialidad : 'otra');
+        $this->especialidadOtra    = $this->especialidad === 'otra' ? $barbero->especialidad : '';
         $this->telefono            = $barbero->telefono ?? '';
         $this->comision_porcentaje = (float) $barbero->comision_porcentaje;
         $this->activo              = (bool) $barbero->activo;
@@ -49,16 +56,29 @@ class GestionBarberos extends Component
 
     public function guardar(): void
     {
+        $usaEspecialidad = $this->usaEspecialidad();
+
         $this->validate([
             'nombre'              => 'required|min:2',
             'comision_porcentaje' => 'required|numeric|min:0|max:100',
+            'especialidad'        => $usaEspecialidad ? 'required|in:otra,' . implode(',', Negocio::ESPECIALIDADES) : 'nullable',
+            'especialidadOtra'    => $usaEspecialidad && $this->especialidad === 'otra' ? 'required|min:3|max:60' : 'nullable',
+        ], [
+            'especialidad.required'     => 'Escoge la especialidad.',
+            'especialidadOtra.required' => 'Escribe cuál es la especialidad (por ejemplo: maquilladora, cosmetóloga).',
+        ], [
+            'especialidadOtra' => 'especialidad',
         ]);
+
+        $especialidad = !$usaEspecialidad ? null
+            : ($this->especialidad === 'otra' ? ucfirst(trim($this->especialidadOtra)) : $this->especialidad);
 
         if ($this->editandoId) {
             Barbero::where('barberia_id', $this->barberiaId())
                 ->findOrFail($this->editandoId)
                 ->update([
                     'nombre'              => $this->nombre,
+                    'especialidad'        => $especialidad,
                     'telefono'            => $this->telefono,
                     'comision_porcentaje' => $this->comision_porcentaje,
                     'activo'              => $this->activo,
@@ -67,14 +87,21 @@ class GestionBarberos extends Component
             Barbero::create([
                 'barberia_id'         => $this->barberiaId(),
                 'nombre'              => $this->nombre,
+                'especialidad'        => $especialidad,
                 'telefono'            => $this->telefono,
                 'comision_porcentaje' => $this->comision_porcentaje,
                 'activo'              => true,
             ]);
         }
 
-        $this->reset(['nombre', 'telefono', 'comision_porcentaje', 'editandoId']);
+        $this->reset(['nombre', 'especialidad', 'especialidadOtra', 'telefono', 'comision_porcentaje', 'editandoId']);
         $this->mostrarForm = false;
+    }
+
+    // Los salones y los negocios de solo agenda registran la especialidad de cada profesional
+    private function usaEspecialidad(): bool
+    {
+        return Negocio::tipo() !== 'barberia';
     }
 
     public string $aviso = '';
@@ -100,7 +127,7 @@ class GestionBarberos extends Component
         $barbero = Barbero::where('barberia_id', $this->barberiaId())->findOrFail($id);
         $barbero->update(['activo' => !$barbero->activo]);
         $this->aviso = $barbero->user
-            ? ($barbero->activo ? "{$barbero->nombre} puede volver a entrar a su agenda." : "{$barbero->nombre} quedó desactivado y ya no puede entrar a su agenda.")
+            ? ($barbero->activo ? "{$barbero->nombre} puede volver a entrar a su agenda." : "{$barbero->nombre} quedó " . (voc('profesional') === 'barbero' ? 'desactivado' : 'sin acceso') . " y ya no puede entrar a su agenda.")
             : '';
     }
 
@@ -181,7 +208,7 @@ class GestionBarberos extends Component
     {
         $this->resetErrorBag();
         $this->aviso = '';
-        $this->reset(['nombre', 'telefono', 'comision_porcentaje', 'editandoId']);
+        $this->reset(['nombre', 'especialidad', 'especialidadOtra', 'telefono', 'comision_porcentaje', 'editandoId']);
         $this->mostrarForm = false;
     }
 
@@ -196,6 +223,9 @@ class GestionBarberos extends Component
             'barberos'     => $barberos,
             'esPro'        => $this->esPro(),
             'barberoAcceso' => $this->accesoBarberoId ? $barberos->firstWhere('id', $this->accesoBarberoId) : null,
-        ])->layout('layouts.app', ['title' => 'Barberos']);
+            'usaEspecialidad' => $this->usaEspecialidad(),
+            'soloAgenda'    => (bool) auth()->user()->barberia?->solo_agenda,
+            'especialidades' => Negocio::ESPECIALIDADES,
+        ])->layout('layouts.app', ['title' => voc('Profesionales')]);
     }
 }

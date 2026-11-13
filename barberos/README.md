@@ -31,6 +31,24 @@ teléfono se puede "Agregar a la pantalla de inicio" para abrirla como una app.
 - **Panel de administrador** (`/admin`) para crear barberías, sus usuarios, registrar sus pagos y recargas.
   No hay registro público: las cuentas las crea el administrador.
 
+## Tipos de negocio
+
+Al crear un negocio en `/admin` se escoge el **Tipo de negocio**:
+
+- **Barbería**: el sistema de siempre (barberos, "Mi barbería", colores azul marino).
+- **Salón de belleza**: apartado propio con **paleta pastel** (rosa empolvado y lavanda). En todas las pantallas, la página
+  de reservas, los mensajes y el PDF dice **profesional** en lugar de barbero. "Agregar profesional" pide la
+  **especialidad**: estilista, manicurista u otra (se escribe, por ejemplo maquilladora o cosmetóloga), y se ve en la agenda,
+  en la caja y al reservar.
+- **Solo agendamiento de citas**: agenda, reservas en línea, clientes, profesionales y servicios. No tiene caja, ventas,
+  cartera, membresías, inventario, gastos ni reportes; la cita se marca **Atendida** desde la agenda. Va siempre en nivel Pro
+  (la agenda es del nivel Pro) y no admite el plan por uso, porque no registra ventas.
+
+Las palabras de cada tipo están en `app/Support/Negocio.php` y en las vistas se usan con `voc('profesional')`,
+`voc('mi_negocio')`, etc. Los colores salen de variables CSS en `resources/css/app.css` (`[data-tema="salon"]`).
+Para probarlo en local: `php artisan db:seed --class=DemoSalonSeeder` crea un salón (`salon@kaixa.local`) y un negocio de
+solo agenda (`agenda@kaixa.local`), ambos con la contraseña `demo12345`.
+
 ## Planes de Kaixa
 
 Cada plan viene en dos niveles: **Base** (todo el sistema) y **Pro** (Base + agenda de citas y usuarios para barberos).

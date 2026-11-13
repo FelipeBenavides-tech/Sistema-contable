@@ -23,13 +23,13 @@ class VerificarBarberia
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('login')->withErrors(['email' => 'Tu acceso está desactivado. Pídele al dueño de la barbería que lo active.']);
+            return redirect()->route('login')->withErrors(['email' => 'Tu acceso está desactivado. Pídele al dueño del negocio que lo active.']);
         }
 
         if ($user && !$user->tieneBarberia()) {
             return response()->view('errors.sin-barberia', [
                 'tipo'    => 'sin_asignar',
-                'mensaje' => 'Tu cuenta no tiene una barbería asignada.',
+                'mensaje' => 'Tu cuenta no tiene un negocio asignado.',
             ], 403);
         }
 

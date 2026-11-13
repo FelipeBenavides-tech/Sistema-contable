@@ -22,7 +22,7 @@ return [
         ],
         'pro' => [
             'nombre'      => 'Pro',
-            'descripcion' => 'Todo lo del plan Base más la agenda de citas, horarios y usuarios para que cada barbero vea su agenda.',
+            'descripcion' => 'Todo lo del plan Base más la agenda de citas, horarios y usuarios para que cada barbero o profesional vea su agenda.',
         ],
     ],
 

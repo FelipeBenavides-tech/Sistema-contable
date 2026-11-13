@@ -54,11 +54,11 @@
         {{-- Barbero --}}
         @if(empty($barberoFijo))
             <div>
-                <label class="label" for="citaBarbero">Barbero *</label>
+                <label class="label" for="citaBarbero">{{ voc('Profesional') }} *</label>
                 <select id="citaBarbero" wire:model.live="citaBarberoId" class="input">
                     <option value="0">Seleccionar…</option>
                     @foreach($barberos as $b)
-                        <option value="{{ $b->id }}">{{ $b->nombre }}</option>
+                        <option value="{{ $b->id }}">{{ $b->nombre_completo }}</option>
                     @endforeach
                 </select>
             </div>
@@ -92,7 +92,7 @@
             <div>
                 <label class="label" for="citaHora">Hora *</label>
                 <select id="citaHora" wire:model="citaHora" class="input" @disabled(!$duracionCita || !$citaBarberoId)>
-                    <option value="">{{ !$citaBarberoId || !$duracionCita ? 'Escoge barbero y servicios' : (empty($horasLibres) ? 'Sin horas libres ese día' : 'Seleccionar…') }}</option>
+                    <option value="">{{ !$citaBarberoId || !$duracionCita ? 'Escoge ' . voc('profesional') . ' y servicios' : (empty($horasLibres) ? 'Sin horas libres ese día' : 'Seleccionar…') }}</option>
                     @foreach($horasLibres as $h)
                         <option value="{{ $h }}">{{ \Carbon\Carbon::createFromFormat('H:i', $h)->format('g:i a') }}</option>
                     @endforeach

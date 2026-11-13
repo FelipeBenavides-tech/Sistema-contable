@@ -49,7 +49,7 @@
                     </span>
                 </button>
             @empty
-                <p class="text-sm text-muted">Esta barbería aún no tiene servicios para reservar.</p>
+                <p class="text-sm text-muted">{{ voc('Este_negocio') }} aún no tiene servicios para reservar.</p>
             @endforelse
         </div>
     </section>
@@ -60,11 +60,11 @@
             <h2 class="section-title"><span class="text-muted">2.</span> ¿Con quién y cuándo?</h2>
             <div class="grid gap-3 sm:grid-cols-2">
                 <div>
-                    <label class="label" for="barbero">Barbero</label>
+                    <label class="label" for="barbero">{{ voc('Profesional') }}</label>
                     <select id="barbero" wire:model.live="barberoId" class="input">
-                        <option value="0">El que esté libre</option>
+                        <option value="0">{{ voc('profesional') === 'barbero' ? 'El que esté libre' : 'Quien esté libre' }}</option>
                         @foreach($barberos as $b)
-                            <option value="{{ $b->id }}">{{ $b->nombre }}</option>
+                            <option value="{{ $b->id }}">{{ $b->nombre_completo }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -76,7 +76,7 @@
             <div>
                 <p class="label">Hora</p>
                 @if(empty($horas))
-                    <p class="rounded-lg bg-slate-50 p-3 text-sm text-muted">No hay horas libres ese día. Prueba con otro día u otro barbero.</p>
+                    <p class="rounded-lg bg-slate-50 p-3 text-sm text-muted">No hay horas libres ese día. Prueba con otro día u otro {{ voc('profesional') }}.</p>
                 @else
                     <div class="grid grid-cols-3 gap-2 sm:grid-cols-5">
                         @foreach($horas as $h)
@@ -131,7 +131,7 @@
                 </p>
                 @if($anticipo > 0)
                     <div class="mt-3 flex justify-between gap-2 rounded-lg bg-white p-3 ring-1 ring-inset ring-brand-600/20">
-                        <span><span class="font-semibold text-ink">Pagas ahora</span><span class="block text-xs text-muted">Anticipo del {{ $barberia->anticipo_porcentaje }}%. El resto lo pagas en la barbería.</span></span>
+                        <span><span class="font-semibold text-ink">Pagas ahora</span><span class="block text-xs text-muted">Anticipo del {{ $barberia->anticipo_porcentaje }}%. El resto lo pagas {{ voc('en_el_negocio') }}.</span></span>
                         <span class="text-lg font-semibold text-brand-700">{{ $dinero($anticipo) }}</span>
                     </div>
                 @endif
@@ -145,7 +145,7 @@
                         <span class="mt-1 block text-xs text-muted">
                             Puedes cancelar hasta {{ $barberia->horas_cancelacion }} horas antes y el anticipo te queda como saldo a favor para tu próxima cita.
                             Si cancelas después o no llegas, se cobra el anticipo y no tiene devolución.
-                            Si la barbería cancela, conservas el anticipo y recibes un descuento del {{ $barberia->descuento_cancelacion }}% del servicio.
+                            Si {{ voc('el_negocio') }} cancela, conservas el anticipo y recibes un descuento del {{ $barberia->descuento_cancelacion }}% del servicio.
                         </span>
                     @endif
                 </span>

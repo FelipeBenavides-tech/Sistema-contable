@@ -13,6 +13,7 @@ class Barberia extends Model
 {
     protected $fillable = [
         'nombre',
+        'tipo_negocio',
         'nit',
         'propietario',
         'telefono',
@@ -60,6 +61,29 @@ class Barberia extends Model
     public const PLANES = ['mensual', 'semestral', 'anual', 'porcentaje'];
 
     public const NIVELES = ['base', 'pro'];
+
+    // ── Tipo de negocio ───────────────────────────────────────────────────────
+
+    public function getEsSalonAttribute(): bool
+    {
+        return $this->tipo_negocio === 'salon';
+    }
+
+    // Solo agendamiento de citas: sin caja, ventas, inventario ni reportes
+    public function getSoloAgendaAttribute(): bool
+    {
+        return $this->tipo_negocio === 'agenda';
+    }
+
+    public function getTieneCajaAttribute(): bool
+    {
+        return !$this->solo_agenda;
+    }
+
+    public function getNombreTipoAttribute(): string
+    {
+        return \App\Support\Negocio::TIPOS[$this->tipo_negocio] ?? \App\Support\Negocio::TIPOS['barberia'];
+    }
 
     public function users(): HasMany
     {

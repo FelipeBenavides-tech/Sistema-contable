@@ -1,6 +1,7 @@
-{{-- Páginas públicas de una barbería (reservas en línea). Sin menú ni sesión. --}}
+{{-- Páginas públicas de un negocio (reservas en línea). Sin menú ni sesión. --}}
+@php(\App\Support\Negocio::usar($barberia))
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-tema="{{ \App\Support\Negocio::tema($barberia) }}">
 <head>
     @include('partials.head')
     <title>{{ $title ?? 'Reservar' }} · {{ $barberia->nombre }}</title>
@@ -10,11 +11,11 @@
 <body class="min-h-screen">
     <header class="border-b border-line bg-white">
         <div class="mx-auto flex w-full max-w-3xl items-center gap-3 px-4 py-4">
-            <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-brand-900">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl {{ $barberia->es_salon ? 'bg-gradient-to-br from-brand-200 to-accent-400' : 'bg-brand-900' }}">
                 @if($logo = $barberia->logoDataUri())
                     <img src="{{ $logo }}" alt="" class="h-full w-full bg-white object-contain">
                 @else
-                    <span class="font-semibold text-accent-500">{{ $barberia->iniciales }}</span>
+                    <span class="font-semibold {{ $barberia->es_salon ? 'text-white' : 'text-accent-500' }}">{{ $barberia->iniciales }}</span>
                 @endif
             </div>
             <div class="min-w-0">

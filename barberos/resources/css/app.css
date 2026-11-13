@@ -9,6 +9,28 @@
  * Se diseñan primero para teléfono y luego se amplían en pantallas grandes.
  */
 @layer base {
+    /*
+     * Paleta de marca (canales RGB). La barbería usa la clásica;
+     * el salón de belleza (data-tema="salon") usa tonos pastel.
+     */
+    :root {
+        --brand-50: 243 245 249;  --brand-100: 228 233 242; --brand-200: 201 211 229;
+        --brand-300: 161 177 207; --brand-400: 111 134 178; --brand-500: 74 99 150;
+        --brand-600: 59 82 127;   --brand-700: 47 66 103;   --brand-800: 37 52 83;
+        --brand-900: 24 35 58;
+        --accent-100: 245 238 220; --accent-400: 210 181 110; --accent-500: 194 161 90;
+        --fondo: 246 247 249;
+    }
+    [data-tema="salon"] {
+        /* Rosa empolvado con lavanda y fondo color crema rosado */
+        --brand-50: 253 244 247;  --brand-100: 251 231 239; --brand-200: 246 207 223;
+        --brand-300: 238 173 198; --brand-400: 222 135 168; --brand-500: 201 107 143;
+        --brand-600: 176 88 120;  --brand-700: 150 74 102;  --brand-800: 122 61 84;
+        --brand-900: 92 46 64;
+        --accent-100: 239 233 251; --accent-400: 185 165 232; --accent-500: 160 138 217;
+        --fondo: 251 247 249;
+    }
+
     html { -webkit-tap-highlight-color: transparent; }
     body {
         @apply bg-fondo font-sans text-ink antialiased;
@@ -92,4 +114,15 @@
     .segmentado { @apply inline-flex gap-1 rounded-lg bg-slate-100 p-1; }
     .segmento { @apply inline-flex min-h-[36px] flex-1 items-center justify-center whitespace-nowrap rounded-md px-3 text-sm font-medium text-muted transition-colors hover:text-ink; }
     .segmento-activo { @apply bg-white text-ink shadow-sm ring-1 ring-slate-200; }
+
+    /* Salón de belleza: tarjetas más redondeadas y detalles en tonos pastel */
+    [data-tema="salon"] .card { @apply rounded-2xl border-brand-100; }
+    [data-tema="salon"] .btn { @apply rounded-xl; }
+    [data-tema="salon"] .input { @apply rounded-xl border-brand-200; }
+    [data-tema="salon"] .tabla-head { @apply border-brand-100 bg-brand-50 text-brand-800/70; }
+    [data-tema="salon"] .tabla-row { @apply border-brand-50 md:hover:bg-brand-50/50; }
+    [data-tema="salon"] .segmentado { @apply bg-brand-50; }
+    [data-tema="salon"] .segmento-activo { @apply text-brand-800 ring-brand-200; }
+    [data-tema="salon"] .modal-panel { @apply sm:rounded-2xl; }
+    [data-tema="salon"] .modal-fondo { background-color: rgb(var(--brand-900) / 0.25); }
 }

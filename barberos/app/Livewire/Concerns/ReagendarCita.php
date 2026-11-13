@@ -98,7 +98,7 @@ trait ReagendarCita
         $barbero = $this->barberoReagendar($cita);
 
         if (!$barbero || !$this->fechaReagendarValida()) {
-            $this->addError('reagendar', 'Escoge un barbero y una fecha válida.');
+            $this->addError('reagendar', 'Escoge ' . voc('un_profesional') . ' y una fecha válida.');
             return;
         }
 

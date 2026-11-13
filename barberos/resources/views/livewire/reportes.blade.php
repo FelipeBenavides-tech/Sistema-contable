@@ -74,7 +74,7 @@
 
         {{-- Comisiones --}}
         <div class="card card-pad">
-            <p class="section-title mb-3">Comisiones por barbero</p>
+            <p class="section-title mb-3">Comisiones por {{ voc('profesional') }}</p>
             @forelse($comisionesBarberos as $b)
                 <div class="flex items-center justify-between gap-3 border-b border-line py-2.5 last:border-b-0">
                     <div class="min-w-0">
@@ -87,7 +87,7 @@
                     </div>
                 </div>
             @empty
-                <p class="py-6 text-center text-sm text-muted">Sin ventas con barbero este mes.</p>
+                <p class="py-6 text-center text-sm text-muted">Sin ventas con {{ voc('profesional') }} este mes.</p>
             @endforelse
         </div>
     </div>

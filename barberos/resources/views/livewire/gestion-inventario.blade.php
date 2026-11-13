@@ -103,7 +103,7 @@
                     </div>
                 </div>
                 @if($categoria === 'venta')
-                    <p class="text-xs text-muted">Aparece en la caja si tiene precio de venta. No genera comisión al barbero.</p>
+                    <p class="text-xs text-muted">Aparece en la caja si tiene precio de venta. No genera comisión {{ voc('profesional') === 'barbero' ? 'al barbero' : 'al profesional' }}.</p>
                 @endif
 
                 <div class="grid grid-cols-2 gap-2 sm:flex sm:justify-end">

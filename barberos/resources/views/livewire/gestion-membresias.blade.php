@@ -287,7 +287,7 @@
                         <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-3 py-2.5 text-sm last:border-b-0 {{ $uso->venta?->fue_eliminada ? 'opacity-50 line-through' : '' }}">
                             <div class="min-w-0">
                                 <p class="truncate font-medium">{{ $uso->nombre_servicio }}{{ $uso->cantidad > 1 ? ' ×' . $uso->cantidad : '' }}</p>
-                                <p class="text-xs text-muted">{{ $uso->venta?->barbero?->nombre ?? 'Sin barbero' }}</p>
+                                <p class="text-xs text-muted">{{ $uso->venta?->barbero?->nombre ?? 'Sin ' . voc('profesional') }}</p>
                             </div>
                             <span class="shrink-0 text-xs text-muted">{{ $uso->created_at->format('d/m/Y h:i a') }}</span>
                         </div>

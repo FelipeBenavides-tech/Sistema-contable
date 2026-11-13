@@ -19,11 +19,11 @@
             </div>
 
             <div class="relative max-w-md">
-                <h2 class="text-3xl font-semibold leading-tight tracking-tight">La caja de tu barbería, clara y en orden.</h2>
+                <h2 class="text-3xl font-semibold leading-tight tracking-tight">La caja y la agenda de tu negocio, claras y en orden.</h2>
                 <ul class="mt-8 space-y-4 text-sm text-slate-300">
                     @foreach([
                         'Ventas del día en efectivo y Nequi, al instante.',
-                        'Comisiones de cada barbero calculadas solas.',
+                        'Comisiones de cada barbero o profesional calculadas solas.',
                         'Inventario, gastos y reportes en Excel o PDF.',
                     ] as $punto)
                         <li class="flex items-start gap-3">
@@ -56,9 +56,9 @@
                     ];
                     $ayudas = [
                         'cliente' => 'Ver, cambiar o cancelar tus citas',
-                        'barbero' => 'Tu agenda del día',
-                        'negocio' => 'Caja, ventas y reportes de tu barbería',
-                        'admin'   => 'Barberías y suscripciones',
+                        'barbero' => 'Barbero, estilista o manicurista: tu agenda',
+                        'negocio' => 'Barbería, salón de belleza o agenda',
+                        'admin'   => 'Negocios y suscripciones',
                     ];
                 @endphp
 
@@ -126,7 +126,7 @@
                     @else
                         <p class="mt-4 text-sm text-muted">
                             @if($como === 'barbero')
-                                Entra con el correo que te dio el dueño de la barbería.
+                                Entra con el correo que te dio el dueño del negocio.
                             @elseif($como === 'admin')
                                 Acceso solo para el administrador del sistema.
                             @else

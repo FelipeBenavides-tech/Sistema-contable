@@ -19,7 +19,7 @@ class AuthenticatedSessionController extends Controller
     /** Tipos de ingreso que muestra el login, con su nombre para pantalla. */
     public const TIPOS = [
         'cliente' => 'Cliente',
-        'barbero' => 'Barbero',
+        'barbero' => 'Profesional',
         'negocio' => 'Negocio',
         'admin'   => 'Administrador del sistema',
     ];
@@ -113,7 +113,7 @@ class AuthenticatedSessionController extends Controller
 
         // Mismo mensaje siempre, para no revelar quién está registrado
         return redirect()->route('login', ['como' => 'cliente'])
-            ->with('status', 'Si tus datos están registrados en una barbería, te enviamos al correo el enlace de tus citas. Si no te llega, escríbele a tu barbería.');
+            ->with('status', 'Si tus datos están registrados en un negocio, te enviamos al correo el enlace de tus citas. Si no te llega, escríbele al negocio.');
     }
 
     /** Qué panel le corresponde a una cuenta. */

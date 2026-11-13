@@ -52,7 +52,7 @@
         <div class="tabla-head md:grid-cols-[70px_1fr_140px_120px_110px_190px]">
             <span>#</span>
             <span>Detalle</span>
-            <span>Barbero</span>
+            <span>{{ voc('Profesional') }}</span>
             <span>Pago</span>
             <span class="text-right">Total</span>
             <span class="text-right">Acciones</span>
@@ -135,7 +135,7 @@
                     </div>
                     <div class="grid grid-cols-3 gap-3 text-sm">
                         <div>
-                            <p class="text-xs text-muted">Barbero</p>
+                            <p class="text-xs text-muted">{{ voc('Profesional') }}</p>
                             <p class="font-semibold">{{ $auditoriaData['venta']['barbero'] }}</p>
                         </div>
                         <div>
@@ -260,9 +260,9 @@
 
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div>
-                        <label class="label" for="edit-barbero">Barbero</label>
+                        <label class="label" for="edit-barbero">{{ voc('Profesional') }}</label>
                         <select id="edit-barbero" wire:model="editBarberoId" class="input">
-                            <option value="0">Sin barbero (venta directa)</option>
+                            <option value="0">Sin {{ voc('profesional') }} (venta directa)</option>
                             @foreach($barberos as $b)
                                 <option value="{{ $b->id }}">{{ $b->nombre }}</option>
                             @endforeach
