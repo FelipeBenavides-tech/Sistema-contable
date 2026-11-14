@@ -52,7 +52,7 @@ class PanelAdmin extends Component
     {
         return (float) ($plan === 'porcentaje'
             ? config('suscripcion.porcentaje.primera_recarga_minima')
-            : Barberia::precioDe($plan, $nivel));
+            : Barberia::precioDe($plan, $nivel, $this->tipoNegocio));
     }
 
     public function updatedPlan(): void
@@ -409,9 +409,7 @@ class PanelAdmin extends Component
         return view('livewire.admin.panel-admin', [
             'barberias' => $barberias,
             'stats'     => $stats,
-            'opciones'  => collect(PlanesKaixa::opciones($this->nivel))
-                ->when($this->tipoNegocio === 'agenda', fn($o) => $o->except('porcentaje'))
-                ->all(),
+            'opciones'  => PlanesKaixa::opciones($this->nivel, $this->tipoNegocio),
             'tipos'     => Negocio::TIPOS,
             'pagoDe'    => $this->pagoBarberiaId ? $barberias->firstWhere('id', $this->pagoBarberiaId) : null,
         ])->layout('layouts.admin', ['title' => 'Panel de Administración']);

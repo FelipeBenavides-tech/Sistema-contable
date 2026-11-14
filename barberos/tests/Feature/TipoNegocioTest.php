@@ -66,6 +66,41 @@ class TipoNegocioTest extends TestCase
         $this->assertSame('pro', $negocio->nivel);
     }
 
+    public function test_solo_agendamiento_cuesta_80000_al_mes(): void
+    {
+        $panel = Livewire::actingAs($this->crearAdmin())->test(PanelAdmin::class)
+            ->call('nuevo')
+            ->set('tipoNegocio', 'agenda')
+            ->assertSet('valorPago', 80000.0)
+            ->assertSee('$80.000/mes');
+
+        $panel->set('nombre', 'Consultorio')
+            ->set('email', 'agenda80@example.com')
+            ->set('password', 'clave12345')
+            ->call('guardar')
+            ->assertHasNoErrors();
+
+        $negocio = Barberia::where('nombre', 'Consultorio')->firstOrFail();
+        $this->assertSame(80000.0, $negocio->precio_plan);
+        $this->assertSame('Mensual Agenda', $negocio->nombre_plan);
+        $this->assertSame(740000.0, Barberia::precioDe('anual', 'pro', 'agenda'));
+
+        // Las barberías y salones conservan sus precios
+        $this->assertSame(180000.0, Barberia::precioDe('mensual', 'pro', 'salon'));
+        $this->assertSame(130000.0, Barberia::precioDe('mensual', 'base', 'barberia'));
+    }
+
+    public function test_mi_plan_de_solo_agendamiento_muestra_su_precio(): void
+    {
+        $usuario = $this->crearUsuario($this->crearNegocio('agenda'));
+
+        $this->actingAs($usuario)->get('/mi-plan')
+            ->assertOk()
+            ->assertSee('$80.000')
+            ->assertDontSee('$180.000')
+            ->assertDontSee('Nivel del plan');
+    }
+
     public function test_el_salon_usa_profesionales_y_paleta_pastel(): void
     {
         $usuario = $this->crearUsuario($this->crearNegocio('salon'));

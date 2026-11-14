@@ -147,7 +147,7 @@
                     @if($tipoNegocio === 'agenda')
                     <div class="sm:col-span-2">
                         <label class="label">Nivel</label>
-                        <p class="rounded-lg bg-slate-50 px-3 py-2.5 text-sm text-muted ring-1 ring-inset ring-slate-200"><span class="font-medium text-ink">Pro</span> · la agenda de citas es del nivel Pro.</p>
+                        <p class="rounded-lg bg-slate-50 px-3 py-2.5 text-sm text-muted ring-1 ring-inset ring-slate-200"><span class="font-medium text-ink">Agenda</span> · precio propio de solo agendamiento ({{ $dinero(config('suscripcion.planes.mensual.precio_agenda')) }} al mes), con la agenda, las reservas en línea y los usuarios para profesionales.</p>
                     </div>
                     @else
                     <div class="sm:col-span-2">

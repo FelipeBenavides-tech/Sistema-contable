@@ -72,7 +72,11 @@
 
         <div class="mt-4 flex flex-col gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
             <p class="text-sm text-muted">
+                @if($barberia->solo_agenda)
+                    Tus pagos quedan en el historial de abajo.
+                @else
                 Cada pago {{ $barberia->por_uso ? 'o recarga ' : '' }}se anota solo en tus <a href="{{ route('gastos') }}" class="font-medium text-brand-700 hover:underline">Gastos</a>, en la categoría "Suscripción Kaixa".
+                @endif
             </p>
             @if($whatsapp)
                 <a href="https://wa.me/{{ $whatsapp }}?text={{ $mensajePago }}" target="_blank" rel="noopener" class="btn btn-primary shrink-0">
@@ -84,7 +88,8 @@
         </div>
     </section>
 
-    {{-- Base o Pro --}}
+    {{-- Base o Pro (solo agendamiento tiene un único nivel con precio propio) --}}
+    @unless($barberia->solo_agenda)
     <section>
         <h2 class="section-title mb-3">Nivel del plan</h2>
         <div class="grid gap-3 sm:grid-cols-2">
@@ -103,35 +108,40 @@
             <p class="mt-2 text-sm text-muted">¿Quieres la agenda de citas? Pide el cambio a Pro a soporte de Kaixa.</p>
         @endunless
     </section>
+    @endunless
 
     {{-- Planes disponibles --}}
     <section>
         <h2 class="section-title mb-3">Planes de Kaixa</h2>
-        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="grid gap-3 sm:grid-cols-2 {{ $barberia->solo_agenda ? 'xl:grid-cols-3' : 'xl:grid-cols-4' }}">
             @foreach($planes as $clave => $plan)
                 @php
                     $actual = $barberia->plan === $clave;
                     $pro = $barberia->es_pro;
-                    $precio = $pro ? $plan['precio_pro'] : $plan['precio'];
-                    $precioMes = $pro ? $plan['precio_mes_pro'] : $plan['precio_mes'];
-                    $ahorro = $pro ? $plan['ahorro_pro'] : $plan['ahorro'];
+                    $agenda = $barberia->solo_agenda;
+                    $precio = $agenda ? $plan['precio_agenda'] : ($pro ? $plan['precio_pro'] : $plan['precio']);
+                    $precioMes = $agenda ? $plan['precio_mes_agenda'] : ($pro ? $plan['precio_mes_pro'] : $plan['precio_mes']);
+                    $ahorro = $agenda ? $plan['ahorro_agenda'] : ($pro ? $plan['ahorro_pro'] : $plan['ahorro']);
+                    $ahorroPorcentaje = $agenda ? $plan['ahorro_porcentaje_agenda'] : $plan['ahorro_porcentaje'];
                 @endphp
                 <div class="card card-pad relative flex flex-col {{ $actual ? 'ring-2 ring-brand-600' : '' }}">
                     <div class="flex items-center justify-between gap-2">
                         <p class="font-semibold text-ink">{{ $plan['nombre'] }}</p>
                         @if($actual)
                             <span class="badge badge-blue">Tu plan</span>
-                        @elseif($plan['ahorro_porcentaje'] > 0)
-                            <span class="badge badge-green">Ahorra {{ $plan['ahorro_porcentaje'] }}%</span>
+                        @elseif($ahorroPorcentaje > 0)
+                            <span class="badge badge-green">Ahorra {{ $ahorroPorcentaje }}%</span>
                         @endif
                     </div>
                     <p class="mt-3 text-2xl font-semibold tracking-tight text-ink">{{ $dinero($precio) }}</p>
                     <p class="text-xs text-muted">
                         {{ $plan['meses'] === 1 ? 'cada mes' : "por {$plan['meses']} meses · " . $dinero($precioMes) . ' al mes' }}
                     </p>
-                    <p class="mt-1 text-xs text-muted">{{ $pro ? 'Base' : 'Pro' }}: {{ $dinero($pro ? $plan['precio'] : $plan['precio_pro']) }}</p>
+                    @unless($agenda)
+                        <p class="mt-1 text-xs text-muted">{{ $pro ? 'Base' : 'Pro' }}: {{ $dinero($pro ? $plan['precio'] : $plan['precio_pro']) }}</p>
+                    @endunless
                     <ul class="mt-4 flex flex-1 flex-col gap-1.5 text-sm text-slate-600">
-                        <li>Ventas y servicios ilimitados</li>
+                        <li>{{ $agenda ? 'Citas y reservas en línea ilimitadas' : 'Ventas y servicios ilimitados' }}</li>
                         @if($ahorro > 0)
                             <li class="font-medium text-emerald-700">Ahorras {{ $dinero($ahorro) }} frente al mensual</li>
                         @endif
@@ -144,6 +154,7 @@
                 </div>
             @endforeach
 
+            @unless($barberia->solo_agenda)
             @php $actual = $barberia->por_uso; @endphp
             <div class="card card-pad relative flex flex-col {{ $actual ? 'ring-2 ring-brand-600' : '' }}">
                 <div class="flex items-center justify-between gap-2">
@@ -160,6 +171,7 @@
                     <li>Contrato mínimo de {{ config('suscripcion.contrato_minimo_meses') }} meses; al terminar, el saldo a favor se te devuelve</li>
                 </ul>
             </div>
+            @endunless
         </div>
         <p class="mt-3 text-sm text-slate-600">
             <span class="font-medium text-ink">Instalación y entrega del sistema: {{ $dinero(config('suscripcion.instalacion')) }}</span>, pago único para cualquier plan.

@@ -154,7 +154,11 @@ class Barberia extends Model
             ? config('suscripcion.porcentaje.nombre')
             : (config("suscripcion.planes.{$this->plan}.nombre") ?? ucfirst($this->plan));
 
-        return $this->es_pro ? "{$nombre} Pro" : $nombre;
+        return match (true) {
+            $this->solo_agenda => "{$nombre} Agenda",
+            $this->es_pro      => "{$nombre} Pro",
+            default            => $nombre,
+        };
     }
 
     // Lo que cuesta un pago del plan actual (en el plan por uso, la recarga mínima)
@@ -162,13 +166,17 @@ class Barberia extends Model
     {
         return (float) ($this->por_uso
             ? $this->recarga_minima
-            : self::precioDe($this->plan, $this->nivel ?? 'base'));
+            : self::precioDe($this->plan, $this->nivel ?? 'base', $this->tipo_negocio ?? 'barberia'));
     }
 
-    // Precio de un plan por tiempo según el nivel (Base o Pro)
-    public static function precioDe(string $plan, string $nivel = 'base'): float
+    // Precio de un plan por tiempo según el nivel (Base o Pro) o, en solo agendamiento, su precio propio
+    public static function precioDe(string $plan, string $nivel = 'base', string $tipo = 'barberia'): float
     {
         $base = (float) config("suscripcion.planes.{$plan}.precio", 0);
+
+        if ($tipo === 'agenda') {
+            return (float) config("suscripcion.planes.{$plan}.precio_agenda", $base);
+        }
 
         return $nivel === 'pro'
             ? (float) config("suscripcion.planes.{$plan}.precio_pro", $base)
