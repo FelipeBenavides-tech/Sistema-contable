@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Livewire\Concerns\ReagendarCita;
 use App\Models\Cita;
 use App\Models\Cliente;
+use App\Support\Negocio;
 use Livewire\Component;
 
 /**
@@ -29,6 +30,7 @@ class PanelCliente extends Component
     {
         $cliente = Cliente::with('barberia')->where('token', $this->token)->first();
         abort_unless($cliente && $cliente->barberia?->recibe_reservas, 404);
+        Negocio::usar($cliente->barberia);
 
         return $cliente;
     }
@@ -90,7 +92,7 @@ class PanelCliente extends Component
         $this->exito = match ($resultado) {
             'compensada'  => "Tu cita quedó cancelada. Te quedan {$dinero($abono)} de saldo a favor para tu próxima reserva.",
             'saldo_favor' => "Tu cita quedó cancelada. Los {$dinero($cita->anticipo)} del anticipo te quedan como saldo a favor.",
-            'retenido'    => 'Tu cita quedó cancelada. Como faltaban menos de ' . $cita->barberia->horas_cancelacion . ' horas, la barbería se queda con el anticipo.',
+            'retenido'    => 'Tu cita quedó cancelada. Como faltaban menos de ' . $cita->barberia->horas_cancelacion . ' horas, ' . voc('el_negocio') . ' se queda con el anticipo.',
             default       => 'Tu cita quedó cancelada.',
         };
     }

@@ -24,7 +24,7 @@
         'sin_asignar' => [
             'etiqueta' => 'Sin acceso asignado',
             'titulo'   => 'Cuenta no configurada',
-            'detalle'  => 'Tu cuenta no tiene una barbería asignada. El administrador debe configurar tu acceso.',
+            'detalle'  => 'Tu cuenta no tiene un negocio asignado. El administrador debe configurar tu acceso.',
             'ayuda'    => 'Contacta al administrador para configurar tu acceso.',
             'badge'    => 'badge-gray',
         ],

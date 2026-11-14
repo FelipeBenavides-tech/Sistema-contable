@@ -92,7 +92,7 @@ class ReporteController extends Controller
         $fuente = $dompdf->getFontMetrics()->getFont('Helvetica');
         $gris   = [0.39, 0.45, 0.55];
         $alto   = $canvas->get_height();
-        $pie    = ($barberia?->nombre ?? 'Mi barbería') . " · Reporte de {$nombreMes} · Generado con Kaixa";
+        $pie    = ($barberia?->nombre ?? voc('mi_negocio')) . " · Reporte de {$nombreMes} · Generado con Kaixa";
         if (method_exists($canvas, 'page_line')) $canvas->page_line(36, $alto - 36, $canvas->get_width() - 36, $alto - 36, [0.9, 0.91, 0.92], 0.6);
         $canvas->page_text(36, $alto - 29, $pie, $fuente, 7.5, $gris);
         $canvas->page_text($canvas->get_width() - 98, $alto - 29, 'Página {PAGE_NUM} de {PAGE_COUNT}', $fuente, 7.5, $gris);

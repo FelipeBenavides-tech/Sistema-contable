@@ -370,7 +370,7 @@ class PosVenta extends Component
         // El barbero es obligatorio solo si hay servicios
         $tieneServicios = collect($items)->contains(fn($item) => empty($item['es_producto']));
         if ($tieneServicios && $this->barberoId === 0) {
-            $this->addError('barberoId', 'Selecciona el barbero que hizo el servicio.');
+            $this->addError('barberoId', 'Selecciona ' . (voc('profesional') === 'barbero' ? 'el barbero' : 'el profesional') . ' que hizo el servicio.');
             return;
         }
 

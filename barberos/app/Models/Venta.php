@@ -258,7 +258,7 @@ class Venta extends Model
             'cantidad_ventas' => $ventas->count(),
             'por_barbero'     => $ventas->groupBy('barbero_id')->map(function ($v) {
                 return [
-                    'nombre' => $v->first()->barbero?->nombre ?? 'Sin barbero',
+                    'nombre' => $v->first()->barbero?->nombre ?? 'Sin ' . voc('profesional'),
                     'total'     => $v->sum('total'),
                     'comision'  => $v->sum('comision_barbero'),
                     'local'     => $v->sum('ganancia_local'),

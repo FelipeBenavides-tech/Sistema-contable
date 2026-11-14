@@ -157,8 +157,9 @@
                     </div>
                     <div class="sm:col-span-2">
                         <label class="label" for="cli-notas">Notas</label>
-                        <textarea id="cli-notas" wire:model="notas" rows="2" placeholder="Ej. le gusta el degradado bajo" class="input"></textarea>
+                        <textarea id="cli-notas" wire:model="notas" rows="2" placeholder="{{ voc('profesional') === 'barbero' ? 'Ej. le gusta el degradado bajo' : 'Ej. prefiere tonos nude, alérgica a la acetona' }}" class="input"></textarea>
                     </div>
+                    @unless(auth()->user()->barberia->solo_agenda)
                     <label class="flex items-start gap-3 sm:col-span-2">
                         <input wire:model="permite_fiado" type="checkbox" class="mt-0.5 h-5 w-5 rounded border-line text-brand-700 focus:ring-brand-500">
                         <span class="text-sm">
@@ -166,6 +167,7 @@
                             <span class="block text-xs text-muted">Paga después de {{ auth()->user()->barberia->limite_fiado }} servicios. Al llegar a ese número no se le fía más hasta que pague todo.</span>
                         </span>
                     </label>
+                    @endunless
                     <label class="flex items-start gap-3 sm:col-span-2">
                         <input wire:model="acepta_mensajes" type="checkbox" class="mt-0.5 h-5 w-5 rounded border-line text-brand-700 focus:ring-brand-500">
                         <span class="text-sm">

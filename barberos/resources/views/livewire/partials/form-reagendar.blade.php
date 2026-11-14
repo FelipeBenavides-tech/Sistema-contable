@@ -26,10 +26,10 @@
         <div class="grid gap-3 sm:grid-cols-2">
             @if($barberosReagendar->isNotEmpty())
                 <div>
-                    <label class="label" for="re-barbero">Barbero</label>
+                    <label class="label" for="re-barbero">{{ voc('Profesional') }}</label>
                     <select id="re-barbero" wire:model.live="reBarberoId" class="input">
                         @foreach($barberosReagendar as $b)
-                            <option value="{{ $b->id }}">{{ $b->nombre }}</option>
+                            <option value="{{ $b->id }}">{{ $b->nombre_completo }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -43,7 +43,7 @@
         <div>
             <p class="label">Nueva hora</p>
             @if(empty($horasReagendar))
-                <p class="rounded-lg bg-slate-50 p-3 text-sm text-muted">No hay horas libres ese día. Prueba con otro día{{ $barberosReagendar->isNotEmpty() ? ' u otro barbero' : '' }}.</p>
+                <p class="rounded-lg bg-slate-50 p-3 text-sm text-muted">No hay horas libres ese día. Prueba con otro día{{ $barberosReagendar->isNotEmpty() ? ' u otro ' . voc('profesional') : '' }}.</p>
             @else
                 <div class="grid max-h-56 grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
                     @foreach($horasReagendar as $h)
@@ -63,7 +63,7 @@
         @unless($paraCliente)
             <div>
                 <label class="label" for="re-motivo">Motivo para el cliente <span class="font-normal text-muted">(opcional)</span></label>
-                <input id="re-motivo" type="text" wire:model="reMotivo" maxlength="250" placeholder="Ej.: el barbero tuvo una calamidad" class="input">
+                <input id="re-motivo" type="text" wire:model="reMotivo" maxlength="250" placeholder="Ej.: {{ voc('profesional') === 'barbero' ? 'el barbero' : 'la profesional' }} tuvo una calamidad" class="input">
                 <p class="mt-1 text-xs text-muted">El cliente verá la nueva hora en su enlace y podrá aceptarla, escoger otra o cancelar sin perder el anticipo.</p>
             </div>
         @endunless

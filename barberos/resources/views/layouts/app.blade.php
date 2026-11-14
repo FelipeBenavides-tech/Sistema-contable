@@ -9,16 +9,41 @@
         ['route' => 'inventario', 'label' => 'Inventario', 'largo' => 'Inventario',       'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
         ['route' => 'gastos',     'label' => 'Gastos',     'largo' => 'Gastos',           'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
         ['route' => 'reportes',   'label' => 'Reportes',   'largo' => 'Reportes',         'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'],
-        ['route' => 'barberos',   'label' => 'Barberos',   'largo' => 'Barberos',         'icon' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'],
+        ['route' => 'barberos',   'label' => 'Barberos',   'largo' => 'Barberos',   'personal' => true,         'icon' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'],
         ['route' => 'servicios',  'label' => 'Servicios',  'largo' => 'Servicios',        'icon' => 'M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z'],
-        ['route' => 'mi-barberia', 'label' => 'Mi barbería', 'largo' => 'Mi barbería',     'icon' => 'M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z'],
+        ['route' => 'mi-barberia', 'label' => 'Mi barbería', 'largo' => 'Mi barbería', 'negocio' => true,     'icon' => 'M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z'],
         ['route' => 'mi-plan',    'label' => 'Mi plan',    'largo' => 'Mi plan Kaixa',    'icon' => 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'],
     ];
     $barberia = auth()->user()->barberia;
     $esBarbero = auth()->user()->esBarbero();
     $esPro = (bool) $barberia?->es_pro;
+    $tema = \App\Support\Negocio::tema($barberia);
+    $esSalon = $tema === 'salon';
 
-    $iconoLogo = collect($links)->firstWhere('route', 'servicios')['icon'];
+    // Barbería: tijeras. Salón: destellos. Solo agenda: calendario.
+    $iconoLogo = match (true) {
+        $esSalon => 'M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z',
+        (bool) $barberia?->solo_agenda => collect($links)->firstWhere('route', 'agenda')['icon'],
+        default => collect($links)->firstWhere('route', 'servicios')['icon'],
+    };
+
+    // Las palabras del menú cambian según el tipo de negocio (barbería, salón o solo agenda)
+    $links = collect($links)->map(function ($link) {
+        if (!empty($link['personal'])) {
+            $link['route'] = \App\Support\Negocio::ruta('barberos');
+            $link['label'] = $link['largo'] = voc('Profesionales');
+        }
+        if (!empty($link['negocio'])) {
+            $link['route'] = \App\Support\Negocio::ruta('mi-barberia');
+            $link['label'] = $link['largo'] = voc('mi_negocio');
+        }
+        return $link;
+    })->all();
+
+    // Solo agendamiento: sin caja, ventas, cartera, membresías, inventario, gastos ni reportes
+    if ($barberia?->solo_agenda) {
+        $links = collect($links)->reject(fn($link) => in_array($link['route'], ['pos', 'ventas', 'cartera', 'membresias', 'inventario', 'gastos', 'reportes']))->values()->all();
+    }
 
     // El barbero solo ve su agenda
     if ($esBarbero) {
@@ -26,7 +51,44 @@
     }
 
     // En el teléfono, la barra de abajo muestra las 4 pantallas más usadas + "Más"
-    $barraInferior = $esPro ? ['pos', 'agenda', 'ventas', 'clientes'] : ['pos', 'ventas', 'clientes', 'inventario'];
+    $barraInferior = match (true) {
+        (bool) $barberia?->solo_agenda => ['agenda', 'clientes', \App\Support\Negocio::ruta('barberos'), 'servicios'],
+        $esPro => ['pos', 'agenda', 'ventas', 'clientes'],
+        default => ['pos', 'ventas', 'clientes', 'inventario'],
+    };
+
+    // Colores del menú lateral: oscuro en la barbería, pastel en el salón de belleza
+    $menu = $esSalon ? [
+        'aside'    => 'border-brand-100 bg-gradient-to-b from-brand-50 via-white to-accent-100 text-ink',
+        'borde'    => 'border-brand-100',
+        'logo'     => 'bg-gradient-to-br from-brand-200 to-accent-400 text-white ring-brand-100',
+        'sub'      => 'text-brand-700/70',
+        'titulo'   => 'text-brand-700/60',
+        'activo'   => 'bg-white text-brand-800 shadow-sm ring-1 ring-brand-100',
+        'inactivo' => 'text-slate-600 hover:bg-white/70 hover:text-brand-800',
+        'marca'    => 'bg-brand-400',
+        'cerrar'   => 'text-brand-700 hover:bg-white',
+        'plan'     => 'bg-white/70 text-slate-600 hover:bg-white',
+        'planNom'  => 'text-ink',
+        'aro'      => 'ring-brand-100',
+        'reloj'    => 'text-brand-700/60',
+        'salir'    => 'text-brand-800 ring-brand-200 hover:bg-white',
+    ] : [
+        'aside'    => 'border-white/5 bg-ink text-white',
+        'borde'    => 'border-white/10',
+        'logo'     => 'bg-brand-900 text-accent-500 ring-white/10',
+        'sub'      => 'text-slate-400',
+        'titulo'   => 'text-slate-500',
+        'activo'   => 'bg-white/10 text-white',
+        'inactivo' => 'text-slate-400 hover:bg-white/5 hover:text-white',
+        'marca'    => 'bg-accent-500',
+        'cerrar'   => 'text-slate-400 hover:bg-white/10 hover:text-white',
+        'plan'     => 'bg-white/5 text-slate-300 hover:bg-white/10',
+        'planNom'  => 'text-white',
+        'aro'      => 'ring-white/10',
+        'reloj'    => 'text-slate-500',
+        'salir'    => 'text-slate-300 ring-white/15 hover:bg-white/10 hover:text-white',
+    ];
 
     // Estado del pago de Kaixa: siempre visible arriba y en el menú
     $estadoPago = $barberia?->estado_pago;
@@ -52,7 +114,7 @@
     }
 @endphp
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-tema="{{ $tema }}">
 <head>
     @include('partials.head')
     <title>{{ $title ?? 'Panel' }} · Kaixa</title>
@@ -66,49 +128,49 @@
          class="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-[2px] lg:hidden"></div>
 
     {{-- Menú lateral (fijo en computador, deslizable en teléfono) --}}
-    <aside class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] -translate-x-full flex-col border-r border-white/5 bg-ink text-white transition-transform duration-200 lg:w-64 lg:translate-x-0"
+    <aside class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] -translate-x-full flex-col border-r {{ $menu['aside'] }} transition-transform duration-200 lg:w-64 lg:translate-x-0"
            :class="menu && 'translate-x-0'">
-        <div class="flex items-center justify-between gap-3 border-b border-white/10 px-5 py-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
+        <div class="flex items-center justify-between gap-3 border-b {{ $menu['borde'] }} px-5 py-5 pt-[max(1.25rem,env(safe-area-inset-top))]">
             <div class="flex min-w-0 items-center gap-3">
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-900 text-accent-500 ring-1 ring-white/10">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ring-1 {{ $menu['logo'] }}">
                     <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconoLogo }}"/></svg>
                 </div>
                 <div class="min-w-0">
                     <p class="text-sm font-semibold tracking-tight">Kaixa</p>
-                    <p class="truncate text-xs text-slate-400">{{ $barberia?->nombre ?? 'Mi barbería' }}</p>
+                    <p class="truncate text-xs {{ $menu['sub'] }}">{{ $barberia?->nombre ?? voc('mi_negocio') }}</p>
                 </div>
             </div>
-            <button type="button" @click="menu = false" class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white lg:hidden" aria-label="Cerrar menú">
+            <button type="button" @click="menu = false" class="flex h-9 w-9 items-center justify-center rounded-lg {{ $menu['cerrar'] }} lg:hidden" aria-label="Cerrar menú">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
 
         <nav class="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
-            <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">Menú</p>
+            <p class="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider {{ $menu['titulo'] }}">Menú</p>
             @foreach($links as $link)
                 @php $activo = request()->routeIs($link['route']); @endphp
                 <a href="{{ route($link['route']) }}"
-                   class="relative flex min-h-[42px] items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors {{ $activo ? 'bg-white/10 text-white' : 'text-slate-400 hover:bg-white/5 hover:text-white' }}">
-                    @if($activo)<span class="absolute inset-y-2 left-0 w-0.5 rounded-full bg-accent-500"></span>@endif
+                   class="relative flex min-h-[42px] items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors {{ $activo ? $menu['activo'] : $menu['inactivo'] }}">
+                    @if($activo)<span class="absolute inset-y-2 left-0 w-0.5 rounded-full {{ $menu['marca'] }}"></span>@endif
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="{{ $link['icon'] }}"/></svg>
                     <span class="flex-1">{{ $link['largo'] }}</span>
                     @if(!empty($link['pro']) && !$esPro)
-                        <span class="rounded bg-accent-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-accent-500">Pro</span>
+                        <span class="rounded bg-accent-500/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase {{ $esSalon ? 'text-brand-700' : 'text-accent-500' }}">Pro</span>
                     @endif
                 </a>
             @endforeach
         </nav>
 
         @if($barberia && !$esBarbero)
-            <a href="{{ route('mi-plan') }}" class="mx-3 mb-3 block rounded-lg bg-white/5 p-3 text-xs text-slate-300 ring-1 ring-inset {{ $estadoPago === 'en_gracia' ? 'ring-rose-400/40' : ($estadoPago === 'por_vencer' ? 'ring-amber-400/40' : 'ring-white/10') }} hover:bg-white/10">
+            <a href="{{ route('mi-plan') }}" class="mx-3 mb-3 block rounded-lg p-3 text-xs ring-1 ring-inset {{ $menu['plan'] }} {{ $estadoPago === 'en_gracia' ? 'ring-rose-400/40' : ($estadoPago === 'por_vencer' ? 'ring-amber-400/40' : $menu['aro']) }}">
                 <span class="flex items-center justify-between gap-2">
-                    <span class="font-semibold text-white">Plan {{ $barberia->nombre_plan }}</span>
+                    <span class="font-semibold {{ $menu['planNom'] }}">Plan {{ $barberia->nombre_plan }}</span>
                     @if($estadoPago === 'en_gracia')
-                        <span class="rounded bg-rose-500/20 px-1.5 py-0.5 text-[11px] font-medium text-rose-200">Vencido</span>
+                        <span class="rounded bg-rose-500/20 px-1.5 py-0.5 text-[11px] font-medium {{ $esSalon ? 'text-rose-700' : 'text-rose-200' }}">Vencido</span>
                     @elseif($estadoPago === 'por_vencer')
-                        <span class="rounded bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-medium text-amber-200">{{ $barberia->por_uso ? 'Saldo bajo' : 'Por vencer' }}</span>
+                        <span class="rounded bg-amber-500/20 px-1.5 py-0.5 text-[11px] font-medium {{ $esSalon ? 'text-amber-700' : 'text-amber-200' }}">{{ $barberia->por_uso ? 'Saldo bajo' : 'Por vencer' }}</span>
                     @else
-                        <span class="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[11px] font-medium text-emerald-200">Al día</span>
+                        <span class="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[11px] font-medium {{ $esSalon ? 'text-emerald-700' : 'text-emerald-200' }}">Al día</span>
                     @endif
                 </span>
                 <span class="mt-1 block">
@@ -123,14 +185,14 @@
             </a>
         @endif
 
-        <div class="flex items-center justify-between gap-2 border-t border-white/10 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div class="flex items-center justify-between gap-2 border-t {{ $menu['borde'] }} p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
             <div class="min-w-0">
                 <p class="truncate text-sm font-medium">{{ auth()->user()->name }}</p>
-                <p id="reloj" class="text-xs text-slate-500"></p>
+                <p id="reloj" class="text-xs {{ $menu['reloj'] }}"></p>
             </div>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
-                <button type="submit" class="rounded-lg px-3 py-1.5 text-xs font-medium text-slate-300 ring-1 ring-inset ring-white/15 hover:bg-white/10 hover:text-white">Salir</button>
+                <button type="submit" class="rounded-lg px-3 py-1.5 text-xs font-medium ring-1 ring-inset {{ $menu['salir'] }}">Salir</button>
             </form>
         </div>
     </aside>

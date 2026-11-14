@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Cita;
+use App\Support\Negocio;
 use App\Support\Wompi;
 use Livewire\Component;
 
@@ -32,7 +33,10 @@ class VerReserva extends Component
 
     private function cita(): Cita
     {
-        return Cita::with(['barberia', 'barbero', 'servicios', 'cliente'])->where('token', $this->token)->firstOrFail();
+        $cita = Cita::with(['barberia', 'barbero', 'servicios', 'cliente'])->where('token', $this->token)->firstOrFail();
+        Negocio::usar($cita->barberia);
+
+        return $cita;
     }
 
     public function pagar()
@@ -62,7 +66,7 @@ class VerReserva extends Component
         $this->mensaje = match ($cita->cancelarPorCliente()) {
             'compensada'  => 'Tu cita quedó cancelada. No pierdes el anticipo y te dejamos un descuento como saldo a favor para tu próxima reserva.',
             'saldo_favor' => "Tu cita quedó cancelada. Los {$dinero} del anticipo te quedan como saldo a favor para tu próxima reserva.",
-            'retenido'    => 'Tu cita quedó cancelada. Como faltaban menos de ' . $cita->barberia->horas_cancelacion . ' horas, la barbería se queda con el anticipo.',
+            'retenido'    => 'Tu cita quedó cancelada. Como faltaban menos de ' . $cita->barberia->horas_cancelacion . ' horas, ' . voc('el_negocio') . ' se queda con el anticipo.',
             default       => 'Tu cita quedó cancelada.',
         };
     }

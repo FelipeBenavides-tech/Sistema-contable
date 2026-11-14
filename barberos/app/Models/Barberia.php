@@ -13,6 +13,7 @@ class Barberia extends Model
 {
     protected $fillable = [
         'nombre',
+        'tipo_negocio',
         'nit',
         'propietario',
         'telefono',
@@ -60,6 +61,29 @@ class Barberia extends Model
     public const PLANES = ['mensual', 'semestral', 'anual', 'porcentaje'];
 
     public const NIVELES = ['base', 'pro'];
+
+    // ── Tipo de negocio ───────────────────────────────────────────────────────
+
+    public function getEsSalonAttribute(): bool
+    {
+        return $this->tipo_negocio === 'salon';
+    }
+
+    // Solo agendamiento de citas: sin caja, ventas, inventario ni reportes
+    public function getSoloAgendaAttribute(): bool
+    {
+        return $this->tipo_negocio === 'agenda';
+    }
+
+    public function getTieneCajaAttribute(): bool
+    {
+        return !$this->solo_agenda;
+    }
+
+    public function getNombreTipoAttribute(): string
+    {
+        return \App\Support\Negocio::TIPOS[$this->tipo_negocio] ?? \App\Support\Negocio::TIPOS['barberia'];
+    }
 
     public function users(): HasMany
     {
@@ -130,7 +154,11 @@ class Barberia extends Model
             ? config('suscripcion.porcentaje.nombre')
             : (config("suscripcion.planes.{$this->plan}.nombre") ?? ucfirst($this->plan));
 
-        return $this->es_pro ? "{$nombre} Pro" : $nombre;
+        return match (true) {
+            $this->solo_agenda => "{$nombre} Agenda",
+            $this->es_pro      => "{$nombre} Pro",
+            default            => $nombre,
+        };
     }
 
     // Lo que cuesta un pago del plan actual (en el plan por uso, la recarga mínima)
@@ -138,13 +166,17 @@ class Barberia extends Model
     {
         return (float) ($this->por_uso
             ? $this->recarga_minima
-            : self::precioDe($this->plan, $this->nivel ?? 'base'));
+            : self::precioDe($this->plan, $this->nivel ?? 'base', $this->tipo_negocio ?? 'barberia'));
     }
 
-    // Precio de un plan por tiempo según el nivel (Base o Pro)
-    public static function precioDe(string $plan, string $nivel = 'base'): float
+    // Precio de un plan por tiempo según el nivel (Base o Pro) o, en solo agendamiento, su precio propio
+    public static function precioDe(string $plan, string $nivel = 'base', string $tipo = 'barberia'): float
     {
         $base = (float) config("suscripcion.planes.{$plan}.precio", 0);
+
+        if ($tipo === 'agenda') {
+            return (float) config("suscripcion.planes.{$plan}.precio_agenda", $base);
+        }
 
         return $nivel === 'pro'
             ? (float) config("suscripcion.planes.{$plan}.precio_pro", $base)

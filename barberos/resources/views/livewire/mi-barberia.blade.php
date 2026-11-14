@@ -41,8 +41,8 @@
 
         <div class="grid gap-3 sm:grid-cols-2">
             <div class="sm:col-span-2">
-                <label class="label" for="nombre">Nombre de la barbería</label>
-                <input id="nombre" wire:model="nombre" type="text" placeholder="Barbería El Estilo" class="input">
+                <label class="label" for="nombre">Nombre {{ voc('del_negocio') }}</label>
+                <input id="nombre" wire:model="nombre" type="text" placeholder="{{ ['salón' => 'Salón Bella Rosa', 'negocio' => 'Mi negocio'][voc('negocio')] ?? 'Barbería El Estilo' }}" class="input">
             </div>
             <div>
                 <label class="label" for="nit">NIT o documento <span class="font-normal text-muted">(opcional)</span></label>
@@ -72,7 +72,7 @@
         <form wire:submit="guardarReservas" class="card card-pad flex flex-col gap-5">
             <div>
                 <p class="section-title">Reservas en línea</p>
-                <p class="text-xs text-muted">Tus clientes reservan y pagan el anticipo desde una página propia de tu barbería.</p>
+                <p class="text-xs text-muted">Tus clientes reservan y pagan el anticipo desde una página propia de {{ voc('tu_negocio') }}.</p>
             </div>
 
             @if($mensajeReservas)
@@ -108,7 +108,7 @@
                     <input id="horasCancelacion" wire:model="horas_cancelacion" type="number" min="0" max="168" class="input">
                 </div>
                 <div>
-                    <label class="label" for="descuentoCancelacion">Descuento si la barbería cancela (%)</label>
+                    <label class="label" for="descuentoCancelacion">Descuento si {{ voc('el_negocio') }} cancela (%)</label>
                     <input id="descuentoCancelacion" wire:model="descuento_cancelacion" type="number" min="0" max="100" class="input">
                     <p class="mt-1 text-xs text-muted">Porcentaje del servicio que le queda al cliente como saldo a favor.</p>
                 </div>

@@ -12,6 +12,7 @@ class Barbero extends Model
     protected $fillable = [
         'barberia_id',
         'nombre',
+        'especialidad',
         'telefono',
         'comision_porcentaje',
         'activo',
@@ -64,6 +65,12 @@ class Barbero extends Model
         $dia = $horarios->firstWhere('dia_semana', $diaSemana);
 
         return $dia ? ['inicio' => $dia->hora_inicio, 'fin' => $dia->hora_fin] : null;
+    }
+
+    // "Ana · Manicurista" (o solo el nombre si no tiene especialidad)
+    public function getNombreCompletoAttribute(): string
+    {
+        return $this->especialidad ? "{$this->nombre} · {$this->especialidad}" : $this->nombre;
     }
 
     public function comisionesMes(int $mes, int $anio): array

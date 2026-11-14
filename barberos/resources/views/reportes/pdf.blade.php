@@ -132,7 +132,7 @@
                 <td class="kpi">
                     <div class="kpi-label"><span class="dot bg-ambar"></span>Comisiones</div>
                     <div class="kpi-value">{{ $dinero($resumen['total_comisiones']) }}</div>
-                    <div class="kpi-nota">Pagadas a barberos</div>
+                    <div class="kpi-nota">Pagadas a {{ voc('profesionales') }}</div>
                 </td>
                 <td class="kpi">
                     <div class="kpi-label"><span class="dot bg-rojo"></span>Gastos</div>
@@ -156,7 +156,7 @@
                         <table class="datos estado">
                             <tr class="grupo"><td colspan="2">Ingresos</td></tr>
                             <tr><td class="sangria">Ventas del mes</td><td class="r">{{ $dinero($resumen['ingresos']) }}</td></tr>
-                            <tr><td class="sangria">Comisiones de barberos</td><td class="r rojo">- {{ $dinero($resumen['total_comisiones']) }}</td></tr>
+                            <tr><td class="sangria">Comisiones de {{ voc('profesionales') }}</td><td class="r rojo">- {{ $dinero($resumen['total_comisiones']) }}</td></tr>
                             <tr><td class="sangria fuerte">Ganancia del local</td><td class="r fuerte">{{ $dinero($resumen['total_local']) }}</td></tr>
                             <tr class="grupo"><td colspan="2">Gastos</td></tr>
                             <tr><td class="sangria">Gastos operativos</td><td class="r rojo">- {{ $dinero($resumen['gastos']) }}</td></tr>
@@ -186,7 +186,7 @@
 
         {{-- Rendimiento por barbero --}}
         <div class="seccion">
-            <div class="seccion-titulo">Rendimiento por barbero</div>
+            <div class="seccion-titulo">Rendimiento por {{ voc('profesional') }}</div>
             <table class="datos">
                 <thead>
                     <tr>

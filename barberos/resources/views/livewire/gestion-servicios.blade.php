@@ -55,7 +55,7 @@
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div class="sm:col-span-2">
                         <label class="label" for="nombre">Nombre</label>
-                        <input id="nombre" wire:model="nombre" type="text" placeholder="Corte clásico" class="input" autofocus>
+                        <input id="nombre" wire:model="nombre" type="text" placeholder="{{ voc('profesional') === 'barbero' ? 'Corte clásico' : 'Manicure semipermanente' }}" class="input" autofocus>
                     </div>
                     <div>
                         <label class="label" for="precio">Precio (COP)</label>

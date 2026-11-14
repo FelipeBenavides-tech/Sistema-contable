@@ -11,7 +11,7 @@
 
     <div class="grid grid-cols-2 gap-3 md:grid-cols-5">
         <div class="kpi">
-            <p class="kpi-label"><span class="kpi-dot bg-brand-500"></span>Barberías</p>
+            <p class="kpi-label"><span class="kpi-dot bg-brand-500"></span>Negocios</p>
             <p class="kpi-value">{{ $stats['total'] }}</p>
         </div>
         <div class="kpi">
@@ -35,12 +35,12 @@
     @error('devolucion')<div class="alert-error">{{ $message }}</div>@enderror
 
     <div class="flex justify-end">
-        <button type="button" wire:click="nuevo" class="btn btn-primary">+ Nueva barbería</button>
+        <button type="button" wire:click="nuevo" class="btn btn-primary">+ Nuevo negocio</button>
     </div>
 
     <div class="tabla">
         <div class="tabla-head md:grid-cols-[1fr_100px_70px_150px_90px_340px]">
-            <span>Barbería</span>
+            <span>Negocio</span>
             <span class="text-center">Plan</span>
             <span class="text-center">Ventas</span>
             <span class="text-center">Vence / saldo</span>
@@ -53,6 +53,7 @@
                 <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                         <p class="font-semibold">{{ $barberia->nombre }}</p>
+                        <p class="mt-0.5"><span class="badge {{ $barberia->es_salon ? 'bg-pink-50 text-pink-700 ring-pink-600/20' : ($barberia->solo_agenda ? 'badge-green' : 'badge-gray') }}">{{ $barberia->nombre_tipo }}</span></p>
                         <p class="text-xs text-muted">
                             {{ $barberia->propietario ?: '—' }}
                             @if($barberia->telefono) · <a href="tel:{{ $barberia->telefono }}" class="hover:text-brand-700">{{ $barberia->telefono }}</a>@endif
@@ -97,7 +98,7 @@
                 </div>
             </div>
         @empty
-            <p class="tabla-vacia">No hay barberías registradas. Agrega tu primer cliente.</p>
+            <p class="tabla-vacia">No hay negocios registrados. Agrega tu primer cliente.</p>
         @endforelse
     </div>
 
@@ -105,16 +106,31 @@
     @if($mostrarForm)
         <div class="modal-fondo" wire:click.self="cancelar">
             <form wire:submit="guardar" class="modal-panel">
-                <h3 class="modal-titulo">{{ $editandoId ? 'Editar barbería' : 'Nueva barbería' }}</h3>
+                <h3 class="modal-titulo">{{ $editandoId ? 'Editar negocio' : 'Nuevo negocio' }}</h3>
 
                 @if($errors->any())
                     <div class="alert-error">@foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach</div>
                 @endif
 
                 <div class="grid gap-3 sm:grid-cols-2">
+                    <div class="sm:col-span-2">
+                        <label class="label" for="tipoNegocio">Tipo de negocio *</label>
+                        <select id="tipoNegocio" wire:model.live="tipoNegocio" class="input">
+                            @foreach($tipos as $clave => $texto)
+                                <option value="{{ $clave }}">{{ $texto }}</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-xs text-muted">
+                            @switch($tipoNegocio)
+                                @case('salon') Apartado de salón de belleza: colores pastel y profesionales (estilistas, manicuristas y otros) en lugar de barberos. @break
+                                @case('agenda') Solo la agenda de citas, reservas en línea, clientes, profesionales y servicios. Sin caja, ventas ni inventario. @break
+                                @default Caja, barberos, agenda y reportes de una barbería.
+                            @endswitch
+                        </p>
+                    </div>
                     <div>
-                        <label class="label" for="nombre">Nombre de la barbería *</label>
-                        <input id="nombre" wire:model="nombre" type="text" placeholder="Barbería El Estilo" class="input">
+                        <label class="label" for="nombre">Nombre del negocio *</label>
+                        <input id="nombre" wire:model="nombre" type="text" placeholder="{{ ['salon' => 'Salón Bella Rosa', 'agenda' => 'Consultorio Bienestar'][$tipoNegocio] ?? 'Barbería El Estilo' }}" class="input">
                     </div>
                     <div>
                         <label class="label" for="propietario">Propietario</label>
@@ -128,6 +144,12 @@
                         <label class="label" for="direccion">Dirección</label>
                         <input id="direccion" wire:model="direccion" type="text" class="input">
                     </div>
+                    @if($tipoNegocio === 'agenda')
+                    <div class="sm:col-span-2">
+                        <label class="label">Nivel</label>
+                        <p class="rounded-lg bg-slate-50 px-3 py-2.5 text-sm text-muted ring-1 ring-inset ring-slate-200"><span class="font-medium text-ink">Agenda</span> · precio propio de solo agendamiento ({{ $dinero(config('suscripcion.planes.mensual.precio_agenda')) }} al mes), con la agenda, las reservas en línea y los usuarios para profesionales.</p>
+                    </div>
+                    @else
                     <div class="sm:col-span-2">
                         <label class="label">Nivel *</label>
                         <div class="segmentado flex w-full">
@@ -137,6 +159,7 @@
                         </div>
                         <p class="mt-1 text-xs text-muted">{{ config("suscripcion.niveles.{$nivel}.descripcion") }}</p>
                     </div>
+                    @endif
                     <div class="sm:col-span-2">
                         <label class="label" for="plan">Plan *</label>
                         <select id="plan" wire:model.live="plan" class="input">
@@ -166,7 +189,7 @@
                                 @else
                                     Déjalo en 0 si aún no ha pagado: tendrá {{ config('suscripcion.dias_gracia') }} días de gracia.
                                 @endif
-                                Se anota en los gastos de la barbería.
+                                @unless($tipoNegocio === 'agenda') Se anota en los gastos del negocio. @endunless
                             </p>
                         </div>
                         <label class="flex items-center gap-2 text-sm sm:col-span-2">
@@ -241,7 +264,7 @@
                     @else
                         Si paga dentro de los días de gracia, el periodo sigue desde su vencimiento; si ya estaba bloqueada, desde hoy.
                     @endif
-                    El pago queda anotado en los gastos de la barbería.
+                    @if($pagoDe->tiene_caja) El pago queda anotado en los gastos del negocio. @endif
                 </p>
 
                 <div class="grid grid-cols-2 gap-2 sm:flex sm:justify-end">

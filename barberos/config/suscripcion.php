@@ -7,11 +7,12 @@
 return [
 
     // Planes por tiempo: precio total y meses que cubre cada pago
-    // precio = plan Base; precio_pro = plan Pro (incluye la agenda de citas)
+    // precio = plan Base; precio_pro = plan Pro (incluye la agenda de citas);
+    // precio_agenda = negocios de "solo agendamiento de citas" (sin caja ni contabilidad)
     'planes' => [
-        'mensual'   => ['nombre' => 'Mensual',   'meses' => 1,  'precio' => 130000,  'precio_pro' => 180000],
-        'semestral' => ['nombre' => 'Semestral', 'meses' => 6,  'precio' => 700000,  'precio_pro' => 970000],
-        'anual'     => ['nombre' => 'Anual',     'meses' => 12, 'precio' => 1200000, 'precio_pro' => 1660000],
+        'mensual'   => ['nombre' => 'Mensual',   'meses' => 1,  'precio' => 130000,  'precio_pro' => 180000,  'precio_agenda' => 80000],
+        'semestral' => ['nombre' => 'Semestral', 'meses' => 6,  'precio' => 700000,  'precio_pro' => 970000,  'precio_agenda' => 430000],
+        'anual'     => ['nombre' => 'Anual',     'meses' => 12, 'precio' => 1200000, 'precio_pro' => 1660000, 'precio_agenda' => 740000],
     ],
 
     // Niveles que se combinan con cualquier plan
@@ -22,7 +23,7 @@ return [
         ],
         'pro' => [
             'nombre'      => 'Pro',
-            'descripcion' => 'Todo lo del plan Base más la agenda de citas, horarios y usuarios para que cada barbero vea su agenda.',
+            'descripcion' => 'Todo lo del plan Base más la agenda de citas, horarios y usuarios para que cada barbero o profesional vea su agenda.',
         ],
     ],
 

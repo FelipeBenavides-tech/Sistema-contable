@@ -231,15 +231,15 @@
 
             {{-- 2. Barbero --}}
             <div class="border-b border-line px-4 py-4 sm:px-5">
-                <label for="barbero" class="card-title mb-2 block">Barbero</label>
+                <label for="barbero" class="card-title mb-2 block">{{ voc('Profesional') }}</label>
                 <select id="barbero" wire:model.live="barberoId" class="input">
                     <option value="0">Seleccionar…</option>
                     @foreach($barberos as $b)
-                        <option value="{{ $b->id }}">{{ $b->nombre }}</option>
+                        <option value="{{ $b->id }}">{{ $b->nombre_completo }}</option>
                     @endforeach
                 </select>
                 @if($barberos->isEmpty())
-                    <a href="{{ route('barberos') }}" class="mt-2 inline-block text-xs font-medium text-brand-600">Agregar barberos →</a>
+                    <a href="{{ route(\App\Support\Negocio::ruta('barberos')) }}" class="mt-2 inline-block text-xs font-medium text-brand-600">Agregar {{ voc('profesionales') }} →</a>
                 @endif
             </div>
 

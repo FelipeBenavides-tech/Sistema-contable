@@ -73,7 +73,7 @@ class MiBarberia extends Component
             'wompi_secreto_eventos'    => ['nullable', 'regex:/^(test|prod)_events_\w+$/'],
             'wompi_secreto_integridad' => ['nullable', 'regex:/^(test|prod)_integrity_\w+$/'],
         ], [
-            'slug.unique'                    => 'Esa dirección ya la usa otra barbería.',
+            'slug.unique'                    => 'Esa dirección ya la usa otro negocio.',
             'wompi_llave_publica.regex'      => 'La llave pública de Wompi empieza por pub_test_ o pub_prod_.',
             'wompi_llave_privada.regex'      => 'La llave privada de Wompi empieza por prv_test_ o prv_prod_.',
             'wompi_secreto_eventos.regex'    => 'El secreto de eventos empieza por test_events_ o prod_events_.',
@@ -158,6 +158,6 @@ class MiBarberia extends Component
     {
         return view('livewire.mi-barberia', [
             'barberia' => $this->barberia()->fresh(),
-        ])->layout('layouts.app', ['title' => 'Mi barbería']);
+        ])->layout('layouts.app', ['title' => voc('mi_negocio')]);
     }
 }

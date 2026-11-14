@@ -117,7 +117,7 @@ trait FormularioCita
             'citaHora'        => ['required', 'regex:/^\d{2}:\d{2}$/'],
             'citaNotas'       => 'nullable|max:250',
         ], [
-            'citaBarberoId.min'           => 'Escoge el barbero.',
+            'citaBarberoId.min'           => 'Escoge el ' . voc('profesional') . '.',
             'citaServicios.required'      => 'Escoge al menos un servicio.',
             'citaFecha.after_or_equal'    => 'La fecha no puede ser anterior a hoy.',
             'citaHora.required'           => 'Escoge la hora.',

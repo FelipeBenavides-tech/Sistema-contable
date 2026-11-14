@@ -6,7 +6,7 @@
 
     <div class="segmentado w-full sm:w-auto sm:self-start">
         <button type="button" wire:click="$set('tab', 'agenda')" class="segmento {{ $tab === 'agenda' ? 'segmento-activo' : '' }}">Agenda</button>
-        <button type="button" wire:click="$set('tab', 'horarios')" class="segmento {{ $tab === 'horarios' ? 'segmento-activo' : '' }}">Horarios de barberos</button>
+        <button type="button" wire:click="$set('tab', 'horarios')" class="segmento {{ $tab === 'horarios' ? 'segmento-activo' : '' }}">Horarios de {{ voc('profesionales') }}</button>
     </div>
 
     @if($exito)
@@ -34,8 +34,8 @@
             </div>
             <p class="text-sm font-medium text-ink">{{ ucfirst($dia->translatedFormat('l j \d\e F')) }}</p>
             <div class="flex items-center gap-2">
-                <select wire:model.live="barberoFiltro" class="input w-full lg:w-48" aria-label="Filtrar por barbero">
-                    <option value="0">Todos los barberos</option>
+                <select wire:model.live="barberoFiltro" class="input w-full lg:w-48" aria-label="Filtrar por {{ voc('profesional') }}">
+                    <option value="0">Todos los {{ voc('profesionales') }}</option>
                     @foreach($barberos as $b)
                         <option value="{{ $b->id }}">{{ $b->nombre }}</option>
                     @endforeach
@@ -52,15 +52,15 @@
         </div>
 
         @if($barberos->isEmpty())
-            <p class="tabla-vacia card">Agrega barberos para poder agendar citas.</p>
+            <p class="tabla-vacia card">Agrega {{ voc('profesionales') }} para poder agendar citas.</p>
         @else
-            {{-- Una columna por barbero --}}
+            {{-- Una columna por barbero o profesional --}}
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 @foreach($columnas as $col)
                     <section wire:key="col-{{ $col['barbero']->id }}" class="card overflow-hidden">
                         <div class="flex items-center justify-between gap-2 border-b border-line px-4 py-3">
                             <div class="min-w-0">
-                                <h2 class="section-title truncate">{{ $col['barbero']->nombre }}</h2>
+                                <h2 class="section-title truncate">{{ $col['barbero']->nombre }}@if($col['barbero']->especialidad && voc('profesional') !== 'barbero')<span class="ml-1.5 text-xs font-normal text-brand-600">{{ $col['barbero']->especialidad }}</span>@endif</h2>
                                 <p class="text-xs text-muted">
                                     {{ $col['horario'] ? $hora12($col['horario']['inicio']) . ' – ' . $hora12($col['horario']['fin']) : 'No trabaja este día' }}
                                 </p>
@@ -103,14 +103,18 @@
                                 @if($cita->estado === 'confirmada')
                                     @php
                                         $avisoCliente = $cita->anticipo_estado !== 'pagado' ? ''
-                                            : ($cita->cancela_a_tiempo ? ' Avisó a tiempo: el anticipo le queda como saldo a favor.' : ' Avisó tarde: la barbería se queda con el anticipo.');
+                                            : ($cita->cancela_a_tiempo ? ' Avisó a tiempo: el anticipo le queda como saldo a favor.' : ' Avisó tarde: ' . voc('el_negocio') . ' se queda con el anticipo.');
                                     @endphp
                                     <div class="mt-2 grid grid-cols-2 gap-1.5">
-                                        <a href="{{ route('pos', ['cita' => $cita->id]) }}" class="btn btn-sm btn-primary">Cobrar</a>
-                                        <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'no_asistio')" wire:confirm="¿Marcar que {{ $cita->cliente->nombre }} no asistió?{{ $cita->anticipo_estado === 'pagado' ? ' La barbería se queda con el anticipo.' : '' }}" class="btn btn-sm btn-light">No vino</button>
+                                        @if($cita->barberia->solo_agenda)
+                                            <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'atendida')" class="btn btn-sm btn-primary">Atendida</button>
+                                        @else
+                                            <a href="{{ route('pos', ['cita' => $cita->id]) }}" class="btn btn-sm btn-primary">Cobrar</a>
+                                        @endif
+                                        <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'no_asistio')" wire:confirm="¿Marcar que {{ $cita->cliente->nombre }} no asistió?{{ $cita->anticipo_estado === 'pagado' ? ' ' . voc('El_negocio') . ' se queda con el anticipo.' : '' }}" class="btn btn-sm btn-light">No vino</button>
                                         <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'cancelada_cliente')" wire:confirm="¿{{ $cita->cliente->nombre }} canceló su cita?{{ $avisoCliente }}" class="btn btn-sm btn-light">Canceló cliente</button>
                                         <button type="button" wire:click="abrirReagendar({{ $cita->id }})" class="btn btn-sm btn-soft col-span-2">Reagendar</button>
-                                        <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'cancelada')" wire:confirm="¿La barbería cancela la cita de {{ $cita->cliente->nombre }}? Recibe el {{ $cita->barberia->descuento_cancelacion }}% del servicio como descuento{{ $cita->anticipo_estado === 'pagado' ? ' y conserva su anticipo' : '' }}, como saldo a favor." class="btn btn-sm btn-danger">Canceló barbero</button>
+                                        <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'cancelada')" wire:confirm="¿{{ voc('El_negocio') }} cancela la cita de {{ $cita->cliente->nombre }}? Recibe el {{ $cita->barberia->descuento_cancelacion }}% del servicio como descuento{{ $cita->anticipo_estado === 'pagado' ? ' y conserva su anticipo' : '' }}, como saldo a favor." class="btn btn-sm btn-danger">Canceló {{ voc('profesional') }}</button>
                                     </div>
                                 @elseif(in_array($cita->estado, ['cancelada', 'no_asistio']) && $cita->anticipo_estado === null && $dia->gte(today()))
                                     <button type="button" wire:click="cambiarEstado({{ $cita->id }}, 'confirmada')" class="mt-2 text-xs font-medium text-brand-600 hover:text-brand-800">Volver a confirmar</button>
@@ -125,10 +129,10 @@
         @endif
     @else
         {{-- Horarios --}}
-        <p class="text-sm text-muted">Las citas solo se pueden agendar dentro del horario de cada barbero. Si a un barbero no se le configura, usa el horario general (lunes a sábado de 9:00 a. m. a 7:00 p. m.).</p>
+        <p class="text-sm text-muted">Las citas solo se pueden agendar dentro del horario de cada {{ voc('profesional') }}. Si a {{ voc('un_profesional') }} no se le configura, usa el horario general (lunes a sábado de 9:00 a. m. a 7:00 p. m.).</p>
         <div class="tabla">
             <div class="tabla-head md:grid-cols-[200px_1fr_140px]">
-                <span>Barbero</span>
+                <span>{{ voc('Profesional') }}</span>
                 <span>Horario</span>
                 <span class="text-right">Acciones</span>
             </div>
@@ -147,7 +151,7 @@
                     </div>
                 </div>
             @empty
-                <p class="tabla-vacia">Aún no hay barberos activos.</p>
+                <p class="tabla-vacia">Aún no hay {{ voc('profesionales') }} activos.</p>
             @endforelse
         </div>
     @endif

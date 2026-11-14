@@ -5,13 +5,15 @@ namespace App\Livewire\Admin;
 use App\Models\Barberia;
 use App\Models\PagoSuscripcion;
 use App\Models\User;
+use App\Support\Negocio;
 use App\Support\PlanesKaixa;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class PanelAdmin extends Component
 {
-    // Formulario nueva barbería
+    // Formulario nuevo negocio (barbería, salón de belleza o solo agenda)
+    public string $tipoNegocio = 'barberia';
     public string $nombre = '';
     public string $propietario = '';
     public string $telefono = '';
@@ -50,7 +52,7 @@ class PanelAdmin extends Component
     {
         return (float) ($plan === 'porcentaje'
             ? config('suscripcion.porcentaje.primera_recarga_minima')
-            : Barberia::precioDe($plan, $nivel));
+            : Barberia::precioDe($plan, $nivel, $this->tipoNegocio));
     }
 
     public function updatedPlan(): void
@@ -65,10 +67,23 @@ class PanelAdmin extends Component
         $this->updatedPlan();
     }
 
+    // Solo agendamiento: la agenda es del nivel Pro y no hay ventas para cobrar el plan por uso
+    public function updatedTipoNegocio(): void
+    {
+        if ($this->tipoNegocio === 'agenda') {
+            $this->nivel = 'pro';
+            if ($this->plan === 'porcentaje') {
+                $this->plan = 'mensual';
+            }
+        }
+        $this->updatedPlan();
+    }
+
     public function nuevo(): void
     {
         $this->resetErrorBag();
         $this->reset([
+            'tipoNegocio',
             'nombre',
             'propietario',
             'telefono',
@@ -90,6 +105,7 @@ class PanelAdmin extends Component
         $this->resetErrorBag();
         $barberia          = Barberia::findOrFail($id);
         $this->editandoId  = $id;
+        $this->tipoNegocio = $barberia->tipo_negocio ?? 'barberia';
         $this->nombre      = $barberia->nombre;
         $this->propietario = $barberia->propietario ?? '';
         $this->telefono    = $barberia->telefono ?? '';
@@ -101,7 +117,13 @@ class PanelAdmin extends Component
 
     public function guardar(): void
     {
+        // Solo agendamiento siempre va en nivel Pro (incluye la agenda)
+        if ($this->tipoNegocio === 'agenda') {
+            $this->nivel = 'pro';
+        }
+
         $rules = [
+            'tipoNegocio' => 'required|in:' . implode(',', array_keys(Negocio::TIPOS)),
             'nombre' => 'required|min:2',
             'plan'   => 'required|in:' . implode(',', Barberia::PLANES),
             'nivel'  => 'required|in:' . implode(',', Barberia::NIVELES),
@@ -113,7 +135,12 @@ class PanelAdmin extends Component
             $rules['valorPago'] = 'required|numeric|min:0';
         }
 
-        $this->validate($rules);
+        $this->validate($rules, [], ['tipoNegocio' => 'tipo de negocio']);
+
+        if ($this->tipoNegocio === 'agenda' && $this->plan === 'porcentaje') {
+            $this->addError('plan', 'El plan por uso cobra un porcentaje de las ventas; un negocio de solo agendamiento no registra ventas. Escoge un plan mensual, semestral o anual.');
+            return;
+        }
 
         // La primera recarga del plan por uso tiene un mínimo (0 = aún no ha pagado)
         $minimo = (float) config('suscripcion.porcentaje.primera_recarga_minima');
@@ -125,6 +152,7 @@ class PanelAdmin extends Component
         if ($this->editandoId) {
             $barberia = Barberia::findOrFail($this->editandoId);
             $barberia->fill([
+                'tipo_negocio' => $this->tipoNegocio,
                 'nombre'      => $this->nombre,
                 'propietario' => $this->propietario,
                 'telefono'    => $this->telefono,
@@ -160,6 +188,7 @@ class PanelAdmin extends Component
             DB::transaction(function () {
                 // Crear barbería
                 $barberia = new Barberia([
+                    'tipo_negocio'      => $this->tipoNegocio,
                     'nombre'            => $this->nombre,
                     'propietario'       => $this->propietario,
                     'telefono'          => $this->telefono,
@@ -195,6 +224,7 @@ class PanelAdmin extends Component
         }
 
         $this->reset([
+            'tipoNegocio',
             'nombre',
             'propietario',
             'telefono',
@@ -300,6 +330,7 @@ class PanelAdmin extends Component
     {
         $this->resetErrorBag();
         $this->reset([
+            'tipoNegocio',
             'nombre',
             'propietario',
             'telefono',
@@ -336,7 +367,7 @@ class PanelAdmin extends Component
         ]);
 
         if (!$user) {
-            $this->addError('nuevoEmail', 'No hay usuario asignado a esta barbería.');
+            $this->addError('nuevoEmail', 'No hay usuario asignado a este negocio.');
             return;
         }
 
@@ -378,7 +409,8 @@ class PanelAdmin extends Component
         return view('livewire.admin.panel-admin', [
             'barberias' => $barberias,
             'stats'     => $stats,
-            'opciones'  => PlanesKaixa::opciones($this->nivel),
+            'opciones'  => PlanesKaixa::opciones($this->nivel, $this->tipoNegocio),
+            'tipos'     => Negocio::TIPOS,
             'pagoDe'    => $this->pagoBarberiaId ? $barberias->firstWhere('id', $this->pagoBarberiaId) : null,
         ])->layout('layouts.admin', ['title' => 'Panel de Administración']);
     }

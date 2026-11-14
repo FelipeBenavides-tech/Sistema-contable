@@ -46,7 +46,7 @@ class IngresosSheet implements FromCollection, WithHeadings, WithTitle, WithStyl
 
     public function headings(): array
     {
-        return ['#', 'Fecha', 'Barbero', 'Servicios', 'Método de pago', 'Efectivo', 'Nequi/Transfer', 'Total'];
+        return ['#', 'Fecha', voc('Profesional'), 'Servicios', 'Método de pago', 'Efectivo', 'Nequi/Transfer', 'Total'];
     }
 
     public function collection()
@@ -187,7 +187,7 @@ class ResumenSheet implements FromCollection, WithHeadings, WithTitle, WithStyle
             ['',                                         ''],
             ['INGRESOS',                                 ''],
             ['Total ingresos',                           $resumen['ingresos']],
-            ['Total comisiones barberos',                $resumen['total_comisiones']],
+            ['Total comisiones ' . voc('profesionales'),                $resumen['total_comisiones']],
             ['Ganancia del local',                       $resumen['total_local']],
             ['',                                         ''],
             ['GASTOS',                                   ''],

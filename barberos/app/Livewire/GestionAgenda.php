@@ -68,11 +68,24 @@ class GestionAgenda extends Component
     public function cambiarEstado(int $id, string $estado): void
     {
         // cancelada = la cancela la barbería (el barbero no puede atender); cancelada_cliente = avisó el cliente
-        if (!in_array($estado, ['cancelada', 'cancelada_cliente', 'no_asistio', 'confirmada'], true)) {
+        if (!in_array($estado, ['cancelada', 'cancelada_cliente', 'no_asistio', 'confirmada', 'atendida'], true)) {
             return;
         }
 
         $cita = $this->cita($id);
+
+        // Solo agendamiento: no hay caja, así que la cita se marca atendida desde la agenda
+        if ($estado === 'atendida') {
+            if (!$cita->barberia->solo_agenda || $cita->estado !== 'confirmada') {
+                return;
+            }
+            $cita->update([
+                'estado'          => 'atendida',
+                'anticipo_estado' => $cita->anticipo_estado === 'pagado' ? 'aplicado' : $cita->anticipo_estado,
+            ]);
+            $this->exito = "Cita de {$cita->cliente->nombre} marcada como atendida.";
+            return;
+        }
 
         // Una cita cobrada ya tiene su venta: se maneja desde Ventas
         if ($cita->estado === 'atendida') {
@@ -86,7 +99,7 @@ class GestionAgenda extends Component
             $resultado = $cita->cancelar(porCliente: false);
             $abono = (float) $cita->cliente->fresh()->saldo_favor - $saldoAntes;
             $this->exito = $resultado === 'compensada'
-                ? "Cita cancelada por la barbería. {$cita->cliente->nombre} quedó con {$dinero($abono)} de saldo a favor (anticipo más el {$cita->barberia->descuento_cancelacion}% de descuento) para su próxima cita."
+                ? "Cita cancelada por " . voc('el_negocio') . ". {$cita->cliente->nombre} quedó con {$dinero($abono)} de saldo a favor (anticipo más el {$cita->barberia->descuento_cancelacion}% de descuento) para su próxima cita."
                 : 'Cita cancelada. La hora quedó libre.';
             return;
         }
@@ -94,7 +107,7 @@ class GestionAgenda extends Component
         if ($estado === 'cancelada_cliente') {
             $this->exito = match ($cita->cancelar(porCliente: true)) {
                 'saldo_favor' => "Cita cancelada a tiempo. El anticipo ({$dinero($cita->anticipo)}) le quedó a {$cita->cliente->nombre} como saldo a favor.",
-                'retenido'    => "Cita cancelada fuera de tiempo. La barbería se queda con el anticipo ({$dinero($cita->anticipo)}).",
+                'retenido'    => "Cita cancelada fuera de tiempo. " . voc('El_negocio') . " se queda con el anticipo ({$dinero($cita->anticipo)}).",
                 default       => 'Cita cancelada. La hora quedó libre.',
             };
             return;
@@ -104,7 +117,7 @@ class GestionAgenda extends Component
             $tenia = $cita->anticipo_estado === 'pagado';
             $cita->marcarNoAsistio();
             $this->exito = $tenia
-                ? "Se marcó que el cliente no asistió. El anticipo ({$dinero($cita->anticipo)}) quedó como ingreso de la barbería."
+                ? "Se marcó que el cliente no asistió. El anticipo ({$dinero($cita->anticipo)}) quedó como ingreso " . voc('del_negocio') . "."
                 : 'Se marcó que el cliente no asistió.';
             return;
         }

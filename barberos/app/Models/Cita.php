@@ -328,7 +328,7 @@ class Cita extends Model
                 throw ValidationException::withMessages(['reagendar' => 'Solo se pueden reagendar citas confirmadas.']);
             }
             if ($barbero->barberia_id !== $cita->barberia_id || !$barbero->activo) {
-                throw ValidationException::withMessages(['reagendar' => 'Ese barbero no está disponible.']);
+                throw ValidationException::withMessages(['reagendar' => 'Ese ' . voc('profesional') . ' no está disponible.']);
             }
 
             $fecha = Carbon::parse($fecha)->toDateString();

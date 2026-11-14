@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Barberia;
+use App\Support\Negocio;
 use App\Models\Barbero;
 use App\Models\Cita;
 use App\Models\Cliente;
@@ -95,7 +96,7 @@ class ReservaEnLinea extends Component
         }
 
         $this->mostrarRecuperar = true;
-        $this->recuperarMensaje = 'Si tu celular tiene un correo registrado, te enviamos allí el enlace de tus citas. Si no te llega, escríbele a la barbería.';
+        $this->recuperarMensaje = 'Si tu celular tiene un correo registrado, te enviamos allí el enlace de tus citas. Si no te llega, escríbele ' . voc('al_negocio', $barberia) . '.';
         $this->recuperarTelefono = '';
     }
 
@@ -103,6 +104,8 @@ class ReservaEnLinea extends Component
     {
         $barberia = Barberia::where('slug', $this->slug)->first();
         abort_unless($barberia && $barberia->recibe_reservas, 404);
+        // Palabras y colores según el tipo de negocio (barbería o salón de belleza)
+        Negocio::usar($barberia);
 
         return $barberia;
     }

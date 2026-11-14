@@ -31,16 +31,35 @@ teléfono se puede "Agregar a la pantalla de inicio" para abrirla como una app.
 - **Panel de administrador** (`/admin`) para crear barberías, sus usuarios, registrar sus pagos y recargas.
   No hay registro público: las cuentas las crea el administrador.
 
+## Tipos de negocio
+
+Al crear un negocio en `/admin` se escoge el **Tipo de negocio**:
+
+- **Barbería**: el sistema de siempre (barberos, "Mi barbería", colores azul marino).
+- **Salón de belleza**: apartado propio con **paleta pastel** (rosa empolvado y lavanda). En todas las pantallas, la página
+  de reservas, los mensajes y el PDF dice **profesional** en lugar de barbero. "Agregar profesional" pide la
+  **especialidad**: estilista, manicurista u otra (se escribe, por ejemplo maquilladora o cosmetóloga), y se ve en la agenda,
+  en la caja y al reservar.
+- **Solo agendamiento de citas**: agenda, reservas en línea, clientes, profesionales y servicios. No tiene caja, ventas,
+  cartera, membresías, inventario, gastos ni reportes; la cita se marca **Atendida** desde la agenda. Tiene precio propio
+  (**$80.000 al mes**, ver la tabla de planes), incluye las funciones de agenda del nivel Pro y no admite el plan por uso,
+  porque no registra ventas.
+
+Las palabras de cada tipo están en `app/Support/Negocio.php` y en las vistas se usan con `voc('profesional')`,
+`voc('mi_negocio')`, etc. Los colores salen de variables CSS en `resources/css/app.css` (`[data-tema="salon"]`).
+Para probarlo en local: `php artisan db:seed --class=DemoSalonSeeder` crea un salón (`salon@kaixa.local`) y un negocio de
+solo agenda (`agenda@kaixa.local`), ambos con la contraseña `demo12345`.
+
 ## Planes de Kaixa
 
 Cada plan viene en dos niveles: **Base** (todo el sistema) y **Pro** (Base + agenda de citas y usuarios para barberos).
 
-| Plan | Base | Pro | Notas |
-|---|---|---|---|
-| Mensual | $130.000 al mes | $180.000 al mes | Contrato mínimo de 6 meses |
-| Semestral | $700.000 | $970.000 | Ahorra frente al mensual |
-| Anual | $1.200.000 | $1.660.000 | Ahorra frente al mensual |
-| Por uso | 2,5% de cada venta | 3,5% de cada venta | Saldo prepagado que se recarga: la primera recarga es de mínimo $200.000. Contrato mínimo de 6 meses; al terminar, el saldo a favor se devuelve |
+| Plan | Base | Pro | Solo agendamiento | Notas |
+|---|---|---|---|---|
+| Mensual | $130.000 al mes | $180.000 al mes | $80.000 al mes | Contrato mínimo de 6 meses |
+| Semestral | $700.000 | $970.000 | $430.000 | Ahorra frente al mensual |
+| Anual | $1.200.000 | $1.660.000 | $740.000 | Ahorra frente al mensual |
+| Por uso | 2,5% de cada venta | 3,5% de cada venta | No aplica | Saldo prepagado que se recarga: la primera recarga es de mínimo $200.000. Contrato mínimo de 6 meses; al terminar, el saldo a favor se devuelve |
 
 La instalación y entrega del sistema cuesta $65.000, en un solo pago, para cualquier plan.
 
